@@ -1,0 +1,458 @@
+/* ==========================================================================
+   SECTION 06 — THE PROOF
+
+   Five relationships placed by hand on a 12-column grid. Each has its own slot
+   rule and its own weight; there is deliberately no repeating pattern, no
+   shared height and no shared width, because a rule that placed all five the
+   same way would rebuild the testimonial-card grid this section exists to
+   avoid.
+
+   There are no cards here at all: no border box, no radius, no shadow, no
+   glass, no fill, no quotation-mark graphic, no rating, no carousel. A proof
+   item is a block of type in negative space with a single hairline under it.
+
+   LAYERS
+   1  background ........ the section itself
+   2  network SVG ....... z-index 0, one field, never clipped to an item
+   3  proof items ....... z-index 1
+   4  section type ...... z-index 2
+   ========================================================================== */
+
+.proof {
+  position: relative;
+  background: var(--rh-black);
+  padding-block: clamp(5rem, 14vh, 11rem) clamp(8rem, 22vh, 17rem);
+  overflow: hidden;
+}
+
+/* Pre-animation state, present in the server-rendered markup so the first
+   painted frame is correct. `noscript` in the root layout releases it. */
+.proof[data-proof-state="idle"] [data-proof-reveal] {
+  clip-path: inset(0 0 100% 0);
+  opacity: 0;
+}
+
+.proof[data-proof-state="idle"] [data-proof-meta],
+.proof[data-proof-state="idle"] [data-proof-marker],
+.proof[data-proof-state="idle"] [data-proof-lede] {
+  opacity: 0;
+}
+
+.proof[data-proof-state="idle"] [data-proof-rule] {
+  transform: scaleX(0);
+}
+
+.proof__network {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* --------------------------------------------------------------------------
+   Opening — continues the 01 / 02 / 03 / 04 marker system
+   -------------------------------------------------------------------------- */
+.proof__opening {
+  position: relative;
+  z-index: 2;
+  margin-inline: var(--gutter);
+  margin-block-end: clamp(3.5rem, 11vh, 8rem);
+}
+
+.proof__marker {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.6rem, 1.2vw, 1rem);
+  margin-block-end: clamp(1.75rem, 5vh, 3.5rem);
+  font-family: var(--font-body);
+  font-size: var(--step-eyebrow);
+  line-height: 1;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+}
+
+.proof__index {
+  color: var(--rh-cream);
+}
+
+.proof__rule {
+  display: block;
+  width: clamp(18px, 2.6vw, 44px);
+  height: 1px;
+  background: var(--rh-cream-42);
+}
+
+.proof__heading {
+  max-width: 16ch;
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  /* Level with The Collective's heading: this is the last movement of the same
+     argument, not a louder one. */
+  font-size: clamp(1.5rem, 7.2vw, 2.6rem);
+  line-height: 1.04;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream);
+}
+
+.proof__standfirst {
+  max-width: 30ch;
+  margin-block: clamp(0.9rem, 2.4vh, 1.5rem) 0;
+  font-family: var(--font-body);
+  font-size: var(--step-body);
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  color: var(--rh-cream-64);
+}
+
+.proof__intro {
+  max-width: 48ch;
+  margin-block-start: clamp(1.5rem, 4vh, 2.75rem);
+  font-family: var(--font-body);
+  font-size: var(--step-body);
+  line-height: 1.55;
+  color: var(--rh-cream-78);
+}
+
+/* --------------------------------------------------------------------------
+   The field
+   -------------------------------------------------------------------------- */
+.proof__field {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  column-gap: clamp(0.75rem, 1.6vw, 1.5rem);
+  /* The section's rhythm lives here: the network owns the space between the
+     relationships. Wider than The Collective's, because this field is calmer
+     and its items are shorter — and widest of all on the narrow column, where
+     the band between two items is the only place the network can be seen at
+     all. Every item here carries a paragraph, so a 390 column runs at nearly
+     twice the type density of any section above it. */
+  row-gap: clamp(6.5rem, 22vh, 13rem);
+  padding-inline: var(--gutter);
+}
+
+/* --- one relationship ----------------------------------------------------- */
+.proof-item {
+  position: relative;
+  grid-column: 1 / -1;
+}
+
+.proof-item__logo {
+  margin-block-end: clamp(0.9rem, 2vh, 1.4rem);
+}
+
+.proof-item__logo img {
+  display: block;
+  width: auto;
+  max-width: min(100%, 190px);
+  height: auto;
+  max-height: clamp(28px, 4vw, 46px);
+  /* A supplied mark is shown as supplied. No recolouring, no filter, no
+     forced monochrome — brand guidelines have not been given for any of them. */
+}
+
+.proof-item__client {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  line-height: 1.06;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream);
+  text-wrap: balance;
+}
+
+/* When a real statement exists the quote becomes the object and the name steps
+   back to a label above it. This is the only rule that has to change when the
+   client's testimonials land. */
+.proof-item[data-voice="quote"] .proof-item__client {
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1.3;
+  letter-spacing: 0.16em;
+  color: var(--rh-cream-64);
+  text-wrap: initial;
+}
+
+.proof-item__descriptor {
+  margin-block-start: clamp(0.6rem, 1.4vh, 0.95rem);
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1.4;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rh-cream-42);
+}
+
+/* --- a supplied photograph, when one exists ------------------------------- */
+.proof-item__image {
+  position: relative;
+  margin: clamp(1.2rem, 3vh, 2rem) 0 0;
+  overflow: hidden;
+  /* Editorial rectangle. No radius, no shadow, no card. */
+  background: var(--rh-black-raised);
+}
+
+.proof-item__image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* --- the statement, when one exists --------------------------------------- */
+.proof-item__quote {
+  margin: clamp(1.1rem, 2.8vh, 1.9rem) 0 0;
+  /* No indent bar, no oversized quotation glyph, no speech bubble. The measure
+     and the face do the work. */
+}
+
+.proof-item__quote-text {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  line-height: 1.16;
+  letter-spacing: var(--track-display);
+  color: var(--rh-cream);
+  text-wrap: pretty;
+}
+
+.proof-item__attribution {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  margin-block-start: clamp(0.9rem, 2.2vh, 1.4rem);
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1.35;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.proof-item__person {
+  font-style: normal;
+  color: var(--rh-cream);
+}
+
+.proof-item__role {
+  color: var(--rh-cream-42);
+}
+
+/* --- the relationship itself ---------------------------------------------- */
+.proof-item__terms {
+  margin-block-start: clamp(1.2rem, 3vh, 2rem);
+}
+
+.proof-item__rule {
+  display: block;
+  width: clamp(34px, 5vw, 72px);
+  height: 1px;
+  margin-block-end: clamp(0.9rem, 2vh, 1.3rem);
+  background: var(--rh-cream-42);
+  will-change: transform;
+}
+
+.proof-item__relationship {
+  max-width: 44ch;
+  font-family: var(--font-body);
+  font-size: clamp(0.82rem, 1.05vw, 0.95rem);
+  line-height: 1.6;
+  color: var(--rh-cream-64);
+}
+
+.proof-item__term {
+  margin-block-start: clamp(0.7rem, 1.6vh, 1rem);
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1.45;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rh-cream-42);
+}
+
+/* --------------------------------------------------------------------------
+   DEVELOPMENT-STATE SLOT
+   Compiled out of production entirely — see ProofItem.tsx. Out of flow so it
+   cannot change the measured composition the network is generated from.
+   -------------------------------------------------------------------------- */
+.proof-item__pending {
+  position: absolute;
+  z-index: 3;
+  /* Parked in the row gap above the item so it never sits over the client's
+     own words while the section is being built. */
+  bottom: calc(100% + 0.75rem);
+  right: 0;
+  padding: 0.3rem 0.5rem;
+  border: 1px dashed var(--rh-cream-42);
+  font-family: var(--font-body);
+  font-size: 0.6rem;
+  line-height: 1;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--rh-cream-42);
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   MOBILE — one flowing vertical composition. Alternating offsets and genuinely
+   different widths, never a two-column grid and never a stack of identical
+   full-width blocks. The network stays visible in the band between each pair.
+   ========================================================================== */
+/* Nothing spans the full width. Each item leaves a lane on the side it is not
+   pushed to, and the lanes alternate — which is what keeps the network visible
+   between the relationships instead of forcing every descending strand across
+   a paragraph. Measured: full-width mobile items put 17% of the network's
+   sampled length over live text, against 7–8% in the approved sections above. */
+.proof-item[data-slot="lead"] {
+  grid-column: 1 / 11;
+}
+.proof-item[data-slot="counter"] {
+  grid-column: 3 / 13;
+}
+.proof-item[data-slot="aside"] {
+  grid-column: 1 / 10;
+}
+.proof-item[data-slot="drift-a"] {
+  grid-column: 4 / 13;
+}
+.proof-item[data-slot="drift-b"] {
+  grid-column: 2 / 12;
+}
+
+.proof-item[data-size="lead"] .proof-item__client,
+.proof-item[data-size="lead"] .proof-item__quote-text {
+  font-size: clamp(1.5rem, 7.4vw, 2.5rem);
+}
+.proof-item[data-size="major"] .proof-item__client,
+.proof-item[data-size="major"] .proof-item__quote-text {
+  font-size: clamp(1.25rem, 6vw, 2rem);
+}
+.proof-item[data-size="minor"] .proof-item__client,
+.proof-item[data-size="minor"] .proof-item__quote-text {
+  font-size: clamp(1.05rem, 4.8vw, 1.6rem);
+}
+
+/* ==========================================================================
+   TABLET — the spread compresses and the horizontal distances shrink, but the
+   asymmetry stays: each item takes a different measure and leans to a
+   different edge.
+   ========================================================================== */
+@media (min-width: 700px) {
+  .proof__field {
+    row-gap: clamp(4.5rem, 14vh, 10rem);
+  }
+
+  .proof-item[data-slot="lead"] {
+    grid-column: 1 / 10;
+  }
+  .proof-item[data-slot="counter"] {
+    grid-column: 4 / 13;
+    margin-block-start: clamp(1.5rem, 5vh, 4rem);
+  }
+  .proof-item[data-slot="aside"] {
+    grid-column: 1 / 9;
+  }
+  .proof-item[data-slot="drift-a"] {
+    grid-column: 6 / 13;
+    margin-block-start: clamp(2rem, 7vh, 5.5rem);
+  }
+  .proof-item[data-slot="drift-b"] {
+    grid-column: 1 / 8;
+  }
+
+  .proof-item[data-size="lead"] .proof-item__client,
+  .proof-item[data-size="lead"] .proof-item__quote-text {
+    font-size: clamp(2.1rem, 4.4vw, 3.1rem);
+  }
+  .proof-item[data-size="major"] .proof-item__client,
+  .proof-item[data-size="major"] .proof-item__quote-text {
+    font-size: clamp(1.7rem, 3.5vw, 2.5rem);
+  }
+  .proof-item[data-size="minor"] .proof-item__client,
+  .proof-item[data-size="minor"] .proof-item__quote-text {
+    font-size: clamp(1.3rem, 2.6vw, 1.85rem);
+  }
+}
+
+/* ==========================================================================
+   DESKTOP — the wide editorial field. Two relationships can coexist across a
+   row without sharing a baseline, the last one sits alone against a whole
+   empty half, and no two items are the same width or start at the same height.
+   ========================================================================== */
+@media (min-width: 1100px) {
+  .proof__opening {
+    margin-block-end: clamp(4rem, 13vh, 10rem);
+  }
+
+  .proof__heading {
+    max-width: 20ch;
+    font-size: clamp(2.6rem, 4.2vw, 4.6rem);
+  }
+
+  .proof__standfirst {
+    max-width: 34ch;
+    font-size: clamp(1.05rem, 1.5vw, 1.4rem);
+  }
+
+  .proof__field {
+    row-gap: clamp(5rem, 15vh, 11rem);
+  }
+
+  /* Row 1 — the deepest relationship, wide and left; the ongoing one dropped
+     well below it on the right. */
+  .proof-item[data-slot="lead"] {
+    grid-column: 1 / 7;
+  }
+  .proof-item[data-slot="counter"] {
+    grid-column: 8 / 13;
+    margin-block-start: clamp(6rem, 18vh, 14rem);
+  }
+
+  /* Row 2 — pulled up under the lead, with a smaller item well to its right. */
+  .proof-item[data-slot="aside"] {
+    grid-column: 2 / 7;
+    margin-block-start: clamp(-3rem, -6vh, 0rem);
+  }
+  .proof-item[data-slot="drift-a"] {
+    grid-column: 8 / 12;
+    margin-block-start: clamp(4rem, 12vh, 9rem);
+  }
+
+  /* Row 3 — alone, indented, with the whole right half left to the network. */
+  .proof-item[data-slot="drift-b"] {
+    grid-column: 3 / 7;
+    margin-block-start: clamp(2rem, 8vh, 6rem);
+  }
+
+  .proof-item[data-size="lead"] .proof-item__client,
+  .proof-item[data-size="lead"] .proof-item__quote-text {
+    font-size: clamp(2.5rem, 3.5vw, 4.1rem);
+  }
+  .proof-item[data-size="major"] .proof-item__client,
+  .proof-item[data-size="major"] .proof-item__quote-text {
+    font-size: clamp(1.9rem, 2.6vw, 3rem);
+  }
+  .proof-item[data-size="minor"] .proof-item__client,
+  .proof-item[data-size="minor"] .proof-item__quote-text {
+    font-size: clamp(1.4rem, 1.9vw, 2.2rem);
+  }
+
+  .proof-item[data-size="minor"] .proof-item__relationship {
+    max-width: 34ch;
+  }
+}
+
+/* ==========================================================================
+   REDUCED MOTION — nothing moves, everything is present and in normal flow.
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .proof-item__rule {
+    will-change: auto;
+  }
+}

@@ -1,0 +1,144 @@
+/* ==========================================================================
+   RHUBARB COLLECTIVE — foundations
+   Tokens, reset and page-level texture. Component styling lives beside its
+   component; nothing here should know about the hero specifically.
+   ========================================================================== */
+
+:root {
+  /* --- colour ---------------------------------------------------------- */
+  --rh-void: #000000;
+  --rh-black: #050505;
+  --rh-black-raised: #0a0a0a;
+  /* Brand cream, per the client brand guidelines. */
+  --rh-cream: #fff8bb;
+  --rh-cream-90: rgb(255 248 187 / 0.9);
+  --rh-cream-78: rgb(255 248 187 / 0.78);
+  --rh-cream-64: rgb(255 248 187 / 0.64);
+  --rh-cream-42: rgb(255 248 187 / 0.42);
+  --rh-cream-24: rgb(255 248 187 / 0.24);
+  --rh-cream-12: rgb(255 248 187 / 0.12);
+  --rh-cream-06: rgb(255 248 187 / 0.06);
+
+  /* --- type ------------------------------------------------------------ */
+  /* The two families are injected by next/font in the root layout. Nothing
+     should reference the raw family names outside these two tokens. */
+  --font-display: var(--font-cy-grotesk-wide), "Arial Black", "Helvetica Neue",
+    sans-serif;
+  --font-body: var(--font-agrandir), "Helvetica Neue", Helvetica, Arial,
+    sans-serif;
+
+  /* Fluid display scale. Each tier gets its own ratio rather than one global
+     curve, because the display face is wide and a single vw slope either
+     overflows narrow screens or under-fills wide ones. Redeclared per
+     breakpoint at the bottom of this file. */
+  --step-display: clamp(1.6rem, 9.2vw, 3.2rem);
+  /* Section-two statement: a step below the hero headline on every tier, so
+     the second section deepens the idea rather than competing with it. */
+  --step-statement: clamp(1.45rem, 8.2vw, 2.9rem);
+  --step-eyebrow: clamp(0.6rem, 0.92vw, 0.86rem);
+  --step-body: clamp(0.95rem, 1.28vw, 1.22rem);
+  --step-micro: clamp(0.58rem, 0.72vw, 0.72rem);
+
+  --track-eyebrow: 0.22em;
+  --track-display: -0.015em;
+
+  /* --- rhythm ---------------------------------------------------------- */
+  /* 3.75vw matches the 60/1600 inset the network generator reserves, which is
+     what keeps the typography aligned with the keep-out zones. */
+  --gutter: clamp(1.25rem, 3.75vw, 3.75rem);
+
+  --ease-organic: cubic-bezier(0.22, 0.61, 0.24, 1);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  background: var(--rh-void);
+  /* Belt and braces against any child overflowing the viewport. */
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--rh-black);
+  color: var(--rh-cream);
+  font-family: var(--font-body);
+  font-size: var(--step-body);
+  line-height: 1.5;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+p,
+figure {
+  margin: 0;
+}
+
+::selection {
+  background: var(--rh-cream);
+  color: var(--rh-black);
+}
+
+:focus-visible {
+  outline: 1px solid var(--rh-cream);
+  outline-offset: 4px;
+}
+
+/* --------------------------------------------------------------------------
+   GRAIN
+   One tiled 200px fractal-noise tile, painted once by the browser and held
+   fixed. No animation, no large raster, no blend mode that could wash out the
+   cream — just enough dust to stop the black reading as flat ink.
+   -------------------------------------------------------------------------- */
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+}
+
+/* Display scale per tier. Breakpoints match lib/hero/useViewport.ts, so the
+   typography and the generated network always change character together. */
+@media (min-width: 700px) {
+  :root {
+    --step-display: clamp(2.4rem, 6.6vw, 4.4rem);
+    --step-statement: clamp(2rem, 4.9vw, 3.4rem);
+  }
+}
+
+@media (min-width: 1100px) {
+  :root {
+    --step-display: clamp(3.2rem, 5.7vw, 6.6rem);
+    --step-statement: clamp(2.5rem, 4.45vw, 5.2rem);
+  }
+}
+
+/* Accessible label that stays out of the composition. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

@@ -1,0 +1,326 @@
+/* ==========================================================================
+   HERO
+   Layout is absolute and percentage-based on purpose: the same fractions
+   describe the typography here and the keep-out zones in lib/hero/config.ts,
+   which is what makes the network appear to grow around the words. Move a
+   block here and move its rectangle there.
+   ========================================================================== */
+
+.hero {
+  position: relative;
+  background: var(--rh-black);
+}
+
+.hero__stage {
+  position: relative;
+  width: 100%;
+  height: 100svh;
+  min-height: 30rem;
+  overflow: hidden;
+  background: var(--rh-black);
+}
+
+/* --------------------------------------------------------------------------
+   Pre-animation state.
+
+   The idle attribute is present in the server-rendered markup, so the first
+   painted frame is already the storyboard's black void — there is no flash of
+   an assembled hero before the timeline takes over. The copy is in the DOM the
+   whole time; only its opacity waits. `noscript` in the root layout releases
+   this for anyone without JavaScript.
+   -------------------------------------------------------------------------- */
+.hero[data-hero-state="idle"] [data-reveal] {
+  opacity: 0;
+}
+
+/* --------------------------------------------------------------------------
+   NETWORK
+   -------------------------------------------------------------------------- */
+.hero-network {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  overflow: visible;
+}
+
+/* Strands that run under the typography sit back from the outset — they are
+   the only ones allowed to cross the copy, so they carry the least weight. */
+.hero-network__behind {
+  opacity: 0.42;
+}
+
+/* --------------------------------------------------------------------------
+   COPY LAYER
+   -------------------------------------------------------------------------- */
+.hero-copy {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.hero-lockup,
+.hero-headline,
+.hero-support,
+.hero-cue {
+  position: absolute;
+}
+
+/* --- identity + positioning lockup --------------------------------------- */
+.hero-lockup {
+  top: 12.2%;
+  left: var(--gutter);
+  display: flex;
+  align-items: center;
+  gap: clamp(0.7rem, 1.4vw, 1.4rem);
+}
+
+.hero-logo {
+  display: block;
+}
+
+.hero-logo__mark {
+  display: block;
+  width: clamp(26px, 3vw, 44px);
+  height: auto;
+}
+
+.hero-lockup__rule {
+  display: block;
+  width: clamp(20px, 3.2vw, 56px);
+  height: 1px;
+  background: var(--rh-cream-42);
+}
+
+.hero-eyebrow {
+  font-family: var(--font-body);
+  font-size: var(--step-eyebrow);
+  line-height: 1;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+}
+
+/* --- the main statement --------------------------------------------------- */
+.hero-headline {
+  top: 25.8%;
+  left: var(--gutter);
+  right: var(--gutter);
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--step-display);
+  line-height: 1.02;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream);
+  /* Last-resort guard: nothing may ever push the page sideways. */
+  overflow-wrap: break-word;
+}
+
+.hero-headline__line {
+  display: block;
+  overflow: hidden;
+  /* Extra room below the clip so commas and descenders survive the mask,
+     pulled back out of the flow so the leading is unaffected. */
+  padding-block-end: 0.16em;
+  margin-block-end: -0.16em;
+}
+
+.hero-headline__inner {
+  display: block;
+  will-change: transform;
+}
+
+/* Staggered indents. The editorial rag is also what opens the pockets the
+   network threads through. */
+.hero-headline__line[data-line="2"] {
+  margin-inline-start: 6%;
+}
+
+.hero-headline__line[data-line="4"] {
+  margin-inline-start: 9%;
+}
+
+/* --- supporting message --------------------------------------------------- */
+.hero-support {
+  top: 68.75%;
+  left: var(--gutter);
+  right: var(--gutter);
+  max-width: 32ch;
+  font-family: var(--font-body);
+  font-size: var(--step-body);
+  line-height: 1.45;
+  /* Subordinate to the headline, but still ahead of anything the network can
+     put behind it. */
+  color: var(--rh-cream-78);
+}
+
+.hero-support__tick {
+  display: block;
+  width: clamp(28px, 3.4vw, 54px);
+  height: 1px;
+  margin-block-end: clamp(0.75rem, 1.4vw, 1.25rem);
+  background: var(--rh-cream-24);
+}
+
+/* --- scroll cue -----------------------------------------------------------
+   The first thing a visitor needs and the easiest thing to miss: until they
+   scroll, the hero is a near-black field, so a cue set at --step-micro in
+   cream-42 (~10px at 42% on black) left people looking at what reads as an
+   empty page. It is deliberately larger and brighter than the rest of the
+   supporting type here — this is the one line that has a job to do — while
+   still sitting well under the headline.
+   -------------------------------------------------------------------------- */
+.hero-cue {
+  bottom: 4%;
+  left: var(--gutter);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: clamp(0.6rem, 1.2vh, 0.9rem);
+  font-family: var(--font-body);
+  font-size: clamp(0.72rem, 0.95vw, 0.86rem);
+  line-height: 1;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--rh-cream-78);
+}
+
+.hero-cue__word {
+  display: block;
+  /* The letterspacing adds a trailing gap; this pulls the word back onto the
+     gutter so it aligns with the headline above it. */
+  margin-inline-start: 0.05em;
+}
+
+/* The direction. A dash beside the word said there was something here without
+   saying which way it was — this says down. */
+.hero-cue__track {
+  position: relative;
+  display: block;
+  width: 1px;
+  height: clamp(34px, 5vh, 56px);
+  background: var(--rh-cream-24);
+  overflow: hidden;
+}
+
+.hero-cue__mark {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  display: block;
+  height: 42%;
+  background: var(--rh-cream);
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-cue__mark {
+    will-change: auto;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   BOUNDARY — phase 10
+   A procedural halftone ramp plus the strands that leave through it. The
+   halftone is a tiled radial-gradient masked by a linear fade: no DOM, no
+   image, and it echoes the print halftone in the brand's own material.
+   -------------------------------------------------------------------------- */
+.hero-boundary {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: clamp(88px, 16vh, 190px);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.hero-boundary__halftone {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(var(--rh-cream) 0.7px, transparent 0.8px);
+  background-size: 9px 9px;
+  mask-image: linear-gradient(to bottom, transparent, #000);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000);
+  opacity: 0.18;
+}
+
+.hero-boundary__strands {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ==========================================================================
+   TABLET
+   ========================================================================== */
+@media (min-width: 700px) {
+  .hero-lockup {
+    top: 12.4%;
+  }
+
+  .hero-headline {
+    top: 27.2%;
+  }
+
+  .hero-headline__line[data-line="2"] {
+    margin-inline-start: 8%;
+  }
+
+  .hero-headline__line[data-line="4"] {
+    margin-inline-start: 13%;
+  }
+
+  .hero-support {
+    top: 74%;
+    left: 39.8%;
+    right: var(--gutter);
+    max-width: 34ch;
+  }
+}
+
+/* ==========================================================================
+   DESKTOP
+   ========================================================================== */
+@media (min-width: 1100px) {
+  .hero-lockup {
+    top: 12%;
+  }
+
+  .hero-headline {
+    top: 27.3%;
+  }
+
+  .hero-headline__line[data-line="2"] {
+    margin-inline-start: 12%;
+  }
+
+  .hero-headline__line[data-line="4"] {
+    margin-inline-start: 17%;
+  }
+
+  .hero-support {
+    top: 76.7%;
+    left: 57.5%;
+    right: var(--gutter);
+    max-width: 30ch;
+  }
+
+  .hero-cue {
+    bottom: 4.5%;
+  }
+}
+
+/* ==========================================================================
+   REDUCED MOTION
+   The timeline shows the settled composition and skips the pin entirely; this
+   only removes the compositing hints that are now pointless.
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .hero-headline__inner {
+    will-change: auto;
+  }
+}

@@ -1,0 +1,248 @@
+/* ==========================================================================
+   GLOBAL MENU
+
+   The site's only chrome: one fixed control, and the field it opens.
+
+   STACKING
+   The homepage sections all live at small local z-indices inside their own
+   roots. The global layer sits above all of them, and it is deliberately built
+   around the grain rather than on top of everything:
+
+     homepage sections .... 0–2, each inside its own root
+     menu overlay ......... 90
+     grain (globals.css) .. 100   ← falls across the overlay, as it does the page
+     menu trigger ......... 110   ← above the overlay, because it is also the
+                                    close control and must stay clickable
+
+   No enormous z-index anywhere, and the overlay picks up the same dust the rest
+   of the site has instead of reading as a clean sheet laid over it.
+
+   The `.menu` wrapper is deliberately styleless — no position, no transform, no
+   opacity — because any of those would make it a containing block and the fixed
+   children would position against it instead of the viewport.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   TRIGGER
+   -------------------------------------------------------------------------- */
+.menu-trigger {
+  position: fixed;
+  top: clamp(1.25rem, 2.2vw, 2rem);
+  right: clamp(1.25rem, 2.2vw, 2rem);
+  z-index: 110;
+
+  display: flex;
+  align-items: center;
+  gap: clamp(0.5rem, 0.9vw, 0.75rem);
+
+  /* Padding is the touch target, not the visual — it keeps the control well
+     past 44px in both axes without drawing anything larger. */
+  margin: 0;
+  padding: 0.75rem 0.5rem 0.75rem 0.75rem;
+  border: 0;
+  background: none;
+  color: var(--rh-cream);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.menu-trigger__label {
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  /* Fixed measure so the composition does not shift when MENU becomes CLOSE. */
+  min-width: 4.5ch;
+  text-align: right;
+}
+
+/* Two hairlines at the weight of the network's own strokes. No icon font, no
+   library, no box around them. */
+.menu-trigger__mark {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: clamp(18px, 1.6vw, 22px);
+  /* 7px tall with 1px rules puts the two centres 6px apart, which is why the
+     timeline moves each one 3px to cross them exactly at the middle. */
+  height: 7px;
+}
+
+.menu-trigger__bar {
+  display: block;
+  width: 100%;
+  height: 1px;
+  background: currentColor;
+  will-change: transform;
+}
+
+/* --------------------------------------------------------------------------
+   OVERLAY
+
+   Mostly typography and space. No network, no imagery, no panels — after seven
+   sections of growth this is the rest in the composition.
+   -------------------------------------------------------------------------- */
+.menu-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  background: var(--rh-black);
+
+  /* The resting state before GSAP takes over, and the state with scripting off:
+     hidden, and out of the tab order with it. `autoAlpha` drives both of these
+     together, so the overlay is never an invisible sheet catching clicks. */
+  visibility: hidden;
+  opacity: 0;
+
+  /* A viewport too short for six lines of display type scrolls rather than
+     clipping them. */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.menu-overlay__panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  min-height: 100%;
+  padding-block: clamp(6rem, 16vh, 9rem) clamp(2rem, 6vh, 3.5rem);
+  padding-inline: var(--gutter);
+  will-change: transform;
+}
+
+/* --------------------------------------------------------------------------
+   NAVIGATION
+   -------------------------------------------------------------------------- */
+.menu-nav__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.menu-nav__link {
+  display: flex;
+  align-items: baseline;
+  gap: clamp(0.75rem, 2vw, 1.75rem);
+
+  /* Vertical padding is the touch target. The hit area is the whole line. */
+  padding-block: clamp(0.35rem, 1.2vh, 0.7rem);
+  color: var(--rh-cream);
+  text-decoration: none;
+}
+
+/* That section's own on-page marker, carried into the menu. */
+.menu-nav__index {
+  flex: none;
+  width: 2.5ch;
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1;
+  letter-spacing: 0.18em;
+  color: var(--rh-cream-24);
+  transition: color 0.4s var(--ease-organic);
+}
+
+/* The clipped line box the label rises into. This is what makes the sequence
+   read as type setting itself rather than as a list fading in. */
+.menu-nav__line {
+  display: block;
+  overflow: hidden;
+}
+
+.menu-nav__label {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1.75rem, 9vw, 2.6rem);
+  line-height: 1.06;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  will-change: transform;
+}
+
+/* Restrained, and only where there is a pointer to do it with: the marker comes
+   up to full strength and the label keeps its colour. No underline sweep, no
+   translation, no cursor effect. */
+@media (hover: hover) and (pointer: fine) {
+  .menu-nav__link:hover .menu-nav__index {
+    color: var(--rh-cream);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   FOOTNOTE — one quiet line, well below the navigation.
+   -------------------------------------------------------------------------- */
+.menu-overlay__footnote {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.5rem;
+  margin-block-start: clamp(3rem, 10vh, 6rem);
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1.4;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.menu-overlay__place {
+  color: var(--rh-cream-42);
+}
+
+.menu-overlay__email {
+  color: var(--rh-cream-64);
+  text-decoration: none;
+  border-block-end: 1px solid transparent;
+  transition: border-color 0.35s var(--ease-organic);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .menu-overlay__email:hover {
+    border-block-end-color: var(--rh-cream-42);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   TABLET
+   -------------------------------------------------------------------------- */
+@media (min-width: 700px) {
+  .menu-nav__label {
+    font-size: clamp(2.6rem, 6vw, 4rem);
+  }
+
+  .menu-nav__index {
+    width: 3ch;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   DESKTOP — large, but held well under the hero. Six lines and a footnote sit
+   comfortably inside a 900px viewport without the field feeling cramped.
+   -------------------------------------------------------------------------- */
+@media (min-width: 1100px) {
+  .menu-overlay__panel {
+    padding-inline: max(var(--gutter), 8vw);
+  }
+
+  .menu-nav__label {
+    font-size: clamp(3rem, 4.6vw, 4.75rem);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   REDUCED MOTION — the menu behaves identically; it simply arrives.
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .menu-trigger__bar,
+  .menu-nav__label,
+  .menu-overlay__panel {
+    will-change: auto;
+  }
+
+  .menu-nav__index,
+  .menu-overlay__email {
+    transition: none;
+  }
+}

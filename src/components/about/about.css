@@ -1,0 +1,1068 @@
+/* ==========================================================================
+   /ABOUT
+
+   The same brand as the homepage, read rather than experienced. Everything
+   here is drawn with four tools — type, rule, space, and the field's edges —
+   and nothing else is on the page: no network, no generated geometry, no
+   image, no card, no border box, no radius, no shadow, no fill, no gradient,
+   no blur, no glass, no badge, no pill, no chip.
+
+   TOKENS ARE THE SITE'S. Colour, both faces, the eyebrow tracking, the display
+   tracking and `--gutter` all come from globals.css unchanged. The only values
+   declared here are ones that exist solely on this route: this page's own type
+   steps and its vertical rhythm.
+
+   COMPOSITION. One 12-column field, `.ab-grid`, from 1100px up. Sections place
+   themselves in it by hand rather than by a repeating rule, so the page reads
+   as a sequence of related but differently-shaped spreads:
+
+     hero .............. name full bleed, statement offset into columns 5–12
+     01 introduction ... lede at 1–6, the rest stepped in to 4–10, mission at 3–12
+     02 vision/mission . vision left at 1–8, mission right at 5–12, a size down
+     03 voice/values ... voice as a two-up ledger, values full width, label 1–5
+                         against body 6–11
+     04 approach ....... the one true two-column spread — 1–4 against 6–12
+     05 methodology .... index 1, name 2–5, prose 6–11
+     06 collective ..... name 1–4 against role and biography 5–11
+
+   Below 1100px the field flattens to a single reading column and the offsets
+   are dropped rather than scaled down: a stepped indent that works at 1440
+   becomes a cramped one at 390, so the narrow layouts are art-directed instead
+   of inherited.
+
+   MOTION STATE. `[data-about-state="idle"]` is the resting state in the
+   server-rendered HTML, so the first painted frame is correct before any
+   JavaScript runs. `lib/about/animation` replaces it with "running" or
+   "static"; the `noscript` block in the root layout releases it outright.
+   ========================================================================== */
+
+.about {
+  position: relative;
+  background: var(--rh-black);
+  /* Belt and braces: nothing on this page should be able to widen the page,
+     and a long unbroken client email or GSTIN must wrap rather than push. */
+  overflow-x: clip;
+
+  /* --- this page's type steps ---------------------------------------- */
+
+  /* Section headings. Level with the homepage's Collective, Proof and Journal
+     headings — the About page deepens the homepage, it does not out-shout it. */
+  --ab-heading: clamp(1.5rem, 7.2vw, 2.6rem);
+  /* Declarations: the hero statement, the mission, the closing statement. */
+  --ab-declaration: clamp(1.35rem, 6.4vw, 2.35rem);
+  /* A principle, a methodology stage, a person. */
+  --ab-principle: clamp(1.15rem, 5.4vw, 1.7rem);
+  /* Prose that carries a section rather than supporting it. */
+  --ab-lede: clamp(1.02rem, 1.5vw, 1.32rem);
+
+  /* --- this page's rhythm --------------------------------------------- */
+  --ab-section-gap: clamp(5.5rem, 16vh, 12rem);
+  --ab-block-gap: clamp(2rem, 6vh, 4rem);
+  --ab-para-gap: clamp(1rem, 2.4vh, 1.5rem);
+  --ab-measure: 62ch;
+}
+
+/* --------------------------------------------------------------------------
+   RESTING STATE
+   Present in the markup, released by the animation or by `noscript`.
+   -------------------------------------------------------------------------- */
+.about[data-about-state="idle"] [data-about-reveal] {
+  clip-path: inset(0 0 100% 0);
+  opacity: 0;
+}
+
+.about[data-about-state="idle"] [data-about-rule] {
+  transform: scaleX(0);
+}
+
+/* --------------------------------------------------------------------------
+   FIELD
+   Every section is inset by the site's own gutter — the same 3.75vw the
+   network generator reserves on the homepage, so the two pages share a margin.
+   -------------------------------------------------------------------------- */
+.ab-section {
+  position: relative;
+  margin-inline: var(--gutter);
+  padding-block-start: var(--ab-section-gap);
+}
+
+/*
+ * EVERY REVEALED SPAN IS A BLOCK.
+ *
+ * `clip-path` and `transform` do not apply to a non-replaced inline element,
+ * so an inline reveal wrapper is clipped to its first line box and a two-line
+ * heading loses its second line for the whole animation. This is the rule that
+ * stops that happening; anything that carries `data-about-reveal` and is not
+ * already a grid or flex item needs it.
+ */
+.ab-heading__inner,
+.ab-hero__title-inner,
+.ab-hero__statement-inner,
+.ab-intro__mission-inner {
+  display: block;
+}
+
+/* --------------------------------------------------------------------------
+   MARKER — 01 / 02 / 03, identical in voice to the homepage's
+   -------------------------------------------------------------------------- */
+.ab-marker {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.6rem, 1.2vw, 1rem);
+  margin-block-end: clamp(1.5rem, 4.5vh, 3rem);
+  font-family: var(--font-body);
+  font-size: var(--step-eyebrow);
+  line-height: 1;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+}
+
+.ab-marker__index {
+  color: var(--rh-cream);
+}
+
+.ab-marker__rule {
+  display: block;
+  flex: none;
+  width: clamp(18px, 2.6vw, 44px);
+  height: 1px;
+  background: var(--rh-cream-42);
+}
+
+/* Shared hairline. A rule is always 1px and always the same colour; only its
+   length changes, and it is the only non-type mark anywhere on the page. */
+.ab-hero__rule,
+.ab-vm__rule,
+.ab-values__rule,
+.ab-method__rule,
+.ab-collective__rule,
+.ab-intro__mission-rule {
+  display: block;
+  width: 100%;
+  height: 1px;
+  background: var(--rh-cream-24);
+  transform-origin: 0 50%;
+}
+
+/* --------------------------------------------------------------------------
+   FIGURES
+   Every picture on the page, and every portrait slot, is the same object: an
+   editorial rectangle with its aspect ratio reserved before the file loads.
+   No radius, no border, no shadow, no card, no overlay, no hover zoom.
+   -------------------------------------------------------------------------- */
+.ab-figure {
+  margin: 0;
+}
+
+.ab-figure__frame,
+.ab-collective__portrait {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  /* The same held ground the homepage's portrait frames use, so a picture that
+     has not decoded yet is a considered rectangle rather than a white flash. */
+  background: var(--rh-black-raised);
+}
+
+.ab-figure__image,
+.ab-collective__photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ab-figure__caption {
+  margin-block-start: clamp(0.6rem, 1.6vh, 0.9rem);
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1.35;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-42);
+}
+
+/* ==========================================================================
+   HERO
+   A masthead. No network, no generated anything — the name, a rule, and the
+   client's positioning sentence.
+   ========================================================================== */
+.ab-hero {
+  position: relative;
+  margin-inline: var(--gutter);
+  /* Clears the fixed menu trigger, which sits at 1.25–2rem from the top. */
+  padding-block: clamp(7rem, 20vh, 12rem) 0;
+}
+
+.ab-hero__eyebrow {
+  font-family: var(--font-body);
+  font-size: var(--step-eyebrow);
+  line-height: 1;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+}
+
+.ab-hero__title {
+  margin-block-start: clamp(1.5rem, 4vh, 2.5rem);
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--step-display);
+  line-height: 0.96;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream);
+  /* The face is wide; on a 320px screen the longer word must break rather
+     than widen the page. */
+  overflow-wrap: break-word;
+}
+
+.ab-hero__rule {
+  margin-block-start: clamp(2rem, 6vh, 3.5rem);
+}
+
+.ab-hero__statement {
+  margin-block-start: clamp(1.5rem, 4vh, 2.5rem);
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--ab-declaration);
+  line-height: 1.16;
+  letter-spacing: var(--track-display);
+  color: var(--rh-cream-90);
+  /* Where the sentence turns. The display face is wide, so this is a short
+     measure by body-copy standards and still gives three lines at 1440. */
+  max-width: 22ch;
+}
+
+/* ==========================================================================
+   01 — INTRODUCTION
+   ========================================================================== */
+.ab-intro__heading {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--ab-heading);
+  line-height: 1.04;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream);
+  max-width: 18ch;
+}
+
+.ab-intro__body {
+  margin-block-start: var(--ab-block-gap);
+}
+
+.ab-intro__lede {
+  max-width: 46ch;
+  font-size: var(--ab-lede);
+  line-height: 1.5;
+  color: var(--rh-cream-90);
+}
+
+.ab-intro__rest {
+  margin-block-start: var(--ab-para-gap);
+  display: grid;
+  gap: var(--ab-para-gap);
+}
+
+.ab-intro__paragraph {
+  max-width: var(--ab-measure);
+  color: var(--rh-cream-64);
+  line-height: 1.55;
+}
+
+.ab-intro__figure {
+  margin-block-start: clamp(3rem, 9vh, 5rem);
+}
+
+.ab-intro__mission {
+  margin-block-start: clamp(3rem, 9vh, 6rem);
+}
+
+.ab-intro__mission-text {
+  margin-block-start: clamp(1.25rem, 3.5vh, 2rem);
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--ab-declaration);
+  line-height: 1.16;
+  letter-spacing: var(--track-display);
+  color: var(--rh-cream);
+  max-width: 24ch;
+}
+
+/* ==========================================================================
+   02 — VISION & MISSION
+   Two declarations. Told apart by scale, weight and side — never by a box.
+   ========================================================================== */
+.ab-vm__item {
+  margin-block-start: clamp(2.5rem, 8vh, 5rem);
+}
+
+.ab-vm__label {
+  margin: 0;
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: var(--step-eyebrow);
+  line-height: 1;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+}
+
+.ab-vm__rule {
+  margin-block: clamp(0.9rem, 2.4vh, 1.4rem);
+}
+
+.ab-vm__statement {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--ab-declaration);
+  line-height: 1.18;
+  letter-spacing: var(--track-display);
+  color: var(--rh-cream-90);
+}
+
+/* The three words the brand book sets apart. Emphasis by full-strength cream
+   against the statement's 90%, not by italic — the display face has no italic
+   and a synthesised one would slant the whole line's character. */
+.ab-vm__emphasis {
+  font-style: normal;
+  color: var(--rh-cream);
+}
+
+/* The mission sits a step under the vision, which is what makes the pair read
+   as a hierarchy rather than as two equal panels. */
+.ab-vm__item[data-declaration="mission"] .ab-vm__statement {
+  font-size: var(--ab-principle);
+  line-height: 1.24;
+  color: var(--rh-cream-78);
+}
+
+/* ==========================================================================
+   03 — OUR VOICE & VALUES
+   ========================================================================== */
+.ab-values__heading {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--ab-heading);
+  line-height: 1.04;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream);
+  max-width: 14ch;
+}
+
+/* ---- the voice: a compact ledger, body face, reading size ---- */
+.ab-voice {
+  margin-block-start: var(--ab-block-gap);
+}
+
+.ab-voice__heading {
+  margin: 0;
+  max-width: 24ch;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--ab-principle);
+  line-height: 1.14;
+  letter-spacing: var(--track-display);
+  color: var(--rh-cream-78);
+}
+
+.ab-voice__list {
+  margin: clamp(1.5rem, 4.5vh, 2.5rem) 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: clamp(1rem, 3vh, 1.6rem);
+}
+
+.ab-voice__item {
+  display: grid;
+  gap: 0.35rem;
+  max-width: 44ch;
+}
+
+.ab-voice__label {
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1.2;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream);
+}
+
+.ab-voice__body {
+  color: var(--rh-cream-64);
+  line-height: 1.5;
+}
+
+/* ---- the values: full-width rows, display face, room to breathe ---- */
+.ab-values__list {
+  margin: clamp(3.5rem, 10vh, 7rem) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ab-values__item {
+  padding-block-start: clamp(1.5rem, 4.5vh, 2.5rem);
+  margin-block-start: clamp(1.5rem, 4.5vh, 2.5rem);
+}
+
+.ab-values__label {
+  margin: clamp(1rem, 3vh, 1.6rem) 0 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--ab-principle);
+  line-height: 1.08;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream);
+}
+
+.ab-values__body {
+  margin-block-start: clamp(0.75rem, 2.2vh, 1.1rem);
+  max-width: 52ch;
+  color: var(--rh-cream-64);
+  line-height: 1.55;
+}
+
+.ab-values__closing {
+  margin-block-start: clamp(3.5rem, 10vh, 7rem);
+  max-width: 54ch;
+  font-size: var(--ab-lede);
+  line-height: 1.5;
+  color: var(--rh-cream-78);
+}
+
+/* ==========================================================================
+   04 — OUR APPROACH
+   The page's one genuine two-column spread.
+   ========================================================================== */
+.ab-approach__heading {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--ab-heading);
+  line-height: 1.04;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream);
+}
+
+.ab-approach__standfirst {
+  margin-block-start: clamp(0.9rem, 2.6vh, 1.4rem);
+  max-width: 24ch;
+  font-family: var(--font-body);
+  font-size: var(--ab-lede);
+  line-height: 1.3;
+  color: var(--rh-cream-64);
+}
+
+.ab-approach__standfirst-line {
+  display: block;
+}
+
+.ab-approach__figure {
+  margin-block-start: clamp(2rem, 6vh, 3rem);
+}
+
+.ab-approach__body {
+  margin-block-start: var(--ab-block-gap);
+  display: grid;
+  gap: var(--ab-para-gap);
+}
+
+.ab-approach__paragraph {
+  max-width: var(--ab-measure);
+  color: var(--rh-cream-78);
+  line-height: 1.55;
+}
+
+/* ==========================================================================
+   05 — METHODOLOGY
+   A sequence. A number, a name, two paragraphs, a rule. Nothing else.
+   ========================================================================== */
+.ab-method__heading {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--ab-heading);
+  line-height: 1.04;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream);
+}
+
+.ab-method__list {
+  margin: clamp(2.5rem, 7vh, 4.5rem) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ab-method__stage {
+  padding-block-start: clamp(1.5rem, 4.5vh, 2.5rem);
+  margin-block-start: clamp(1.75rem, 5vh, 3rem);
+}
+
+.ab-method__index {
+  display: block;
+  margin-block-start: clamp(1rem, 3vh, 1.5rem);
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1;
+  letter-spacing: var(--track-eyebrow);
+  color: var(--rh-cream-42);
+}
+
+.ab-method__name {
+  margin: clamp(0.6rem, 1.8vh, 1rem) 0 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--ab-principle);
+  line-height: 1.08;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream);
+}
+
+.ab-method__body {
+  margin-block-start: clamp(0.9rem, 2.6vh, 1.4rem);
+  display: grid;
+  gap: var(--ab-para-gap);
+}
+
+.ab-method__paragraph {
+  max-width: 54ch;
+  color: var(--rh-cream-64);
+  line-height: 1.55;
+}
+
+/* ==========================================================================
+   06 — THE COLLECTIVE
+   A roster. No portrait frames are drawn, because no photography exists.
+   ========================================================================== */
+.ab-collective__heading {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--ab-heading);
+  line-height: 1.04;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream);
+  max-width: 18ch;
+}
+
+.ab-collective__standfirst {
+  margin-block-start: clamp(0.9rem, 2.4vh, 1.4rem);
+  font-family: var(--font-body);
+  font-size: var(--ab-lede);
+  color: var(--rh-cream-64);
+}
+
+.ab-collective__intro {
+  margin-block-start: clamp(1.5rem, 4vh, 2.4rem);
+  max-width: var(--ab-measure);
+  color: var(--rh-cream-78);
+  line-height: 1.55;
+}
+
+.ab-collective__roster {
+  margin: clamp(3rem, 8vh, 5.5rem) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ab-collective__person {
+  position: relative;
+  padding-block-start: clamp(1.5rem, 4.5vh, 2.5rem);
+  margin-block-start: clamp(1.75rem, 5vh, 3rem);
+}
+
+/* The portrait slot. Narrow by design: this is a roster, and the pictures
+   support the names rather than becoming the composition. */
+.ab-collective__portrait {
+  margin-block-start: clamp(1.25rem, 3.5vh, 2rem);
+  max-width: 15rem;
+}
+
+/* What a slot looks like before the client's photograph exists. Deliberately
+   quiet — a held space in the composition, not a broken image, not a silhouette
+   and not a placeholder graphic. Identical treatment to the homepage's. */
+.ab-collective__plate {
+  position: absolute;
+  inset: 0;
+  background: var(--rh-cream-06);
+  border: 1px solid var(--rh-cream-12);
+}
+
+/* Development only, compiled out of the production bundle. Sits inside the
+   empty plate and out of flow, so it can never land on the client's copy at any
+   width and dev and production lay out identically. */
+.ab-collective__pending {
+  position: absolute;
+  inset-block-end: 0.55rem;
+  inset-inline-start: 0.6rem;
+  font-family: var(--font-body);
+  font-size: 0.62rem;
+  line-height: 1;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-42);
+}
+
+.ab-collective__name {
+  margin: clamp(1rem, 3vh, 1.6rem) 0 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--ab-principle);
+  line-height: 1.06;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream);
+}
+
+.ab-collective__text {
+  position: relative;
+  margin-block-start: clamp(0.6rem, 1.8vh, 0.9rem);
+  display: grid;
+  gap: 0.2rem;
+}
+
+.ab-collective__role {
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1.35;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-78);
+}
+
+.ab-collective__epithet {
+  font-size: var(--step-micro);
+  line-height: 1.35;
+  letter-spacing: 0.06em;
+  color: var(--rh-cream-42);
+}
+
+.ab-collective__bio {
+  margin-block-start: clamp(0.7rem, 2vh, 1rem);
+  max-width: 56ch;
+  color: var(--rh-cream-64);
+  line-height: 1.55;
+}
+
+/* The five the client names without descriptions. Set as names and nothing
+   else — no role, no rule, no placeholder line. */
+.ab-collective__named {
+  margin: clamp(2.5rem, 7vh, 4rem) 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(0.9rem, 2.4vw, 2rem);
+}
+
+.ab-collective__named-item {
+  font-family: var(--font-display);
+  font-size: var(--ab-lede);
+  line-height: 1.1;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream-42);
+}
+
+/* ==========================================================================
+   CODA — the closing statement
+   ========================================================================== */
+.ab-closing {
+  padding-block-end: clamp(4rem, 12vh, 8rem);
+}
+
+.ab-closing__eyebrow {
+  font-family: var(--font-body);
+  font-size: var(--step-eyebrow);
+  line-height: 1;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+}
+
+.ab-closing__statement {
+  margin-block-start: clamp(1.25rem, 3.5vh, 2rem);
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--ab-heading);
+  line-height: 1.04;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream);
+  max-width: 12ch;
+}
+
+.ab-closing__figure {
+  margin-block-start: clamp(2.5rem, 8vh, 4rem);
+}
+
+.ab-closing__tail {
+  margin-block-start: var(--ab-block-gap);
+}
+
+.ab-closing__body {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: clamp(0.6rem, 1.8vh, 0.9rem);
+  max-width: 46ch;
+}
+
+.ab-closing__body-line {
+  color: var(--rh-cream-64);
+  line-height: 1.5;
+}
+
+.ab-closing__cta {
+  margin-block-start: clamp(2rem, 6vh, 3.5rem);
+}
+
+/* A link, drawn as an underline that thickens — not a button, not a pill, and
+   with no box of any kind. */
+.ab-closing__link {
+  display: inline-block;
+  padding-block-end: 0.35em;
+  border-block-end: 1px solid var(--rh-cream-42);
+  font-family: var(--font-display);
+  font-size: var(--ab-principle);
+  line-height: 1.1;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--rh-cream);
+  transition: border-color 220ms var(--ease-organic);
+}
+
+.ab-closing__link:hover,
+.ab-closing__link:focus-visible {
+  border-block-end-color: var(--rh-cream);
+}
+
+/* ==========================================================================
+   TABLET — 700px and up
+
+   The reading order and the hierarchy are unchanged; the page simply gets the
+   width to hold a heading and its prose apart, and the two shortest lists go
+   two-up. Nothing becomes a column that would be under 30ch wide.
+   ========================================================================== */
+@media (min-width: 700px) {
+  .ab-voice__list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: clamp(1.5rem, 4vw, 3rem);
+  }
+
+  .ab-intro__rest {
+    /* Stepped in from the lede, which is where the section starts to read as a
+       spread rather than as a stack. */
+    margin-inline-start: clamp(2rem, 8vw, 6rem);
+  }
+
+  .ab-intro__mission-text,
+  .ab-hero__statement {
+    margin-inline-start: clamp(2rem, 10vw, 8rem);
+  }
+
+  .ab-vm__item[data-declaration="mission"] {
+    margin-inline-start: clamp(2rem, 12vw, 9rem);
+  }
+
+  /* A picture in a single column is capped rather than run full bleed — at 834
+     an uncapped landscape frame is taller than the prose beside it. */
+  .ab-intro__figure,
+  .ab-approach__figure,
+  .ab-closing__figure {
+    max-width: 62%;
+  }
+
+  .ab-closing__figure {
+    max-width: 46%;
+  }
+}
+
+/* ==========================================================================
+   DESKTOP — 1100px and up
+
+   The 12-column field. Sections place themselves in it by hand; the offsets
+   above are dropped, because a grid column and a margin indent doing the same
+   job at once is how a layout ends up on the right of the screen.
+   ========================================================================== */
+@media (min-width: 1100px) {
+  .about {
+    --ab-measure: 58ch;
+  }
+
+  .ab-section,
+  .ab-hero {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: clamp(1rem, 1.6vw, 1.75rem);
+  }
+
+  /* Anything not placed explicitly spans the field, so a new block can be
+     added without first being given a grid position. */
+  .ab-section > *,
+  .ab-hero > * {
+    grid-column: 1 / -1;
+  }
+
+  /* ---- hero ---- */
+  .ab-hero__statement {
+    grid-column: 5 / -1;
+    margin-inline-start: 0;
+    margin-block-start: clamp(2rem, 5vh, 3.25rem);
+  }
+
+  /* ---- 01 introduction ---- */
+  .ab-intro__heading {
+    grid-column: 1 / span 7;
+  }
+
+  .ab-intro__body {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: subgrid;
+    align-items: start;
+    row-gap: clamp(1.5rem, 4vh, 2.5rem);
+  }
+
+  .ab-intro__lede {
+    grid-column: 1 / span 5;
+    max-width: none;
+  }
+
+  .ab-intro__rest {
+    grid-column: 7 / span 5;
+    margin-inline-start: 0;
+    max-width: none;
+  }
+
+  /*
+   * The brand board and the mission declaration share a row: picture on the
+   * left, the client's statement in the columns beside it. Remove the picture
+   * from the content file and the mission simply takes the row on its own.
+   */
+  .ab-intro__figure {
+    grid-column: 1 / span 5;
+    margin-block-start: clamp(3.5rem, 10vh, 6rem);
+    max-width: none;
+  }
+
+  .ab-intro__mission {
+    grid-column: 7 / -1;
+    align-self: center;
+  }
+
+  .ab-intro__mission-text {
+    margin-inline-start: 0;
+  }
+
+  /* ---- 02 vision & mission ---- */
+  .ab-vm__item[data-declaration="vision"] {
+    grid-column: 1 / span 8;
+  }
+
+  .ab-vm__item[data-declaration="mission"] {
+    grid-column: 5 / -1;
+    margin-inline-start: 0;
+  }
+
+  /*
+   * The three lists are subgrid participants themselves, not just their items.
+   * `subgrid` on an element whose parent is not a grid silently degrades to
+   * `none` and the item builds its own implicit columns instead — which reads
+   * as "nearly right" (the offsets still happen) while every full-width rule
+   * inside it collapses to the width of its content.
+   */
+  .ab-values__list,
+  .ab-method__list,
+  .ab-collective__roster {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: subgrid;
+  }
+
+  /* ---- 03 voice & values ---- */
+  .ab-voice {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: subgrid;
+    align-items: start;
+    row-gap: clamp(1.5rem, 4vh, 2.5rem);
+  }
+
+  .ab-voice__heading {
+    grid-column: 1 / span 4;
+  }
+
+  .ab-voice__list {
+    grid-column: 6 / -1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ab-values__item {
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-column: 1 / -1;
+    align-items: start;
+    row-gap: clamp(0.75rem, 2vh, 1.1rem);
+  }
+
+  .ab-values__rule {
+    grid-column: 1 / -1;
+  }
+
+  .ab-values__label {
+    grid-column: 1 / span 5;
+    margin-block-start: 0;
+  }
+
+  .ab-values__body {
+    grid-column: 6 / span 6;
+    margin-block-start: 0;
+    max-width: none;
+  }
+
+  .ab-values__closing {
+    grid-column: 6 / span 6;
+    max-width: none;
+  }
+
+  /* ---- 04 approach ---- */
+  .ab-approach__spread {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: subgrid;
+    align-items: start;
+  }
+
+  /*
+   * The lead column carries the heading, the client's two-line standfirst and
+   * the business cards. It was briefly `position: sticky`; the picture gives it
+   * enough weight to hold the spread on its own, so the sticky rule is gone
+   * rather than left in to fight a taller column.
+   */
+  .ab-approach__lead {
+    grid-column: 1 / span 4;
+  }
+
+  .ab-approach__figure {
+    max-width: none;
+  }
+
+  .ab-approach__body {
+    grid-column: 6 / -1;
+    margin-block-start: 0;
+  }
+
+  /* ---- 05 methodology ---- */
+  .ab-method__stage {
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-column: 1 / -1;
+    align-items: start;
+    row-gap: clamp(0.75rem, 2vh, 1.1rem);
+  }
+
+  .ab-method__rule {
+    grid-column: 1 / -1;
+  }
+
+  .ab-method__index {
+    grid-column: 1 / span 1;
+    margin-block-start: 0;
+  }
+
+  .ab-method__name {
+    grid-column: 2 / span 4;
+    margin-block-start: 0;
+  }
+
+  .ab-method__body {
+    grid-column: 6 / span 6;
+    margin-block-start: 0;
+  }
+
+  /* ---- 06 the collective ---- */
+  .ab-collective__person {
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-column: 1 / -1;
+    align-items: start;
+    row-gap: clamp(0.75rem, 2vh, 1.1rem);
+  }
+
+  .ab-collective__rule {
+    grid-column: 1 / -1;
+  }
+
+  .ab-collective__portrait {
+    grid-column: 1 / span 3;
+    margin-block-start: 0;
+    max-width: none;
+  }
+
+  .ab-collective__name {
+    grid-column: 5 / span 3;
+    margin-block-start: 0;
+  }
+
+  .ab-collective__text {
+    grid-column: 9 / span 4;
+    margin-block-start: 0;
+  }
+
+  .ab-collective__bio {
+    margin-block-start: clamp(0.7rem, 2vh, 1rem);
+    max-width: none;
+  }
+
+  .ab-collective__named {
+    grid-column: 5 / -1;
+  }
+
+  /* ---- coda ---- */
+  .ab-closing__statement {
+    grid-column: 1 / span 7;
+  }
+
+  /* Portrait left, the closing lines and the one link opposite it. */
+  .ab-closing__figure {
+    grid-column: 1 / span 4;
+    margin-block-start: clamp(2.5rem, 7vh, 4rem);
+    max-width: none;
+  }
+
+  .ab-closing__tail {
+    grid-column: 6 / -1;
+    align-self: center;
+    margin-block-start: clamp(2.5rem, 7vh, 4rem);
+  }
+}
+
+/* ==========================================================================
+   REDUCED MOTION
+   The animation already resolves everything in one pass rather than tweening
+   it, and creates no ScrollTrigger. This closes the two remaining gaps: the
+   resting state that ships in the HTML, and the one CSS transition.
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .about[data-about-state="idle"] [data-about-reveal] {
+    clip-path: none;
+    opacity: 1;
+  }
+
+  .about[data-about-state="idle"] [data-about-rule] {
+    transform: none;
+  }
+
+  .ab-closing__link {
+    transition: none;
+  }
+}

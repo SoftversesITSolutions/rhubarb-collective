@@ -1,0 +1,583 @@
+/* ==========================================================================
+   /WORK — THE ARCHIVE
+
+   The most functional page on the site, and the only one whose whole subject is
+   pictures. Everything that is not a picture is drawn with the site's four
+   tools — type, rule, space and the field's edges: no card, no panel, no border
+   box, no radius, no shadow, no fill, no gradient, no scrim, no blur, no glass,
+   no chip, no pill, no badge and no icon. A piece of work is a rectangle of
+   artwork with a caption under it, which is exactly what it is on the homepage
+   and on /about.
+
+   TOKENS ARE THE SITE'S. Colour, both faces, the eyebrow tracking, the display
+   tracking and `--gutter` all come from globals.css unchanged. The only values
+   declared here are this route's own type steps and its rhythm.
+
+   ─────────────────────────────────────────────────────────────────────────────
+   THE RHYTHM IS POSITIONAL, NOT PER-ITEM
+   ─────────────────────────────────────────────────────────────────────────────
+   The homepage's Selected Work section places all six pieces by hand, and that
+   is right there — the field is curated and never changes. It cannot work here,
+   because the filter changes which pieces exist: a hand-placed slot that reads
+   as the third beat of a six-piece composition is a lone rectangle floating in
+   the right margin the moment a category returns one item.
+
+   So placement keys off the piece's index in the CURRENTLY FILTERED list,
+   `data-pos = position % 4`, and the cycle is built so that every prefix of it
+   composes:
+
+     pos 0 ....... columns 1–8   (7 of 12)  major, left
+     pos 1 ....... columns 8–13  (5 of 12)  minor, right, dropped
+     pos 2 ....... columns 1–6   (5 of 12)  minor, left,  dropped
+     pos 3 ....... columns 6–13  (7 of 12)  major, right
+
+   Two pieces share a row, and the weight swaps sides on the next one — big
+   left / small right, then small left / big right. The drop on positions 1 and
+   2 is what stops the pairs reading as a two-column grid.
+
+   ALWAYS LEFT BEFORE RIGHT, and no `grid-auto-flow: dense` anywhere. Dense would
+   backfill a gap with a later item, which would put a piece visually before one
+   that comes after it in the DOM — the same rule the routes on /contact are
+   placed under. Reading order and tab order never diverge from what is on
+   screen.
+
+   A TALL ASSET NEVER TAKES A WIDE SLOT. `data-tall` is derived from the file's
+   own pixels in `lib/work/archive`, not authored. The DietXP creative is the one
+   portrait in the archive; in a seven-column slot at 1440 it would stand 939px
+   tall against 446 for its neighbours, so it swaps to the narrow measure and
+   keeps its side of the field.
+
+   Checked against every state the filter can produce:
+
+     All (6) ......... kismat 768w · embassy 543 · dietxp 543 tall · sitar 768
+                       · ritam 768 · ritam-pack 543
+     Food & Drink (3)  kismat 768 · ritam 543 · ritam-pack 543
+     Culture & Ed (2)  embassy 768  ← the 2.12:1 panorama gets the wide slot
+     Health (1) ...... dietxp 543, tall override, alone on the left
+
+   ─────────────────────────────────────────────────────────────────────────────
+   MOTION STATE
+   ─────────────────────────────────────────────────────────────────────────────
+   `[data-wk-state="idle"]` is the resting state in the server-rendered HTML, so
+   the first painted frame is correct before any JavaScript runs.
+   `lib/work/pageAnimation` replaces it with "running" or "static"; the
+   `noscript` block in the root layout releases it outright.
+   ========================================================================== */
+
+.wk {
+  position: relative;
+  background: var(--rh-black);
+  /* Nothing on this page may widen it — least of all a picture. */
+  overflow-x: clip;
+
+  /* --- this page's type steps ---------------------------------------- */
+
+  /* WORK. The largest type on the site outside the homepage hero, and the only
+     thing on this page allowed to be — four characters in a very wide face,
+     carrying the masthead on their own so nothing else has to. */
+  --wk-title: clamp(3.25rem, 20vw, 13rem);
+  /* The one sentence under it. */
+  --wk-statement: clamp(1.1rem, 4.4vw, 1.85rem);
+  /* A client name in a caption. The only display type in the archive itself. */
+  --wk-client: clamp(1.02rem, 2.4vw, 1.3rem);
+
+  /* --- this page's rhythm --------------------------------------------- */
+  --wk-section-gap: clamp(4rem, 12vh, 8rem);
+  /* Between one pair of pieces and the next: density, then breath. */
+  --wk-row-gap: clamp(4rem, 12vh, 9rem);
+  /* How far positions 1 and 2 are dropped against their partner. */
+  --wk-drop: clamp(2rem, 9vh, 7rem);
+}
+
+/* --------------------------------------------------------------------------
+   RESTING STATE
+   Present in the markup, released by the intro timeline or by `noscript`.
+
+   The pieces are released by `data-wk-state` leaving "idle", which the INTRO
+   timeline does — not the archive reveal. That is deliberate: if the archive's
+   own effect ever failed to run, the work would still be visible, and a
+   portfolio page whose portfolio is invisible is the one failure worth
+   engineering against.
+   -------------------------------------------------------------------------- */
+.wk[data-wk-state="idle"] [data-wk-intro] {
+  clip-path: inset(0 0 100% 0);
+  opacity: 0;
+}
+
+.wk[data-wk-state="idle"] [data-wk-rule] {
+  transform: scaleX(0);
+}
+
+.wk[data-wk-state="idle"] [data-wk-frame] {
+  clip-path: inset(0 0 100% 0);
+}
+
+.wk[data-wk-state="idle"] [data-wk-meta] {
+  opacity: 0;
+}
+
+/* ==========================================================================
+   MASTHEAD
+   ========================================================================== */
+.wk-hero {
+  margin-inline: var(--gutter);
+  /* Clears the fixed menu trigger, which sits 1.25–2rem from the top. */
+  padding-block-start: clamp(6rem, 17vh, 10rem);
+}
+
+.wk-hero__eyebrow {
+  font-family: var(--font-body);
+  font-size: var(--step-eyebrow);
+  line-height: 1;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+}
+
+.wk-hero__title {
+  margin-block-start: clamp(0.75rem, 2.5vh, 1.5rem);
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--wk-title);
+  /* Tight, because it is one word and its own descender is the composition. */
+  line-height: 0.86;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+  color: var(--rh-cream);
+}
+
+.wk-hero__title-inner {
+  /* `clip-path` does not apply to a non-replaced inline element, so a reveal
+     wrapper that stayed inline would be clipped to its first line box. */
+  display: block;
+}
+
+.wk-hero__rule {
+  display: block;
+  width: 100%;
+  height: 1px;
+  margin-block-start: clamp(1.5rem, 5vh, 2.75rem);
+  background: var(--rh-cream-24);
+  transform-origin: 0 50%;
+}
+
+.wk-hero__statement {
+  margin-block-start: clamp(1.25rem, 3.5vh, 2rem);
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--wk-statement);
+  line-height: 1.1;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream-78);
+  /* Where the sentence turns, by measure rather than by a hand-placed break. */
+  max-width: 22ch;
+}
+
+.wk-hero__statement-inner {
+  display: block;
+}
+
+/* ==========================================================================
+   THE FILTER
+
+   A row of words, not a control panel. No select, no dropdown, no pill, no
+   chip, no border box, no fill, no clear button and no results drawer — the
+   active category is the one set in full-strength cream over the page's own
+   hairline, and every other category is the same word at cream-42.
+
+   The count beside each label is what turns a row of categories into a map of
+   the archive: the shape of the whole thing is legible before a single click.
+   ========================================================================== */
+.wk-filter {
+  margin-inline: var(--gutter);
+  padding-block-start: var(--wk-section-gap);
+}
+
+.wk-filter__label {
+  font-family: var(--font-body);
+  font-size: var(--step-eyebrow);
+  line-height: 1;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-42);
+}
+
+/*
+ * IT WRAPS; IT DOES NOT SCROLL SIDEWAYS.
+ *
+ * Four categories at this size are about 400px of type, so at 320 the row falls
+ * onto two comfortable lines and every category stays visible. A horizontally
+ * scrollable row would hide two of the four behind a gesture with no affordance
+ * to announce it — worse on the narrow screens it is supposed to help, and the
+ * only place on this site where content is reachable by swipe alone.
+ */
+.wk-filter__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 clamp(1.25rem, 3vw, 2.75rem);
+  margin-block-start: clamp(0.5rem, 1.5vh, 0.9rem);
+}
+
+.wk-filter__item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.45em;
+  /* Vertical padding is the touch target; it draws nothing. */
+  min-block-size: 44px;
+  margin: 0;
+  padding: 0.9rem 0 0.75rem;
+  border: 0;
+  border-block-end: 1px solid transparent;
+  border-radius: 0;
+  background: none;
+  font-family: var(--font-body);
+  font-size: clamp(0.78rem, 1.05vw, 0.95rem);
+  line-height: 1.2;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-42);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 220ms var(--ease-organic),
+    border-color 220ms var(--ease-organic);
+}
+
+/* The active category. Colour AND a rule, so the state is never carried by a
+   contrast step alone — and `aria-pressed` carries it for anyone not looking. */
+.wk-filter__item[data-active] {
+  color: var(--rh-cream);
+  border-block-end-color: var(--rh-cream);
+  cursor: default;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .wk-filter__item:not([data-active]):hover {
+    color: var(--rh-cream-90);
+    border-block-end-color: var(--rh-cream-24);
+  }
+}
+
+.wk-filter__count {
+  font-size: 0.82em;
+  letter-spacing: 0.08em;
+  color: var(--rh-cream-24);
+  transition: color 220ms var(--ease-organic);
+}
+
+.wk-filter__item[data-active] .wk-filter__count {
+  color: var(--rh-cream-64);
+}
+
+.wk-filter__tally {
+  margin-block-start: clamp(0.85rem, 2.4vh, 1.4rem);
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1.3;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--rh-cream-42);
+}
+
+/* ==========================================================================
+   THE GRID
+   ========================================================================== */
+.wk-archive {
+  padding-block-end: clamp(5rem, 14vh, 10rem);
+}
+
+.wk-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  column-gap: clamp(0.75rem, 1.6vw, 1.5rem);
+  row-gap: var(--wk-row-gap);
+  /* Pieces must never stretch to their row — the asset's ratio is the height. */
+  align-items: start;
+  margin-inline: var(--gutter);
+  margin-block-start: clamp(3rem, 9vh, 5.5rem);
+}
+
+/* --------------------------------------------------------------------------
+   MOBILE — one column, deliberately designed rather than scaled down.
+
+   Every piece is full measure, because a phone has no room to make one picture
+   more important than another by width — so the rhythm moves to indentation and
+   to the caption, and the pictures stay as large as the screen allows. The
+   dropped positions keep a small inset so the column does not read as six
+   identical blocks stacked.
+   -------------------------------------------------------------------------- */
+.wk-piece {
+  margin: 0;
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.wk-piece[data-pos="1"],
+.wk-piece[data-pos="2"] {
+  margin-inline-start: clamp(1.25rem, 7vw, 3rem);
+}
+
+/* --- the frame ------------------------------------------------------------ */
+.wk-piece__link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.wk-piece__frame {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  /* Editorial rectangle. No radius, no shadow, no border, no card. The raised
+     black is what the frame reserves before the file lands, so a slow picture
+     never shows the page through it. */
+  background: var(--rh-black-raised);
+  will-change: clip-path;
+}
+
+.wk-piece__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* The frame already carries the asset's own ratio, so `cover` never actually
+     crops — it is here so that a future asset whose file does not match its
+     recorded dimensions fills the frame rather than distorting inside it. */
+  object-fit: cover;
+}
+
+/*
+ * HOVER, AND WHY IT IS GATED.
+ *
+ * One gesture: the picture settles up by 1.5% over half a second. Nothing else
+ * moves, nothing fades, no overlay appears, no caption slides and no cursor is
+ * replaced — one interaction, not a stack of them.
+ *
+ * It applies ONLY to a piece that is really a link. No case-study route exists
+ * yet, so `href` is null on all six and none of them takes this treatment: a
+ * picture that moves under the pointer and then does nothing is a worse picture,
+ * and it is the same reason the studio's address on /contact is plain type
+ * rather than a link to a map that was never supplied. The rule is written and
+ * waiting, so the day a detail route lands, setting `href` in
+ * `lib/work/archive` is the whole change.
+ *
+ * Pointer-only, and no information is behind it — every fact about a piece is
+ * in the caption at rest, on a phone as much as on a desktop.
+ */
+@media (hover: hover) and (pointer: fine) {
+  .wk-piece[data-linked] .wk-piece__image {
+    transition: transform 520ms var(--ease-organic);
+  }
+
+  .wk-piece[data-linked] .wk-piece__link:hover .wk-piece__image,
+  .wk-piece[data-linked] .wk-piece__link:focus-visible .wk-piece__image {
+    transform: scale(1.015);
+  }
+}
+
+/* --- the caption ---------------------------------------------------------- */
+.wk-piece__meta {
+  margin-block-start: clamp(0.85rem, 2vw, 1.35rem);
+}
+
+/* The one piece of display type in the archive. It is what a reader scans. */
+.wk-piece__client {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--wk-client);
+  line-height: 1.15;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream);
+}
+
+/*
+ * Discipline, industry and — where the deck states one — a note. Set as one
+ * flowing line at micro size, so the metadata is legible without ever competing
+ * with the picture above it.
+ */
+.wk-piece__facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem clamp(0.7rem, 1.5vw, 1.2rem);
+  margin-block-start: 0.5rem;
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1.35;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.wk-piece__discipline {
+  color: var(--rh-cream-78);
+}
+
+.wk-piece__industry {
+  color: var(--rh-cream-42);
+}
+
+.wk-piece__note {
+  color: var(--rh-cream-42);
+}
+
+/* --------------------------------------------------------------------------
+   EMPTY
+   -------------------------------------------------------------------------- */
+.wk-empty {
+  margin-inline: var(--gutter);
+  margin-block-start: clamp(3rem, 9vh, 5.5rem);
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--wk-statement);
+  line-height: 1.1;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+  max-width: 24ch;
+}
+
+/* ==========================================================================
+   TABLET — 700px and up
+
+   The grid simplifies to one staggered column rather than trying to hold two.
+   Splitting the field here would put a five-column picture at about 300px on an
+   834 screen, which is a thumbnail — and this page exists to show the work
+   large. So the asymmetry moves into width and indent instead: every piece is
+   a different measure, and no two adjacent pieces share an edge.
+   ========================================================================== */
+@media (min-width: 700px) {
+  .wk-piece[data-pos="1"],
+  .wk-piece[data-pos="2"] {
+    margin-inline-start: 0;
+  }
+
+  .wk-piece[data-pos="0"] {
+    grid-column: 1 / 11;
+  }
+
+  .wk-piece[data-pos="1"] {
+    grid-column: 5 / -1;
+  }
+
+  .wk-piece[data-pos="2"] {
+    grid-column: 3 / 11;
+  }
+
+  .wk-piece[data-pos="3"] {
+    grid-column: 4 / -1;
+  }
+
+  /* A portrait at this width is tall enough on its own; it takes a narrower
+     measure so it does not run to twice the height of the piece above it. */
+  .wk-piece[data-tall][data-pos="0"] {
+    grid-column: 1 / 8;
+  }
+
+  .wk-piece[data-tall][data-pos="1"] {
+    grid-column: 6 / -1;
+  }
+
+  .wk-piece[data-tall][data-pos="2"] {
+    grid-column: 3 / 10;
+  }
+
+  .wk-piece[data-tall][data-pos="3"] {
+    grid-column: 6 / -1;
+  }
+}
+
+/* ==========================================================================
+   DESKTOP — 1100px and up
+   The full field: two pieces to a row, weight alternating sides. See the table
+   at the top of this file.
+   ========================================================================== */
+@media (min-width: 1100px) {
+  .wk-piece[data-pos="0"] {
+    grid-column: 1 / 8;
+  }
+
+  .wk-piece[data-pos="1"] {
+    grid-column: 8 / -1;
+    margin-block-start: var(--wk-drop);
+  }
+
+  .wk-piece[data-pos="2"] {
+    grid-column: 1 / 6;
+    margin-block-start: var(--wk-drop);
+  }
+
+  .wk-piece[data-pos="3"] {
+    grid-column: 6 / -1;
+  }
+
+  /*
+   * THE TALL OVERRIDE, AND THE RESET THAT HAS TO COME WITH IT.
+   *
+   * Positions 0 and 3 are the wide slots, so a portrait swaps to the narrow
+   * measure and keeps its side of the field. Its partner's placement is
+   * unchanged, so the pair still shares a row — the row simply has one narrow
+   * picture and one gap.
+   *
+   * Positions 1 and 2 are ALREADY the narrow measure here, so tall changes
+   * nothing for them — but they still have to be written out. The tablet block
+   * above gives every `[data-tall][data-pos]` combination its own rule, and
+   * `[data-tall][data-pos="2"]` at 0-3-0 outranks a plain `[data-pos="2"]` at
+   * 0-2-0 no matter which media query it sits in. Measured, not assumed: the
+   * DietXP portrait came out 767px wide in a slot the grid said was 542, and
+   * ran to 938px tall against 445 for the piece above it. Reset at the same
+   * specificity — the same trap the routes on /contact are documented under.
+   */
+  .wk-piece[data-tall][data-pos="0"] {
+    grid-column: 1 / 6;
+  }
+
+  .wk-piece[data-tall][data-pos="1"] {
+    grid-column: 8 / -1;
+  }
+
+  .wk-piece[data-tall][data-pos="2"] {
+    grid-column: 1 / 6;
+  }
+
+  .wk-piece[data-tall][data-pos="3"] {
+    grid-column: 8 / -1;
+  }
+}
+
+/* ==========================================================================
+   REDUCED MOTION
+
+   Every state change still happens and the filter still works; nothing is
+   removed from the page, it simply arrives. The animation module already
+   resolves each timeline in one pass rather than tweening it — this closes the
+   two remaining gaps, which are the resting state that ships in the HTML and
+   the CSS transitions the module never touches.
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .wk[data-wk-state="idle"] [data-wk-intro],
+  .wk[data-wk-state="idle"] [data-wk-frame] {
+    clip-path: none;
+    opacity: 1;
+  }
+
+  .wk[data-wk-state="idle"] [data-wk-meta] {
+    opacity: 1;
+  }
+
+  .wk[data-wk-state="idle"] [data-wk-rule] {
+    transform: none;
+  }
+
+  .wk-filter__item,
+  .wk-filter__count,
+  .wk-piece__image {
+    transition: none;
+  }
+
+  .wk-piece[data-linked] .wk-piece__link:hover .wk-piece__image,
+  .wk-piece[data-linked] .wk-piece__link:focus-visible .wk-piece__image {
+    transform: none;
+  }
+}

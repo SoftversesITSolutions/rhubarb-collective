@@ -1,0 +1,364 @@
+/* ==========================================================================
+   SECTION 05 — THE COLLECTIVE
+
+   Eight people placed by hand on a 12-column grid. Each has its own slot rule
+   and its own proportion; there is deliberately no repeating pattern, because a
+   rule that positioned all eight the same way would rebuild the team grid this
+   section exists to avoid.
+
+   Column spans are chosen so that pairs and trios settle onto shared rows under
+   normal grid auto-placement, then break that rhythm with vertical offsets —
+   which is what produces the asymmetric ecosystem rather than a stack of rows.
+
+   LAYERS
+   1  background ........ the section itself
+   2  network SVG ....... z-index 0, one field, never clipped to a portrait
+   3  portraits ......... z-index 1
+   4  names and roles ... z-index 2
+   5  section type ...... z-index 2
+   ========================================================================== */
+
+.collective {
+  position: relative;
+  background: var(--rh-black);
+  padding-block: clamp(5rem, 14vh, 11rem) clamp(8rem, 22vh, 17rem);
+  overflow: hidden;
+}
+
+/* Pre-animation state, present in the server-rendered markup so the first
+   painted frame is correct. `noscript` in the root layout releases it. */
+.collective[data-collective-state="idle"] [data-collective-frame] {
+  clip-path: inset(0 0 100% 0);
+}
+
+.collective[data-collective-state="idle"] [data-collective-meta],
+.collective[data-collective-state="idle"] [data-collective-marker],
+.collective[data-collective-state="idle"] [data-collective-lede] {
+  opacity: 0;
+}
+
+.collective__network {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* --------------------------------------------------------------------------
+   Opening — continues the 01 / 02 / 03 marker system
+   -------------------------------------------------------------------------- */
+.collective__opening {
+  position: relative;
+  z-index: 2;
+  margin-inline: var(--gutter);
+  margin-block-end: clamp(3.5rem, 11vh, 8rem);
+}
+
+.collective__marker {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.6rem, 1.2vw, 1rem);
+  margin-block-end: clamp(1.75rem, 5vh, 3.5rem);
+  font-family: var(--font-body);
+  font-size: var(--step-eyebrow);
+  line-height: 1;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+}
+
+.collective__index {
+  color: var(--rh-cream);
+}
+
+.collective__rule {
+  display: block;
+  width: clamp(18px, 2.6vw, 44px);
+  height: 1px;
+  background: var(--rh-cream-42);
+}
+
+.collective__heading {
+  max-width: 16ch;
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  /* A step below the Section 2 statement: this section deepens the story, it
+     does not restate the headline. */
+  font-size: clamp(1.5rem, 7.2vw, 2.6rem);
+  line-height: 1.04;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream);
+}
+
+.collective__standfirst {
+  margin-block: clamp(0.9rem, 2.4vh, 1.5rem) 0;
+  font-family: var(--font-body);
+  font-size: var(--step-body);
+  letter-spacing: 0.02em;
+  color: var(--rh-cream-64);
+}
+
+.collective__intro {
+  max-width: 46ch;
+  margin-block-start: clamp(1.5rem, 4vh, 2.75rem);
+  font-family: var(--font-body);
+  font-size: var(--step-body);
+  line-height: 1.55;
+  color: var(--rh-cream-78);
+}
+
+/* --------------------------------------------------------------------------
+   The field
+   -------------------------------------------------------------------------- */
+.collective__field {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  column-gap: clamp(0.75rem, 1.6vw, 1.5rem);
+  /* The section's rhythm lives here: the network owns the space between people. */
+  row-gap: clamp(3.5rem, 11vh, 8rem);
+  padding-inline: var(--gutter);
+}
+
+/* --- the person ----------------------------------------------------------- */
+.collective-person {
+  position: relative;
+  margin: 0;
+  grid-column: 1 / -1;
+}
+
+.collective-person__frame {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  overflow: hidden;
+  /* Editorial rectangle. No radius, no shadow, no card, no glass. */
+  background: var(--rh-black-raised);
+  will-change: clip-path;
+}
+
+.collective-person__portrait {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  will-change: transform;
+}
+
+/* The unexposed plate — what a frame looks like before the client's photograph
+   exists. Deliberately quiet: a held space in the composition, not a broken
+   image and not a placeholder graphic. */
+.collective-person__plate {
+  position: absolute;
+  inset: 0;
+  background: var(--rh-cream-06);
+  border: 1px solid var(--rh-cream-12);
+}
+
+/* --- name and role -------------------------------------------------------- */
+.collective-person__meta {
+  position: relative;
+  z-index: 2;
+  margin-block-start: clamp(0.85rem, 1.8vw, 1.35rem);
+}
+
+.collective-person__name {
+  margin: 0;
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: var(--step-micro);
+  line-height: 1.3;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rh-cream);
+}
+
+.collective-person__role {
+  margin-block-start: 0.35rem;
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1.35;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+}
+
+.collective-person__epithet {
+  margin-block-start: 0.25rem;
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1.35;
+  letter-spacing: 0.1em;
+  color: var(--rh-cream-42);
+}
+
+.collective-person__bio {
+  max-width: 42ch;
+  margin-block-start: clamp(0.85rem, 1.8vh, 1.25rem);
+  font-family: var(--font-body);
+  font-size: clamp(0.8rem, 1.05vw, 0.95rem);
+  line-height: 1.6;
+  color: var(--rh-cream-64);
+}
+
+/* ==========================================================================
+   MOBILE — one flowing vertical composition. Alternating offsets and genuinely
+   different widths, never a two-column grid and never a stack of identical
+   full-width blocks.
+   ========================================================================== */
+.collective-person[data-slot="lead"] {
+  grid-column: 1 / 12;
+}
+.collective-person[data-slot="counter"] {
+  grid-column: 3 / 13;
+}
+.collective-person[data-slot="under"] {
+  grid-column: 1 / 11;
+}
+.collective-person[data-slot="drift-a"] {
+  grid-column: 6 / 13;
+}
+.collective-person[data-slot="drift-b"] {
+  grid-column: 1 / 7;
+}
+.collective-person[data-slot="drift-c"] {
+  grid-column: 5 / 12;
+}
+.collective-person[data-slot="drift-d"] {
+  grid-column: 2 / 8;
+}
+.collective-person[data-slot="drift-e"] {
+  grid-column: 6 / 13;
+}
+
+/* ==========================================================================
+   TABLET — the spread compresses, the asymmetry stays. The five who follow the
+   core settle into two shared rows rather than a column.
+   ========================================================================== */
+@media (min-width: 700px) {
+  .collective-person[data-slot="lead"] {
+    grid-column: 1 / 8;
+  }
+  .collective-person[data-slot="counter"] {
+    grid-column: 6 / 13;
+    margin-block-start: clamp(2.5rem, 8vh, 6rem);
+  }
+  .collective-person[data-slot="under"] {
+    grid-column: 1 / 9;
+  }
+  .collective-person[data-slot="drift-a"] {
+    grid-column: 6 / 10;
+  }
+  .collective-person[data-slot="drift-b"] {
+    grid-column: 10 / 13;
+    margin-block-start: clamp(2rem, 7vh, 5rem);
+  }
+  .collective-person[data-slot="drift-c"] {
+    grid-column: 1 / 5;
+  }
+  .collective-person[data-slot="drift-d"] {
+    grid-column: 5 / 9;
+    margin-block-start: clamp(2.5rem, 8vh, 5.5rem);
+  }
+  .collective-person[data-slot="drift-e"] {
+    grid-column: 9 / 13;
+    margin-block-start: clamp(-1.5rem, -3vh, 0rem);
+  }
+}
+
+/* ==========================================================================
+   DESKTOP — the wide ecosystem. No two people share a vertical rhythm, and the
+   network owns the negative space between them.
+   ========================================================================== */
+@media (min-width: 1100px) {
+  .collective__opening {
+    margin-block-end: clamp(4rem, 13vh, 10rem);
+  }
+
+  .collective__heading {
+    max-width: 20ch;
+    font-size: clamp(2.6rem, 4.2vw, 4.6rem);
+  }
+
+  .collective__field {
+    row-gap: clamp(4rem, 12vh, 9rem);
+  }
+
+  .collective-person[data-slot="lead"] {
+    grid-column: 2 / 7;
+  }
+  .collective-person[data-slot="counter"] {
+    grid-column: 8 / 13;
+    margin-block-start: clamp(5rem, 15vh, 12rem);
+  }
+  .collective-person[data-slot="under"] {
+    grid-column: 1 / 6;
+    margin-block-start: clamp(-3rem, -5vh, 0rem);
+  }
+  .collective-person[data-slot="drift-a"] {
+    grid-column: 7 / 10;
+    margin-block-start: clamp(3rem, 9vh, 7rem);
+  }
+  .collective-person[data-slot="drift-b"] {
+    grid-column: 10 / 13;
+    margin-block-start: clamp(7rem, 19vh, 14rem);
+  }
+  .collective-person[data-slot="drift-c"] {
+    grid-column: 2 / 5;
+  }
+  .collective-person[data-slot="drift-d"] {
+    grid-column: 6 / 9;
+    margin-block-start: clamp(4rem, 11vh, 8rem);
+  }
+  .collective-person[data-slot="drift-e"] {
+    grid-column: 10 / 13;
+    margin-block-start: clamp(-2rem, -4vh, 0rem);
+  }
+
+  /* The core three carry the client's biographies, so their captions get the
+     measure to hold them. */
+  .collective-person[data-size="lead"] .collective-person__bio,
+  .collective-person[data-size="major"] .collective-person__bio {
+    max-width: 38ch;
+  }
+}
+
+/* ==========================================================================
+   POINTER — restrained. A crop shift, nothing more.
+   ========================================================================== */
+@media (hover: hover) and (pointer: fine) {
+  .collective-person__portrait {
+    transition: transform 0.9s var(--ease-organic);
+  }
+
+  .collective[data-collective-state="running"]
+    .collective-person:hover
+    .collective-person__portrait {
+    transform: scale(1.028);
+  }
+}
+
+/* ==========================================================================
+   REDUCED MOTION — nothing moves, everything is present.
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .collective-person__frame,
+  .collective-person__portrait {
+    will-change: auto;
+  }
+
+  .collective-person__portrait {
+    transition: none;
+  }
+
+  .collective[data-collective-state="running"]
+    .collective-person:hover
+    .collective-person__portrait {
+    transform: none;
+  }
+}

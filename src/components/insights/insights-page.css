@@ -1,0 +1,646 @@
+/* ==========================================================================
+   /INSIGHTS — THE EDITORIAL ARCHIVE
+
+   A publication inside the studio. Same four tools as every other inner route —
+   type, rule, space and the field's edges — and the same prohibitions: no card,
+   no panel, no border box, no fill, no radius, no shadow, no gradient, no
+   scrim, no glass, no chip, no pill and no icon. A piece is a picture with type
+   under it, exactly as a case study is on /work.
+
+   TOKENS ARE THE SITE'S. Colour, both faces, the eyebrow tracking, the display
+   tracking and `--gutter` all come from globals.css unchanged. No colour is
+   introduced for this page; there is no "editorial accent". The only values
+   declared here are this route's own type steps and its rhythm.
+
+   ─────────────────────────────────────────────────────────────────────────────
+   HOW THIS PAGE DIFFERS FROM /work, DELIBERATELY
+   ─────────────────────────────────────────────────────────────────────────────
+   /work is a picture archive and its captions are metadata. This is a
+   publication, so the balance inverts: the masthead carries three blocks of
+   real prose at reading size, the headline is set larger relative to its
+   picture than a case study's caption is, and every piece has room for a
+   standfirst under it. That is the whole of the difference — measure and
+   emphasis, not a second design system.
+
+   ─────────────────────────────────────────────────────────────────────────────
+   THE RHYTHM IS POSITIONAL
+   ─────────────────────────────────────────────────────────────────────────────
+   Keyed off the piece's index in the CURRENTLY FILTERED list, so any subset
+   composes — a hand-placed slot that reads as the third beat of a six-piece
+   archive is a lone rectangle in the right margin the moment a strand returns
+   one piece.
+
+     position 0 ....... the feature. Columns 1–10, the largest picture on the
+                        page, and the only piece whose headline is set at
+                        display scale.
+     then, cycling:
+       beat 0 ......... columns 1–6
+       beat 1 ......... columns 7–13, dropped
+       beat 2 ......... columns 3–11, wide again
+
+   Always left before right, and no `grid-auto-flow: dense` anywhere — dense
+   would place a later piece visually before an earlier one, and an archive that
+   reorders itself against its own DOM is one a screen reader reads in a
+   different order than it looks.
+
+   ─────────────────────────────────────────────────────────────────────────────
+   THE ARCHIVE IS EMPTY TODAY
+   ─────────────────────────────────────────────────────────────────────────────
+   Every rule below the empty state is written, checked against a real fixture,
+   and waiting. See the header of `lib/insights/archive`.
+
+   MOTION STATE. `[data-in-state="idle"]` is the resting state in the
+   server-rendered HTML, so the first painted frame is correct before any
+   JavaScript runs; the `noscript` block in the root layout releases it.
+   ========================================================================== */
+
+.in {
+  position: relative;
+  background: var(--rh-black);
+  overflow-x: clip;
+
+  /* --- this page's type steps ---------------------------------------- */
+
+  /* INSIGHTS. Eight characters, level with SERVICES — /work's four-letter WORK
+     is the only masthead on the site allowed to be larger. */
+  --in-title: clamp(2.2rem, 10.2vw, 7rem);
+  /* The client's standfirst. */
+  --in-statement: clamp(1.25rem, 5vw, 2.4rem);
+  /* A feature headline. */
+  --in-feature: clamp(1.5rem, 4.4vw, 3rem);
+  /* Every other headline. */
+  --in-headline: clamp(1.15rem, 2.6vw, 1.7rem);
+
+  /* --- this page's rhythm --------------------------------------------- */
+  --in-section-gap: clamp(4.5rem, 13vh, 9rem);
+  --in-row-gap: clamp(3.5rem, 11vh, 8rem);
+  /* How far a dropped beat sits below its partner. */
+  --in-drop: clamp(2rem, 9vh, 6.5rem);
+}
+
+/* --------------------------------------------------------------------------
+   RESTING STATE
+   -------------------------------------------------------------------------- */
+.in[data-in-state="idle"] [data-in-reveal] {
+  clip-path: inset(0 0 100% 0);
+  opacity: 0;
+}
+
+.in[data-in-state="idle"] [data-in-rule] {
+  transform: scaleX(0);
+}
+
+/* Shared hairline. Always 1px, always the same colour; only its length changes. */
+.in-hero__rule,
+.in-archive__rule,
+.in-colophon__rule {
+  display: block;
+  width: 100%;
+  height: 1px;
+  background: var(--rh-cream-24);
+  transform-origin: 0 50%;
+}
+
+/* ==========================================================================
+   MASTHEAD
+   ========================================================================== */
+.in-hero {
+  margin-inline: var(--gutter);
+  /* Clears the fixed menu trigger, which sits 1.25–2rem from the top. */
+  padding-block-start: clamp(6rem, 17vh, 10rem);
+}
+
+.in-hero__eyebrow {
+  font-family: var(--font-body);
+  font-size: var(--step-eyebrow);
+  line-height: 1;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+}
+
+.in-hero__title {
+  margin-block-start: clamp(0.75rem, 2.5vh, 1.5rem);
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--in-title);
+  line-height: 0.88;
+  letter-spacing: -0.025em;
+  text-transform: uppercase;
+  color: var(--rh-cream);
+}
+
+.in-hero__title-inner {
+  /* `clip-path` does not apply to a non-replaced inline element. */
+  display: block;
+}
+
+.in-hero__rule {
+  margin-block-start: clamp(1.5rem, 5vh, 2.75rem);
+}
+
+.in-hero__statement {
+  margin-block-start: clamp(1.25rem, 3.5vh, 2rem);
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--in-statement);
+  line-height: 1.08;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream);
+  max-width: 18ch;
+}
+
+.in-hero__statement-inner {
+  display: block;
+}
+
+.in-hero__body {
+  margin-block-start: clamp(1.5rem, 4vh, 2.25rem);
+  font-family: var(--font-body);
+  font-size: clamp(0.98rem, 1.25vw, 1.15rem);
+  line-height: 1.6;
+  color: var(--rh-cream-78);
+  max-width: 60ch;
+}
+
+/*
+ * THE CLIENT'S NOTE. An aside in a publication, so it is set smaller than the
+ * paragraph, in the quieter cream, and hung off a rule down its leading edge —
+ * the page's own hairline, stood on end. It is the sharpest line in the whole
+ * supplied material and the one that tells a reader what kind of publication
+ * this is, so it gets its own object rather than a sentence in a paragraph.
+ */
+.in-hero__note {
+  margin-block-start: clamp(1.5rem, 4vh, 2.25rem);
+  padding-inline-start: clamp(1rem, 2.5vw, 1.75rem);
+  border-inline-start: 1px solid var(--rh-cream-24);
+  font-family: var(--font-body);
+  font-size: clamp(0.86rem, 1.05vw, 0.98rem);
+  line-height: 1.55;
+  color: var(--rh-cream-42);
+  max-width: 52ch;
+}
+
+/* ==========================================================================
+   THE ARCHIVE HEADER
+   ========================================================================== */
+.in-archive {
+  margin-inline: var(--gutter);
+  padding-block-start: var(--in-section-gap);
+}
+
+.in-archive__marker {
+  margin-block-start: clamp(1.1rem, 3vh, 1.6rem);
+  font-family: var(--font-body);
+  font-size: var(--step-eyebrow);
+  line-height: 1;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+}
+
+/* --------------------------------------------------------------------------
+   THE STRAND FILTER
+
+   Rendered only when the published pieces genuinely span two strands — see
+   `shouldFilter`. It is /work's industry row in every respect, because the site
+   should have one filter language and not two.
+   -------------------------------------------------------------------------- */
+.in-filter {
+  margin-block-start: clamp(1.75rem, 5vh, 2.75rem);
+}
+
+.in-filter__label {
+  font-family: var(--font-body);
+  font-size: var(--step-eyebrow);
+  line-height: 1;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-42);
+}
+
+/* It wraps; it does not scroll sideways. A horizontally scrollable row hides
+   strands behind a gesture with no affordance to announce it. */
+.in-filter__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 clamp(1.25rem, 3vw, 2.75rem);
+  margin-block-start: clamp(0.5rem, 1.5vh, 0.9rem);
+}
+
+.in-filter__item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.45em;
+  /* Vertical padding is the touch target; it draws nothing. */
+  min-block-size: 44px;
+  margin: 0;
+  padding: 0.9rem 0 0.75rem;
+  border: 0;
+  border-block-end: 1px solid transparent;
+  border-radius: 0;
+  background: none;
+  font-family: var(--font-body);
+  font-size: clamp(0.78rem, 1.05vw, 0.95rem);
+  line-height: 1.2;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-42);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 220ms var(--ease-organic),
+    border-color 220ms var(--ease-organic);
+}
+
+/* Colour AND a rule, so the active strand is never carried by contrast alone —
+   and `aria-pressed` carries it for anyone not looking. */
+.in-filter__item[data-active] {
+  color: var(--rh-cream);
+  border-block-end-color: var(--rh-cream);
+  cursor: default;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .in-filter__item:not([data-active]):hover {
+    color: var(--rh-cream-90);
+    border-block-end-color: var(--rh-cream-24);
+  }
+}
+
+.in-filter__count {
+  font-size: 0.82em;
+  letter-spacing: 0.08em;
+  color: var(--rh-cream-24);
+  transition: color 220ms var(--ease-organic);
+}
+
+.in-filter__item[data-active] .in-filter__count {
+  color: var(--rh-cream-64);
+}
+
+.in-archive__tally {
+  margin-block-start: clamp(0.85rem, 2.4vh, 1.4rem);
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1.3;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--rh-cream-42);
+}
+
+/* ==========================================================================
+   THE EMPTY STATE
+
+   What the page is today. Set as a statement rather than as an apology: a
+   display word and one line, at the scale a section heading gets, with the
+   colophon's eight strands directly beneath it doing the work a grid of
+   articles would otherwise do.
+   ========================================================================== */
+.in-empty {
+  margin-block-start: clamp(3rem, 9vh, 5.5rem);
+}
+
+.in-empty__heading {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--in-statement);
+  line-height: 1.05;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+}
+
+.in-empty__body {
+  margin-block-start: clamp(1rem, 3vh, 1.5rem);
+  font-family: var(--font-body);
+  font-size: clamp(0.95rem, 1.2vw, 1.1rem);
+  line-height: 1.6;
+  color: var(--rh-cream-78);
+  max-width: 46ch;
+}
+
+.in-empty__body--filtered {
+  margin-block-start: clamp(3rem, 9vh, 5.5rem);
+}
+
+/* ==========================================================================
+   THE GRID
+   ========================================================================== */
+.in-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  column-gap: clamp(0.75rem, 1.6vw, 1.5rem);
+  row-gap: var(--in-row-gap);
+  /* A piece must never stretch to its row — the picture's ratio is the height. */
+  align-items: start;
+  margin-block-start: clamp(3rem, 9vh, 5.5rem);
+}
+
+/* --------------------------------------------------------------------------
+   ONE PIECE
+
+   Mobile first: every piece is full measure, because a phone has no room to
+   make one headline more important than another by width. The rhythm moves into
+   indentation and into the type — the feature keeps its larger headline at
+   every width, which is what preserves the hierarchy the desktop grid draws.
+   -------------------------------------------------------------------------- */
+.in-card {
+  margin: 0;
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.in-card[data-beat="1"] {
+  margin-inline-start: clamp(1.25rem, 7vw, 3rem);
+}
+
+/* --- the picture --------------------------------------------------------- */
+.in-card__frame {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  /* Editorial rectangle. No radius, no shadow, no border, no card. The raised
+     black is what the frame reserves before the file lands. */
+  background: var(--rh-black-raised);
+  will-change: clip-path;
+}
+
+.in-card__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* The frame already carries the asset's own ratio, so `cover` never crops in
+     practice — it is here so a future asset whose file does not match its
+     recorded dimensions fills the frame rather than distorting inside it. */
+  object-fit: cover;
+}
+
+/* --- the type ------------------------------------------------------------ */
+.in-card__body {
+  margin-block-start: clamp(0.9rem, 2.2vw, 1.5rem);
+}
+
+/* A piece with no picture keeps its place and is carried by type alone. No
+   placeholder plate, no grey rectangle, no stock photograph. The rule stands in
+   for the frame's top edge so the composition still has something to hang on. */
+.in-card[data-imageless] .in-card__body {
+  margin-block-start: 0;
+  padding-block-start: clamp(1.1rem, 2.6vw, 1.75rem);
+  border-block-start: 1px solid var(--rh-cream-24);
+}
+
+.in-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem clamp(0.6rem, 1.4vw, 1rem);
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1.3;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.in-card__category {
+  color: var(--rh-cream-78);
+}
+
+/* A hairline between the strand and the date — the page's rule, at 12px. */
+.in-card__separator {
+  display: block;
+  width: clamp(10px, 1.2vw, 18px);
+  height: 1px;
+  background: var(--rh-cream-24);
+}
+
+.in-card__date {
+  color: var(--rh-cream-42);
+}
+
+.in-card__title {
+  margin-block-start: clamp(0.6rem, 1.6vh, 0.9rem);
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--in-headline);
+  line-height: 1.1;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream);
+  overflow-wrap: break-word;
+  max-width: 24ch;
+}
+
+/* The feature's headline is the only one set at display scale. */
+.in-card[data-beat="feature"] .in-card__title {
+  font-size: var(--in-feature);
+  max-width: 20ch;
+}
+
+/*
+ * THE LINK, AND WHY IT IS GATED.
+ *
+ * No article route exists yet, so `href` is null on every piece and none of
+ * this applies — a headline that moves under the pointer and then goes nowhere
+ * is worse than one that sits still, and it is the same reason the studio's
+ * address on /contact is plain type rather than a link to a map nobody supplied.
+ *
+ * When a route lands: the anchor's box is stretched over the whole composition
+ * so the picture is part of the hit area, while the accessible name stays the
+ * headline alone rather than the alt text plus the excerpt plus the byline read
+ * out as one link.
+ */
+.in-card__link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.in-card[data-linked] {
+  position: relative;
+}
+
+.in-card__link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.in-card__excerpt {
+  margin-block-start: clamp(0.6rem, 1.6vh, 0.9rem);
+  font-family: var(--font-body);
+  font-size: clamp(0.92rem, 1.1vw, 1.02rem);
+  line-height: 1.55;
+  color: var(--rh-cream-64);
+  max-width: 48ch;
+}
+
+.in-card__byline {
+  margin-block-start: clamp(0.8rem, 2vh, 1.2rem);
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1.3;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--rh-cream-42);
+}
+
+/*
+ * HOVER. One gesture: the picture settles up by 1.5% and the headline's colour
+ * holds. Nothing else moves, nothing fades, no overlay appears, no arrow slides
+ * in. Pointer-only, gated on a piece that is really a link, and no information
+ * is behind it — the strand, the headline, the standfirst, the byline and the
+ * date are all on screen at rest, on a phone as much as on a desktop.
+ */
+@media (hover: hover) and (pointer: fine) {
+  .in-card[data-linked] .in-card__image {
+    transition: transform 520ms var(--ease-organic);
+  }
+
+  .in-card[data-linked]:hover .in-card__image,
+  .in-card[data-linked]:focus-within .in-card__image {
+    transform: scale(1.015);
+  }
+}
+
+/* ==========================================================================
+   THE COLOPHON
+   ========================================================================== */
+.in-colophon {
+  margin-inline: var(--gutter);
+  padding-block: var(--in-section-gap) clamp(4rem, 12vh, 8rem);
+}
+
+.in-colophon__label {
+  margin-block-start: clamp(1.5rem, 4vh, 2.25rem);
+  font-family: var(--font-body);
+  font-size: var(--step-eyebrow);
+  line-height: 1;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-42);
+}
+
+/*
+ * The eight strands. Set as a run of display type rather than as a list of
+ * chips: they are the subjects a publication intends to cover, which is the
+ * closing statement of an editorial page, not a set of controls. Nothing here
+ * is a link and nothing carries a count — the plan calls them potential areas
+ * for future phases and the page says exactly that.
+ */
+.in-colophon__strands {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem clamp(1rem, 2.5vw, 2rem);
+  margin: clamp(1.25rem, 3.5vh, 2rem) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.in-colophon__strand {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1rem, 2.4vw, 1.5rem);
+  line-height: 1.15;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+}
+
+/* ==========================================================================
+   TABLET — 700px and up
+
+   The grid stays a single staggered column rather than splitting: a
+   six-of-twelve picture on an 834 screen is about 380px, which is a thumbnail,
+   and an editorial archive exists to show its pictures large. So the asymmetry
+   moves into width and indent instead — no two adjacent pieces share an edge.
+   ========================================================================== */
+@media (min-width: 700px) {
+  .in-card[data-beat="1"] {
+    margin-inline-start: 0;
+  }
+
+  .in-card[data-beat="feature"] {
+    grid-column: 1 / 12;
+  }
+
+  .in-card[data-beat="0"] {
+    grid-column: 1 / 10;
+  }
+
+  .in-card[data-beat="1"] {
+    grid-column: 4 / -1;
+  }
+
+  .in-card[data-beat="2"] {
+    grid-column: 2 / 11;
+  }
+
+  .in-hero__body,
+  .in-hero__note {
+    margin-inline-start: clamp(2rem, 10vw, 8rem);
+  }
+}
+
+/* ==========================================================================
+   DESKTOP — 1100px and up
+   The full field: the feature across most of it, then pieces two to a row with
+   the weight alternating sides.
+   ========================================================================== */
+@media (min-width: 1100px) {
+  .in-hero__body,
+  .in-hero__note {
+    margin-inline-start: clamp(2rem, 12vw, 10rem);
+  }
+
+  .in-card[data-beat="feature"] {
+    grid-column: 1 / 11;
+  }
+
+  .in-card[data-beat="0"] {
+    grid-column: 1 / 6;
+  }
+
+  .in-card[data-beat="1"] {
+    grid-column: 7 / -1;
+    margin-block-start: var(--in-drop);
+  }
+
+  .in-card[data-beat="2"] {
+    grid-column: 3 / 11;
+  }
+
+  .in-empty {
+    /* Stepped in to the same column the prose above it starts at, so the empty
+       state reads as part of the masthead's argument rather than as a gap. */
+    margin-inline-start: clamp(2rem, 12vw, 10rem);
+  }
+}
+
+/* ==========================================================================
+   REDUCED MOTION
+
+   The page behaves identically — the filter still works, every piece is still
+   there; it simply arrives.
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .in[data-in-state="idle"] [data-in-reveal] {
+    clip-path: none;
+    opacity: 1;
+  }
+
+  .in[data-in-state="idle"] [data-in-rule] {
+    transform: none;
+  }
+
+  .in-filter__item,
+  .in-filter__count,
+  .in-card__image {
+    transition: none;
+  }
+
+  .in-card[data-linked]:hover .in-card__image,
+  .in-card[data-linked]:focus-within .in-card__image {
+    transform: none;
+  }
+}

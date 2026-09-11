@@ -1,0 +1,675 @@
+/* ==========================================================================
+   /work/[slug] — THE CASE STUDY
+
+   A reading page with two pictures in it. Same four tools as every other inner
+   route — type, rule, space and the field's edges — and the same prohibitions:
+   no card, no panel, no border box, no fill, no radius, no shadow, no gradient,
+   no scrim, no glass and no icon. A picture is a rectangle of the work; the
+   type around it is commentary.
+
+   TOKENS ARE THE SITE'S. Colour, both faces, the eyebrow tracking, the display
+   tracking and `--gutter` come from globals.css unchanged. No colour is
+   introduced for this route.
+
+   ─────────────────────────────────────────────────────────────────────────────
+   THE MEASURE IS THE DESIGN
+   ─────────────────────────────────────────────────────────────────────────────
+   /work is an archive of pictures and its type is metadata; this page inverts
+   that. It is the only route on the site with sustained prose next to
+   full-measure imagery, so the composition is built around one decision: the
+   pictures run wide and the reading columns stay narrow, and the contrast
+   between the two is what gives a long page its rhythm.
+
+   THE MEASURE IS SET IN `ch` AND THEN CHECKED IN CHARACTERS, because those are
+   not the same thing. `ch` is the width of a zero, and Agrandir's zero is wide:
+   `62ch` computes to 799px here, which holds about ninety characters a line —
+   well past the seventy-five where prose stops being comfortable. Measured, not
+   assumed. `--cs-measure` is the value that actually lands the longest rendered
+   line at 72 characters on desktop and tablet and 52 on a phone — measured by
+   grouping per-character rects into line boxes and counting the longest.
+
+   ─────────────────────────────────────────────────────────────────────────────
+   SLOTS
+   ─────────────────────────────────────────────────────────────────────────────
+   A case study is a fixed, curated sequence — unlike the /work archive, whose
+   placement has to survive an arbitrary filtered subset — so each block is
+   hand-placed by `data-slot` and no two consecutive blocks share a position:
+
+     full ........... the whole field. Pictures, and the typographic pause.
+     wide-left ...... columns 1–8
+     wide-right ..... columns 5–12
+     narrow-left .... columns 1–6
+     narrow-right ... columns 7–12
+
+   MOTION STATE. `[data-cs-state="idle"]` is the resting state in the
+   server-rendered HTML, so the first painted frame is correct before any
+   JavaScript runs; the `noscript` block in the root layout releases it.
+   ========================================================================== */
+
+.cs {
+  position: relative;
+  background: var(--rh-black);
+  overflow-x: clip;
+
+  /* --- this page's type steps ---------------------------------------- */
+
+  /* The client's name. Large, but under /work's WORK — this is a page inside
+     the archive, not a masthead for it. */
+  --cs-title: clamp(2.6rem, 13vw, 8rem);
+  /* A section heading. */
+  --cs-heading: clamp(1.3rem, 3.6vw, 2.3rem);
+  /* The one typographic pause. The largest thing on the page after the title. */
+  --cs-pause: clamp(1.6rem, 6.6vw, 3.6rem);
+  /* Reading size. Larger than the other routes' body — this is the one page on
+     the site that is genuinely read rather than scanned. */
+  --cs-body: clamp(1rem, 1.28vw, 1.18rem);
+
+  /* --- this page's rhythm --------------------------------------------- */
+  --cs-section-gap: clamp(4.5rem, 13vh, 9rem);
+  /* Checked by counting the characters on the longest rendered line, not by
+     trusting the unit — see the note at the top of this file. */
+  --cs-measure: 46ch;
+}
+
+/* --------------------------------------------------------------------------
+   RESTING STATE
+   -------------------------------------------------------------------------- */
+.cs[data-cs-state="idle"] [data-cs-reveal] {
+  clip-path: inset(0 0 100% 0);
+  opacity: 0;
+}
+
+.cs[data-cs-state="idle"] [data-cs-rule] {
+  transform: scaleX(0);
+}
+
+.cs[data-cs-state="idle"] [data-cs-hero] {
+  clip-path: inset(0 0 100% 0);
+}
+
+/* Shared hairline. */
+.cs-outcome__rule,
+.cs-next__rule {
+  display: block;
+  width: 100%;
+  height: 1px;
+  background: var(--rh-cream-24);
+  transform-origin: 0 50%;
+}
+
+/* ==========================================================================
+   OUT — the route back to the archive
+
+   At the top, where a reader who followed a link they did not mean to will look
+   for it. The site's underline language: a rule that comes up to full strength.
+   ========================================================================== */
+.cs-back {
+  margin-inline: var(--gutter);
+  padding-block-start: clamp(5.5rem, 15vh, 8rem);
+}
+
+.cs-back__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  /* Padding is the touch target; it draws nothing. */
+  min-block-size: 44px;
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+  text-decoration: none;
+  transition: color 220ms var(--ease-organic);
+}
+
+.cs-back__arrow {
+  /* Not an icon — the character. It moves a hair on hover and nothing else. */
+  display: inline-block;
+  transition: transform 260ms var(--ease-organic);
+}
+
+.cs-back__link:hover,
+.cs-back__link:focus-visible {
+  color: var(--rh-cream);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cs-back__link:hover .cs-back__arrow {
+    transform: translateX(-3px);
+  }
+}
+
+/* ==========================================================================
+   MASTHEAD
+   ========================================================================== */
+.cs-masthead {
+  margin-inline: var(--gutter);
+  padding-block-start: clamp(2rem, 6vh, 3.5rem);
+}
+
+.cs-masthead__eyebrow {
+  font-family: var(--font-body);
+  font-size: var(--step-eyebrow);
+  line-height: 1;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+}
+
+.cs-masthead__title {
+  margin-block-start: clamp(0.75rem, 2.5vh, 1.5rem);
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--cs-title);
+  line-height: 0.9;
+  letter-spacing: -0.025em;
+  text-transform: uppercase;
+  color: var(--rh-cream);
+}
+
+.cs-masthead__title-inner {
+  /* `clip-path` does not apply to a non-replaced inline element. */
+  display: block;
+}
+
+.cs-masthead__descriptor {
+  margin-block-start: clamp(0.9rem, 2.5vh, 1.4rem);
+  font-family: var(--font-body);
+  font-size: clamp(0.95rem, 1.2vw, 1.15rem);
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  color: var(--rh-cream-78);
+}
+
+/* ==========================================================================
+   HERO PICTURE
+
+   The project's strongest asset, at the full measure of the field and at its
+   own aspect ratio — the frame reserves the proportions before the file lands,
+   so the type below never moves. No overlay, no scrim, no caption over it and
+   no title set on top of it: the work is not a background for a headline.
+   ========================================================================== */
+.cs-hero {
+  position: relative;
+  margin-inline: var(--gutter);
+  margin-block-start: clamp(2.5rem, 8vh, 4.5rem);
+  width: auto;
+  overflow: hidden;
+  background: var(--rh-black-raised);
+  will-change: clip-path;
+}
+
+.cs-hero__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* The frame already carries the asset's own ratio, so `cover` never crops in
+     practice — it is here so a future asset whose file does not match its
+     recorded dimensions fills the frame rather than distorting inside it. */
+  object-fit: cover;
+}
+
+/* ==========================================================================
+   OVERVIEW — the facts rail against the summary
+   ========================================================================== */
+.cs-overview {
+  margin-inline: var(--gutter);
+  padding-block-start: var(--cs-section-gap);
+}
+
+.cs-facts {
+  margin: 0;
+  padding: 0;
+}
+
+/* A row is a label over its value, separated from the next by the page's own
+   hairline. No table, no borders around anything, no two-column ledger that
+   collapses badly at 320. */
+.cs-facts__row {
+  padding-block: clamp(0.8rem, 2.2vh, 1.1rem);
+  border-block-start: 1px solid var(--rh-cream-12);
+}
+
+.cs-facts__row:last-child {
+  border-block-end: 1px solid var(--rh-cream-12);
+}
+
+.cs-facts__label {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1.2;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-42);
+}
+
+.cs-facts__value {
+  margin: 0.35rem 0 0;
+  font-family: var(--font-body);
+  font-size: clamp(0.92rem, 1.1vw, 1.02rem);
+  line-height: 1.4;
+  color: var(--rh-cream);
+}
+
+.cs-overview__summary {
+  margin-block-start: clamp(2.25rem, 6vh, 3.5rem);
+  font-family: var(--font-body);
+  font-size: var(--cs-body);
+  line-height: 1.65;
+  color: var(--rh-cream-90);
+  max-width: var(--cs-measure);
+}
+
+/* ==========================================================================
+   A SECTION
+   ========================================================================== */
+.cs-section {
+  margin-inline: var(--gutter);
+  padding-block-start: var(--cs-section-gap);
+}
+
+.cs-section__marker {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.6rem, 1.2vw, 1rem);
+  font-family: var(--font-body);
+  font-size: var(--step-eyebrow);
+  line-height: 1;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+}
+
+.cs-section__index {
+  color: var(--rh-cream);
+}
+
+.cs-section__marker-rule {
+  display: block;
+  width: clamp(18px, 2.6vw, 44px);
+  height: 1px;
+  background: var(--rh-cream-42);
+}
+
+.cs-section__heading {
+  margin-block-start: clamp(1.1rem, 3vh, 1.75rem);
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--cs-heading);
+  line-height: 1.08;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream);
+  max-width: 20ch;
+}
+
+.cs-section__heading-inner {
+  display: block;
+}
+
+.cs-section__body {
+  margin-block-start: clamp(1.1rem, 3vh, 1.6rem);
+  font-family: var(--font-body);
+  font-size: var(--cs-body);
+  line-height: 1.65;
+  color: var(--rh-cream-78);
+  max-width: var(--cs-measure);
+}
+
+/* Where a quoted paragraph came from. Set at the quietest weight on the page —
+   it is provenance, not content, but it has to be there so a reader can tell
+   the studio's own words from the site's. */
+.cs-section__source {
+  margin-block-start: clamp(0.9rem, 2.4vh, 1.3rem);
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1.4;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rh-cream-24);
+}
+
+/* --- a figure ------------------------------------------------------------ */
+.cs-section__frame {
+  position: relative;
+  width: 100%;
+  margin-block-start: clamp(1.5rem, 4vh, 2.5rem);
+  overflow: hidden;
+  background: var(--rh-black-raised);
+  will-change: clip-path;
+}
+
+.cs-section__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The heading and body of a figure block sit under the picture and step in from
+   its left edge, so the picture reads as the subject and the type as its
+   caption rather than as a second heading competing with it. */
+.cs-section[data-type="figure"] .cs-section__heading,
+.cs-section[data-type="figure"] .cs-section__body,
+.cs-section[data-type="figure"] .cs-section__caption {
+  margin-inline-start: 0;
+}
+
+.cs-section__caption {
+  margin-block-start: clamp(0.8rem, 2vh, 1.1rem);
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1.4;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rh-cream-42);
+}
+
+/* ==========================================================================
+   THE PAUSE
+
+   One line at display scale, alone in the field. It is the page's only
+   typographic break and the only place the reading rhythm stops — which is the
+   whole of its job on a long page.
+
+   NOT A `<blockquote>`, and no quotation marks: it is the studio's own phrase
+   about its own project, not a statement attributable to a client, and setting
+   it in quotes would imply a speaker the material does not have. The line under
+   it says where it came from.
+   ========================================================================== */
+.cs-pause {
+  margin-inline: var(--gutter);
+  padding-block: clamp(5rem, 15vh, 10rem) 0;
+}
+
+.cs-pause__line {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--cs-pause);
+  line-height: 1.02;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream);
+  max-width: 16ch;
+}
+
+.cs-pause__inner {
+  display: block;
+}
+
+.cs-pause__source {
+  margin-block-start: clamp(1.25rem, 3.5vh, 2rem);
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1.4;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rh-cream-24);
+}
+
+/* ==========================================================================
+   OUTCOME
+   ========================================================================== */
+.cs-outcome {
+  margin-inline: var(--gutter);
+  padding-block-start: var(--cs-section-gap);
+}
+
+.cs-outcome__label {
+  margin-block-start: clamp(1.5rem, 4vh, 2.25rem);
+  font-family: var(--font-body);
+  font-size: var(--step-eyebrow);
+  line-height: 1;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+}
+
+.cs-outcome__body {
+  margin-block-start: clamp(1.1rem, 3vh, 1.6rem);
+  font-family: var(--font-body);
+  font-size: var(--cs-body);
+  line-height: 1.65;
+  color: var(--rh-cream-90);
+  max-width: var(--cs-measure);
+}
+
+/* The closing line — "The work is ongoing." — set quieter than the paragraph
+   above it, because it is a status and not a claim. */
+.cs-outcome__body:last-child {
+  color: var(--rh-cream-42);
+}
+
+/* ==========================================================================
+   NEXT WORK
+
+   One link, and the whole block is the hit area. No card, no picture, no
+   "related projects" grid — a case study ends by pointing somewhere, once.
+   ========================================================================== */
+.cs-next {
+  margin-inline: var(--gutter);
+  padding-block: var(--cs-section-gap) clamp(4rem, 12vh, 8rem);
+}
+
+.cs-next__link {
+  display: block;
+  padding-block: clamp(1.5rem, 4vh, 2.5rem) 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.cs-next__label {
+  display: block;
+  font-family: var(--font-body);
+  font-size: var(--step-eyebrow);
+  line-height: 1;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+}
+
+.cs-next__client {
+  display: block;
+  margin-block-start: clamp(0.8rem, 2.4vh, 1.2rem);
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--cs-heading);
+  line-height: 1.05;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream);
+  transition: color 260ms var(--ease-organic);
+}
+
+.cs-next__discipline {
+  display: block;
+  margin-block-start: clamp(0.5rem, 1.6vh, 0.8rem);
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1.3;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rh-cream-42);
+}
+
+/* One gesture: the client's name comes up to full strength. Nothing slides,
+   nothing scales, no arrow appears. */
+@media (hover: hover) and (pointer: fine) {
+  .cs-next__link:hover .cs-next__client {
+    color: var(--rh-cream-90);
+  }
+}
+
+/* ==========================================================================
+   TABLET — 700px and up
+   The reading columns step in from the field's edge; the pictures do not.
+   ========================================================================== */
+@media (min-width: 700px) {
+  .cs-overview__summary,
+  .cs-section[data-type="prose"] .cs-section__heading,
+  .cs-section[data-type="prose"] .cs-section__body,
+  .cs-section[data-type="prose"] .cs-section__source,
+  .cs-outcome__label,
+  .cs-outcome__body {
+    margin-inline-start: clamp(2rem, 10vw, 8rem);
+  }
+
+  /* The facts rail is the one block that stays at the margin, so the reader
+     always knows where the field's left edge is. */
+  .cs-facts {
+    max-width: 32rem;
+  }
+
+  .cs-section[data-type="figure"] .cs-section__heading,
+  .cs-section[data-type="figure"] .cs-section__body,
+  .cs-section[data-type="figure"] .cs-section__caption {
+    margin-inline-start: clamp(2rem, 10vw, 8rem);
+  }
+}
+
+/* ==========================================================================
+   DESKTOP — 1100px and up
+
+   The 12-column field. The pictures keep the whole of it and the reading blocks
+   take their slot, so the page alternates between full-bleed work and a narrow
+   column of prose — which is the rhythm the whole composition is built on.
+   ========================================================================== */
+@media (min-width: 1100px) {
+  .cs-masthead,
+  .cs-overview,
+  .cs-section,
+  .cs-pause,
+  .cs-outcome,
+  .cs-next {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: clamp(1rem, 1.6vw, 1.75rem);
+  }
+
+  /* Anything not placed explicitly spans the field, so a block can be added to
+     the data without first being given a grid position. */
+  .cs-masthead > *,
+  .cs-section > *,
+  .cs-pause > *,
+  .cs-outcome > *,
+  .cs-next > * {
+    grid-column: 1 / -1;
+  }
+
+  .cs-masthead__descriptor {
+    grid-column: 1 / 7;
+  }
+
+  /* ---- the overview spread: the rail against the summary ---- */
+  .cs-facts {
+    grid-column: 1 / 5;
+    max-width: none;
+  }
+
+  .cs-overview__summary {
+    grid-column: 6 / 12;
+    margin-inline-start: 0;
+    /* Level with the first fact's baseline rather than the rail's top rule. */
+    margin-block-start: clamp(0.8rem, 2.2vh, 1.1rem);
+  }
+
+  /* ---- the reading slots ---- */
+  .cs-section[data-slot="narrow-left"] .cs-section__heading,
+  .cs-section[data-slot="narrow-left"] .cs-section__body,
+  .cs-section[data-slot="narrow-left"] .cs-section__source {
+    grid-column: 1 / 7;
+    margin-inline-start: 0;
+  }
+
+  .cs-section[data-slot="narrow-right"] .cs-section__heading,
+  .cs-section[data-slot="narrow-right"] .cs-section__body,
+  .cs-section[data-slot="narrow-right"] .cs-section__source {
+    grid-column: 7 / -1;
+    margin-inline-start: 0;
+  }
+
+  .cs-section[data-slot="wide-left"] .cs-section__heading,
+  .cs-section[data-slot="wide-left"] .cs-section__body,
+  .cs-section[data-slot="wide-left"] .cs-section__source {
+    grid-column: 1 / 9;
+    margin-inline-start: 0;
+  }
+
+  /* The visual-direction block. Pushed right, against the narrow-left context
+     block above it — the page's only two prose sections do not share an edge. */
+  .cs-section[data-slot="wide-right"] .cs-section__heading,
+  .cs-section[data-slot="wide-right"] .cs-section__body,
+  .cs-section[data-slot="wide-right"] .cs-section__source {
+    grid-column: 5 / -1;
+    margin-inline-start: 0;
+  }
+
+  /* The section marker stays at the field's left edge on every slot — it is the
+     page's spine, and moving it with the prose would lose the reader's place. */
+  .cs-section__marker {
+    grid-column: 1 / -1;
+  }
+
+  /* A figure's type sits under the picture, stepped in, and never full width. */
+  .cs-section[data-type="figure"] .cs-section__heading,
+  .cs-section[data-type="figure"] .cs-section__body,
+  .cs-section[data-type="figure"] .cs-section__caption {
+    grid-column: 3 / 10;
+    margin-inline-start: 0;
+  }
+
+  /* ---- the pause, offset into the field ---- */
+  .cs-pause__line,
+  .cs-pause__source {
+    grid-column: 4 / -1;
+  }
+
+  /* ---- outcome ---- */
+  .cs-outcome__label {
+    grid-column: 1 / 4;
+    margin-inline-start: 0;
+  }
+
+  .cs-outcome__body {
+    grid-column: 5 / 11;
+    margin-inline-start: 0;
+  }
+
+  .cs-outcome__body + .cs-outcome__body {
+    grid-column: 5 / 11;
+  }
+
+  /* ---- next ---- */
+  .cs-next__link {
+    grid-column: 5 / -1;
+  }
+}
+
+/* ==========================================================================
+   REDUCED MOTION
+   The page behaves identically; it simply arrives.
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .cs[data-cs-state="idle"] [data-cs-reveal],
+  .cs[data-cs-state="idle"] [data-cs-hero] {
+    clip-path: none;
+    opacity: 1;
+  }
+
+  .cs[data-cs-state="idle"] [data-cs-rule] {
+    transform: none;
+  }
+
+  .cs-back__link,
+  .cs-back__arrow,
+  .cs-next__client {
+    transition: none;
+  }
+
+  .cs-back__link:hover .cs-back__arrow {
+    transform: none;
+  }
+}

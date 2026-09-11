@@ -1,0 +1,303 @@
+/* ==========================================================================
+   SECTION 03 — WORK
+
+   Document flow on a 12-column grid, not a fixed-aspect field like the two
+   sections above: these heights come from the images themselves, so the section
+   is as tall as the work makes it.
+
+   Every piece is placed by hand via its `data-slot`. That is deliberate — a
+   curated field is the point, and a rule that positioned all six identically
+   would rebuild the portfolio grid this section exists to avoid.
+   ========================================================================== */
+
+.work {
+  position: relative;
+  background: var(--rh-black);
+  padding-block: clamp(5rem, 14vh, 11rem) clamp(6rem, 16vh, 13rem);
+  overflow: hidden;
+}
+
+/* Pre-animation state, present in the server-rendered markup so the first
+   painted frame is already correct. `noscript` in the root layout releases it. */
+.work[data-work-state="idle"] [data-work-frame] {
+  clip-path: inset(0 0 100% 0);
+}
+
+.work[data-work-state="idle"] [data-work-meta],
+.work[data-work-state="idle"] [data-work-marker],
+.work[data-work-state="idle"] [data-work-discipline] {
+  opacity: 0;
+}
+
+/* --------------------------------------------------------------------------
+   LAYERS
+   1  background .......... the section itself
+   2  network SVG ......... z-index 0, one field, never clipped to an image
+   3  work images ......... z-index 1
+   4  captions ............ z-index 2
+   The network is always beneath the artwork, so it can cross behind a piece
+   without ever obscuring it.
+   -------------------------------------------------------------------------- */
+.work__network {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* --------------------------------------------------------------------------
+   Marker — continues the 01 / WHO WE ARE system
+   -------------------------------------------------------------------------- */
+.work__marker {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: clamp(0.6rem, 1.2vw, 1rem);
+  margin-inline: var(--gutter);
+  margin-block-end: clamp(3rem, 9vh, 7rem);
+  font-family: var(--font-body);
+  font-size: var(--step-eyebrow);
+  line-height: 1;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+}
+
+.work__index {
+  color: var(--rh-cream);
+}
+
+.work__rule {
+  display: block;
+  width: clamp(18px, 2.6vw, 44px);
+  height: 1px;
+  background: var(--rh-cream-42);
+}
+
+.work__title {
+  margin: 0;
+  font: inherit;
+  color: var(--rh-cream-64);
+}
+
+/* --------------------------------------------------------------------------
+   The field
+   -------------------------------------------------------------------------- */
+.work__field {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  column-gap: clamp(0.75rem, 1.6vw, 1.5rem);
+  /* The rhythm of the section lives in this row gap: density, then breath. */
+  row-gap: clamp(4.5rem, 13vh, 10rem);
+  padding-inline: var(--gutter);
+}
+
+/* Mobile default: one column, with deliberate indents rather than a stack of
+   identical full-width blocks. */
+.work-item {
+  margin: 0;
+  grid-column: 1 / -1;
+}
+
+.work-item[data-slot="right-tall"],
+.work-item[data-slot="right-mid"] {
+  margin-inline-start: clamp(1.5rem, 9vw, 4rem);
+}
+
+.work-item[data-slot="left-wide"],
+.work-item[data-slot="left-mid"] {
+  margin-inline-end: clamp(1.5rem, 9vw, 4rem);
+}
+
+/* --- the frame ------------------------------------------------------------ */
+.work-item__frame {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  overflow: hidden;
+  /* Editorial rectangle. No radius, no shadow, no card. */
+  background: var(--rh-black-raised);
+  will-change: clip-path;
+}
+
+.work-item__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  will-change: transform;
+}
+
+/* --- caption -------------------------------------------------------------- */
+.work-item__meta {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem clamp(0.75rem, 1.6vw, 1.4rem);
+  margin-block-start: clamp(0.85rem, 1.8vw, 1.35rem);
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1.3;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.work-item__project {
+  color: var(--rh-cream);
+}
+
+.work-item__discipline {
+  color: var(--rh-cream-64);
+}
+
+.work-item__note {
+  color: var(--rh-cream-42);
+}
+
+/* --------------------------------------------------------------------------
+   Close — the fan toward disciplines
+   -------------------------------------------------------------------------- */
+.work__outlet {
+  position: relative;
+  z-index: 1;
+  margin-block-start: clamp(5rem, 15vh, 11rem);
+  padding-inline: var(--gutter);
+}
+
+.work__disciplines {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem clamp(1.25rem, 3.4vw, 3rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+  text-align: center;
+}
+
+/* ==========================================================================
+   TABLET — asymmetry returns, at a narrower measure
+   ========================================================================== */
+@media (min-width: 700px) {
+  .work-item {
+    margin-inline: 0;
+  }
+
+  .work-item[data-slot="feature-right"] {
+    grid-column: 3 / -1;
+  }
+
+  .work-item[data-slot="left-wide"] {
+    grid-column: 1 / 10;
+  }
+
+  .work-item[data-slot="right-tall"] {
+    grid-column: 7 / -1;
+  }
+
+  .work-item[data-slot="centre-wide"] {
+    grid-column: 2 / -1;
+  }
+
+  .work-item[data-slot="right-mid"] {
+    grid-column: 5 / -1;
+  }
+
+  .work-item[data-slot="left-mid"] {
+    grid-column: 1 / 11;
+  }
+}
+
+/* ==========================================================================
+   DESKTOP — the full curated field
+   ========================================================================== */
+@media (min-width: 1100px) {
+  .work-item[data-slot="feature-right"] {
+    grid-column: 5 / 13;
+  }
+
+  .work-item[data-slot="left-wide"] {
+    grid-column: 1 / 7;
+    /* Pulled up into the feature's negative space so the two read as a pair
+       rather than as two rows. */
+    margin-block-start: clamp(-6rem, -7vh, -2rem);
+  }
+
+  .work-item[data-slot="right-tall"] {
+    grid-column: 9 / 13;
+  }
+
+  .work-item[data-slot="centre-wide"] {
+    grid-column: 2 / 12;
+  }
+
+  .work-item[data-slot="right-mid"] {
+    grid-column: 6 / 13;
+  }
+
+  .work-item[data-slot="left-mid"] {
+    grid-column: 1 / 8;
+    margin-block-start: clamp(-5rem, -6vh, -1.5rem);
+  }
+
+  .work__disciplines {
+    justify-content: flex-start;
+    padding-inline-start: 8.333%;
+  }
+}
+
+/* ==========================================================================
+   POINTER — restrained. A crop shift and a brightening caption, nothing more.
+   ========================================================================== */
+@media (hover: hover) and (pointer: fine) {
+  .work-item__image {
+    transition: transform 0.9s cubic-bezier(0.22, 0.61, 0.24, 1);
+  }
+
+  .work[data-work-state="running"] .work-item:hover .work-item__image {
+    transform: scale(1.028);
+  }
+
+  .work-item__discipline,
+  .work-item__note {
+    transition: color 0.5s ease;
+  }
+
+  .work-item:hover .work-item__discipline {
+    color: var(--rh-cream);
+  }
+
+  .work-item:hover .work-item__note {
+    color: var(--rh-cream-64);
+  }
+}
+
+/* ==========================================================================
+   REDUCED MOTION
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .work-item__frame,
+  .work-item__image {
+    will-change: auto;
+  }
+
+  .work-item__image {
+    transition: none;
+  }
+
+  .work[data-work-state="running"] .work-item:hover .work-item__image {
+    transform: none;
+  }
+}

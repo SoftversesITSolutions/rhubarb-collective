@@ -1,0 +1,253 @@
+/* ==========================================================================
+   SECTION 04 — THE TURN
+
+   Six disciplines placed by hand on a descending left-to-right staircase.
+   This section is the page's change of direction: the organism stops falling
+   and travels ACROSS the composition, and each card is a station it passes.
+   The placement is therefore not a grid pattern but a journey — net rightward,
+   with one deliberate pull-back at 03 so the travel reads as organic rather
+   than diagrammatic. The trunk needs the left rail and the space between the
+   stations, so column 1 stays empty on desktop and the row gaps stay generous.
+
+   LAYERS
+   1  background ..... the section itself
+   2  network SVG ..... z-index 0, one field, never clipped to a card
+   3  cards ........... z-index 1
+   4  card content .... z-index 2
+   ========================================================================== */
+
+.branches {
+  position: relative;
+  background: var(--rh-black);
+  padding-block: clamp(5rem, 14vh, 11rem) clamp(9rem, 26vh, 20rem);
+  overflow: hidden;
+}
+
+/* Pre-animation state, present in the server-rendered markup so the first
+   painted frame is correct. `noscript` in the root layout releases it.
+   Cards open left-to-right here — the one section whose growth is lateral. */
+.branches[data-branches-state="idle"] [data-branch-frame] {
+  clip-path: inset(0 100% 0 0);
+}
+
+.branches[data-branches-state="idle"] [data-branch-body],
+.branches[data-branches-state="idle"] [data-branches-marker] {
+  opacity: 0;
+}
+
+.branches__network {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* --------------------------------------------------------------------------
+   Marker — continues the 01 / 02 system
+   -------------------------------------------------------------------------- */
+.branches__marker {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: clamp(0.6rem, 1.2vw, 1rem);
+  margin-inline: var(--gutter);
+  margin-block-end: clamp(3rem, 10vh, 8rem);
+  font-family: var(--font-body);
+  font-size: var(--step-eyebrow);
+  line-height: 1;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+}
+
+.branches__index {
+  color: var(--rh-cream);
+}
+
+.branches__rule {
+  display: block;
+  width: clamp(18px, 2.6vw, 44px);
+  height: 1px;
+  background: var(--rh-cream-42);
+}
+
+.branches__title {
+  margin: 0;
+  font: inherit;
+  color: var(--rh-cream-64);
+}
+
+/* --------------------------------------------------------------------------
+   The field
+   -------------------------------------------------------------------------- */
+.branches__field {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  column-gap: clamp(0.75rem, 1.6vw, 1.5rem);
+  /* The section's rhythm lives here: the trunk crosses in these gaps. */
+  row-gap: clamp(4.5rem, 13vh, 9.5rem);
+  padding-inline: var(--gutter);
+}
+
+.branch-card {
+  grid-column: 1 / -1;
+}
+
+/* --- the card ------------------------------------------------------------- */
+.branch-card__frame {
+  position: relative;
+  z-index: 1;
+  background: #fff8bb;
+  color: var(--rh-black);
+  /* Just enough to soften the corner; anything more reads as a UI card. */
+  border-radius: 2px;
+  padding: clamp(1.6rem, 3vw, 2.9rem) clamp(1.5rem, 2.8vw, 2.6rem)
+    clamp(1.8rem, 3.4vw, 3.2rem);
+  will-change: clip-path, transform;
+}
+
+.branch-card__body {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+}
+
+.branch-card__index {
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  letter-spacing: 0.22em;
+  color: rgb(5 5 5 / 0.55);
+  margin-block-end: clamp(1.6rem, 4vw, 3rem);
+}
+
+.branch-card__title {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1.15rem, 3.4vw, 1.6rem);
+  line-height: 1.06;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-black);
+  overflow-wrap: break-word;
+}
+
+.branch-card__detail {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--step-body);
+  line-height: 1.4;
+  color: rgb(5 5 5 / 0.66);
+}
+
+/* ==========================================================================
+   MOBILE — the journey survives at column width: each station sits a step
+   further right than the last (with the same single pull-back at 03), and the
+   trunk descends through the left margin the drift keeps opening up.
+   ========================================================================== */
+.branch-card[data-slot="a"] {
+  margin-inline: 0 22%;
+}
+.branch-card[data-slot="b"] {
+  margin-inline: 5% 17%;
+}
+.branch-card[data-slot="c"] {
+  margin-inline: 2% 20%;
+}
+.branch-card[data-slot="d"] {
+  margin-inline: 10% 12%;
+}
+.branch-card[data-slot="e"] {
+  margin-inline: 16% 6%;
+}
+.branch-card[data-slot="f"] {
+  margin-inline: 22% 0;
+}
+
+/* ==========================================================================
+   TABLET — the staircase at half its desktop travel: directional change
+   preserved, lateral spread simplified.
+   ========================================================================== */
+@media (min-width: 700px) {
+  .branch-card {
+    margin-inline: 0;
+  }
+
+  .branch-card[data-slot="a"] {
+    grid-column: 1 / 7;
+  }
+  .branch-card[data-slot="b"] {
+    grid-column: 3 / 9;
+    margin-block-start: clamp(-1.5rem, -2vh, 0rem);
+  }
+  .branch-card[data-slot="c"] {
+    grid-column: 2 / 8;
+  }
+  .branch-card[data-slot="d"] {
+    grid-column: 5 / 11;
+    margin-block-start: clamp(-1.5rem, -2vh, 0rem);
+  }
+  .branch-card[data-slot="e"] {
+    grid-column: 6 / 12;
+  }
+  .branch-card[data-slot="f"] {
+    grid-column: 7 / 13;
+    margin-block-start: clamp(-1rem, -1.5vh, 0rem);
+  }
+}
+
+/* Bounded to the tablet band only — the same trap the services page hit:
+   an unbounded min-width override would quietly shrink the desktop face too.
+   Six-column cards at this width are a shade too narrow for the longest title
+   at the full display size — CY Grotesk Wide sets COMMUNICATION at ~340px —
+   and break-word was snapping its final letter off. */
+@media (min-width: 700px) and (max-width: 1099.98px) {
+  .branch-card__title {
+    font-size: clamp(1.05rem, 2.6vw, 1.45rem);
+  }
+}
+
+/* ==========================================================================
+   DESKTOP — the full journey. Column 1 is the trunk's left rail; the cards
+   step down and right until 06 touches the far edge, where the trunk turns
+   and descends. No two neighbours share a vertical rhythm.
+   ========================================================================== */
+@media (min-width: 1100px) {
+  .branch-card[data-slot="a"] {
+    grid-column: 2 / 6;
+  }
+  .branch-card[data-slot="b"] {
+    grid-column: 4 / 9;
+    margin-block-start: clamp(-2rem, -3vh, 0rem);
+  }
+  .branch-card[data-slot="c"] {
+    grid-column: 3 / 7;
+    margin-block-start: clamp(0.5rem, 2vh, 2rem);
+  }
+  .branch-card[data-slot="d"] {
+    grid-column: 6 / 10;
+    margin-block-start: clamp(-2rem, -3vh, 0rem);
+  }
+  .branch-card[data-slot="e"] {
+    grid-column: 8 / 12;
+  }
+  .branch-card[data-slot="f"] {
+    grid-column: 9 / 13;
+    margin-block-start: clamp(-1.5rem, -2.5vh, 0rem);
+  }
+}
+
+/* ==========================================================================
+   REDUCED MOTION
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .branch-card__frame {
+    will-change: auto;
+  }
+}

@@ -1,0 +1,527 @@
+/* ==========================================================================
+   SECTION 07 — JOURNAL & CULTURE
+
+   Four editorial positions placed by hand on a 12-column grid. Each has its own
+   slot rule and its own weight; there is deliberately no repeating pattern, no
+   shared height and no shared width, because a rule that placed all four the
+   same way would rebuild the blog-card grid this section exists to avoid.
+
+   There are no cards here at all: no border box, no radius, no shadow, no
+   glass, no fill, no tag pill, no read-more button, no author chip. A journal
+   position is a block of type in negative space with a single hairline in it.
+
+   This is the QUIETEST field on the page and it must stay that way — the hero is
+   the visual peak, and this section's job is to feel like the homepage opening
+   into a larger world rather than raising its voice at the end. So the type
+   scale sits a step under Section 6's, the network runs at the lowest opacity on
+   the page, and the negative space is the widest anywhere.
+
+   LAYERS
+   1  background ........ the section itself
+   2  network SVG ....... z-index 0, one field, never clipped to an item
+   3  editorial field ... z-index 1
+   4  section type ...... z-index 2
+   ========================================================================== */
+
+.journal {
+  position: relative;
+  background: var(--rh-black);
+  padding-block: clamp(5rem, 14vh, 11rem) clamp(8rem, 22vh, 17rem);
+  overflow: hidden;
+}
+
+/* Pre-animation state, present in the server-rendered markup so the first
+   painted frame is correct. `noscript` in the root layout releases it. */
+.journal[data-journal-state="idle"] [data-journal-reveal] {
+  clip-path: inset(0 0 100% 0);
+  opacity: 0;
+}
+
+.journal[data-journal-state="idle"] [data-journal-meta],
+.journal[data-journal-state="idle"] [data-journal-marker],
+.journal[data-journal-state="idle"] [data-journal-lede],
+.journal[data-journal-state="idle"] [data-journal-strand] {
+  opacity: 0;
+}
+
+.journal[data-journal-state="idle"] [data-journal-rule] {
+  transform: scaleX(0);
+}
+
+.journal__network {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* --------------------------------------------------------------------------
+   Opening — continues the 01 / 02 / 03 / 04 / 05 marker system
+   -------------------------------------------------------------------------- */
+.journal__opening {
+  position: relative;
+  z-index: 2;
+  margin-inline: var(--gutter);
+  margin-block-end: clamp(3.5rem, 11vh, 8rem);
+}
+
+.journal__marker {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.6rem, 1.2vw, 1rem);
+  margin-block-end: clamp(1.75rem, 5vh, 3.5rem);
+  font-family: var(--font-body);
+  font-size: var(--step-eyebrow);
+  line-height: 1;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+}
+
+.journal__index {
+  color: var(--rh-cream);
+}
+
+.journal__rule {
+  display: block;
+  width: clamp(18px, 2.6vw, 44px);
+  height: 1px;
+  background: var(--rh-cream-42);
+}
+
+.journal__heading {
+  max-width: 16ch;
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  /* Level with The Collective's and The Proof's headings: the homepage opens
+     outward here, it does not get louder. */
+  font-size: clamp(1.5rem, 7.2vw, 2.6rem);
+  line-height: 1.04;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream);
+}
+
+.journal__standfirst {
+  max-width: 30ch;
+  margin-block: clamp(0.9rem, 2.4vh, 1.5rem) 0;
+  font-family: var(--font-body);
+  font-size: var(--step-body);
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  color: var(--rh-cream-64);
+}
+
+.journal__intro {
+  max-width: 48ch;
+  margin-block-start: clamp(1.5rem, 4vh, 2.75rem);
+  font-family: var(--font-body);
+  font-size: var(--step-body);
+  line-height: 1.55;
+  color: var(--rh-cream-78);
+}
+
+/* The client's note to the reader. Set apart from the introduction — a shorter
+   measure, a quieter colour and a hairline above it — because it is addressed
+   to whoever is standing at the door rather than describing the work. */
+.journal__note {
+  max-width: 42ch;
+  margin-block-start: clamp(1.75rem, 5vh, 3rem);
+  padding-block-start: clamp(1rem, 2.5vh, 1.6rem);
+  border-block-start: 1px solid var(--rh-cream-12);
+  font-family: var(--font-body);
+  font-size: clamp(0.82rem, 1.05vw, 0.95rem);
+  line-height: 1.6;
+  color: var(--rh-cream-42);
+}
+
+/* --------------------------------------------------------------------------
+   The field
+   -------------------------------------------------------------------------- */
+.journal__field {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  column-gap: clamp(0.75rem, 1.6vw, 1.5rem);
+  /* The widest rhythm on the page. The network owns the space between the
+     positions, and this is the section where it should be seen travelling
+     across the field rather than threading between paragraphs. */
+  row-gap: clamp(5.5rem, 20vh, 12rem);
+  padding-inline: var(--gutter);
+}
+
+/* --- one editorial position ----------------------------------------------- */
+.journal-item {
+  position: relative;
+  grid-column: 1 / -1;
+}
+
+/* Its place in the field. Structural — a position marker, never a piece's
+   number — so it is set as a small index and hidden from assistive technology. */
+.journal-item__place {
+  display: block;
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1;
+  letter-spacing: 0.22em;
+  color: var(--rh-cream-24);
+}
+
+/* --- metadata: strand and date -------------------------------------------- */
+.journal-item__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1.35;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+  transition: color 0.4s var(--ease-organic);
+}
+
+.journal-item__separator {
+  display: block;
+  width: clamp(12px, 1.6vw, 24px);
+  height: 1px;
+  background: var(--rh-cream-24);
+}
+
+.journal-item__date {
+  color: var(--rh-cream-42);
+}
+
+/* --- the hairline --------------------------------------------------------- */
+.journal-item__rule {
+  display: block;
+  width: clamp(34px, 5vw, 72px);
+  height: 1px;
+  margin-block: clamp(0.9rem, 2vh, 1.3rem);
+  background: var(--rh-cream-42);
+  will-change: transform;
+}
+
+/* --- a published piece ---------------------------------------------------- */
+.journal-item__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  line-height: 1.08;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream);
+  text-wrap: balance;
+}
+
+.journal-item__link {
+  color: inherit;
+  text-decoration: none;
+  /* No underline animation, no arrow, no button. The title is the link. */
+}
+
+.journal-item__excerpt {
+  max-width: 44ch;
+  margin-block-start: clamp(0.9rem, 2.2vh, 1.4rem);
+  font-family: var(--font-body);
+  font-size: clamp(0.82rem, 1.05vw, 0.95rem);
+  line-height: 1.6;
+  color: var(--rh-cream-64);
+}
+
+/* --- a supplied editorial image, when one exists -------------------------- */
+.journal-item__image {
+  position: relative;
+  margin: 0 0 clamp(1.2rem, 3vh, 2rem);
+  overflow: hidden;
+  /* Editorial rectangle. No radius, no shadow, no card. */
+  background: var(--rh-black-raised);
+}
+
+.journal-item__image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1);
+  transition: transform 0.7s var(--ease-organic);
+}
+
+/* --- a position with nothing in it yet ------------------------------------ *
+   Rendered as what it is: an empty place in the composition. The state word
+   takes the size the title would, at a fraction of its weight — so the field
+   reads as architecture waiting for content rather than as content.
+   ------------------------------------------------------------------------- */
+.journal-item__state {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  line-height: 1.08;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream-24);
+}
+
+/* --------------------------------------------------------------------------
+   HOVER — desktop, pointer devices, published pieces only.
+   A very small crop movement and a step up in the metadata. Nothing follows the
+   cursor, nothing is magnetic, nothing scales the block as an object, and
+   nothing here is required to read or reach the content.
+   -------------------------------------------------------------------------- */
+@media (hover: hover) and (pointer: fine) {
+  .journal-item[data-state="published"]:hover .journal-item__image img {
+    transform: scale(1.03);
+  }
+
+  .journal-item[data-state="published"]:hover .journal-item__meta {
+    color: var(--rh-cream);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   FORTHCOMING STRANDS
+   The client's own future content areas, labelled as what they are. Set as a
+   quiet run of type, never as filter chips, tabs or tags — nothing here is
+   interactive, because none of it exists yet.
+   -------------------------------------------------------------------------- */
+.journal__forthcoming {
+  position: relative;
+  z-index: 2;
+  margin-inline: var(--gutter);
+  margin-block-start: clamp(6rem, 20vh, 13rem);
+}
+
+.journal__forthcoming-label {
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-42);
+}
+
+.journal__strands {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(0.5rem, 1.4vh, 0.9rem) clamp(1rem, 3vw, 2.75rem);
+  max-width: 58ch;
+  margin: clamp(1.25rem, 3.5vh, 2.25rem) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.journal__strand {
+  font-family: var(--font-body);
+  font-size: clamp(0.72rem, 0.95vw, 0.88rem);
+  line-height: 1.3;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+}
+
+/* --------------------------------------------------------------------------
+   DEVELOPMENT-STATE SLOT
+   Compiled out of production entirely — see JournalItem.tsx. Out of flow so it
+   cannot change the measured composition the network is generated from.
+   -------------------------------------------------------------------------- */
+.journal-item__pending {
+  position: absolute;
+  z-index: 3;
+  /* Parked in the row gap above the position so it never sits over the
+     composition while the section is being built. */
+  bottom: calc(100% + 0.75rem);
+  right: 0;
+  padding: 0.3rem 0.5rem;
+  border: 1px dashed var(--rh-cream-42);
+  font-family: var(--font-body);
+  font-size: 0.6rem;
+  line-height: 1;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--rh-cream-42);
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   MOBILE — one flowing editorial column. Alternating offsets and genuinely
+   different widths, never a stack of identical full-width blocks. The network
+   stays visible in the lane each position leaves beside it.
+   ========================================================================== */
+.journal-item[data-slot="feature"] {
+  grid-column: 1 / 12;
+}
+.journal-item[data-slot="counter"] {
+  grid-column: 3 / 13;
+}
+.journal-item[data-slot="aside"] {
+  grid-column: 1 / 10;
+}
+.journal-item[data-slot="drift"] {
+  grid-column: 4 / 13;
+}
+
+.journal-item[data-size="feature"] .journal-item__title,
+.journal-item[data-size="feature"] .journal-item__state {
+  font-size: clamp(1.5rem, 7.4vw, 2.5rem);
+}
+.journal-item[data-size="major"] .journal-item__title,
+.journal-item[data-size="major"] .journal-item__state {
+  font-size: clamp(1.2rem, 5.6vw, 1.9rem);
+}
+.journal-item[data-size="minor"] .journal-item__title,
+.journal-item[data-size="minor"] .journal-item__state {
+  font-size: clamp(1rem, 4.4vw, 1.5rem);
+}
+
+/* ==========================================================================
+   TABLET — the spread compresses and the horizontal distances shrink, but the
+   asymmetry stays: each position takes a different measure and leans to a
+   different edge.
+   ========================================================================== */
+@media (min-width: 700px) {
+  .journal__field {
+    row-gap: clamp(4.5rem, 15vh, 10rem);
+  }
+
+  .journal-item[data-slot="feature"] {
+    grid-column: 1 / 10;
+  }
+  .journal-item[data-slot="counter"] {
+    grid-column: 5 / 13;
+    margin-block-start: clamp(1.5rem, 5vh, 4rem);
+  }
+  .journal-item[data-slot="aside"] {
+    grid-column: 1 / 8;
+  }
+  .journal-item[data-slot="drift"] {
+    grid-column: 6 / 13;
+    margin-block-start: clamp(2rem, 7vh, 5.5rem);
+  }
+
+  .journal-item[data-size="feature"] .journal-item__title,
+  .journal-item[data-size="feature"] .journal-item__state {
+    font-size: clamp(2rem, 4.2vw, 3rem);
+  }
+  .journal-item[data-size="major"] .journal-item__title,
+  .journal-item[data-size="major"] .journal-item__state {
+    font-size: clamp(1.55rem, 3.2vw, 2.3rem);
+  }
+  .journal-item[data-size="minor"] .journal-item__title,
+  .journal-item[data-size="minor"] .journal-item__state {
+    font-size: clamp(1.2rem, 2.4vw, 1.7rem);
+  }
+
+  .journal__forthcoming {
+    /* Pushed off the left edge, so the run of strands sits under the field
+       rather than restarting the column the opening copy established. */
+    padding-inline-start: 20%;
+  }
+}
+
+/* ==========================================================================
+   DESKTOP — the wide editorial field. The feature holds the left, the second
+   position drops well below it on the right, and the two smaller ones sit at
+   different heights again. No two positions are the same width or start on the
+   same baseline, and the note sits alone in the right half of the opening.
+   ========================================================================== */
+@media (min-width: 1100px) {
+  .journal__opening {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    column-gap: clamp(0.75rem, 1.6vw, 1.5rem);
+    margin-block-end: clamp(4rem, 14vh, 10rem);
+  }
+
+  .journal__marker {
+    grid-column: 1 / 13;
+  }
+
+  .journal__heading {
+    grid-column: 1 / 8;
+    max-width: 20ch;
+    font-size: clamp(2.6rem, 4.2vw, 4.6rem);
+  }
+
+  .journal__standfirst {
+    grid-column: 1 / 8;
+    max-width: 34ch;
+    font-size: clamp(1.05rem, 1.5vw, 1.4rem);
+  }
+
+  .journal__intro {
+    grid-column: 1 / 7;
+  }
+
+  /* Alone in the right half, dropped below the heading — the one place in the
+     opening the network can cross without meeting a line of type. */
+  .journal__note {
+    grid-column: 9 / 13;
+    grid-row: 3 / 5;
+    margin-block-start: clamp(2rem, 8vh, 6rem);
+  }
+
+  .journal__field {
+    row-gap: clamp(5rem, 16vh, 11rem);
+  }
+
+  /* Row 1 — the feature wide and left; the second position dropped well below
+     it on the right. */
+  .journal-item[data-slot="feature"] {
+    grid-column: 1 / 8;
+  }
+  .journal-item[data-slot="counter"] {
+    grid-column: 9 / 13;
+    margin-block-start: clamp(6rem, 18vh, 14rem);
+  }
+
+  /* Row 2 — pulled up under the feature, with the last one well to its right
+     and lower again, leaving the field open across the middle. */
+  .journal-item[data-slot="aside"] {
+    grid-column: 2 / 6;
+    margin-block-start: clamp(-4rem, -8vh, 0rem);
+  }
+  .journal-item[data-slot="drift"] {
+    grid-column: 8 / 12;
+    margin-block-start: clamp(3rem, 11vh, 8rem);
+  }
+
+  .journal-item[data-size="feature"] .journal-item__title,
+  .journal-item[data-size="feature"] .journal-item__state {
+    font-size: clamp(2.4rem, 3.4vw, 4rem);
+  }
+  .journal-item[data-size="major"] .journal-item__title,
+  .journal-item[data-size="major"] .journal-item__state {
+    font-size: clamp(1.7rem, 2.4vw, 2.7rem);
+  }
+  .journal-item[data-size="minor"] .journal-item__title,
+  .journal-item[data-size="minor"] .journal-item__state {
+    font-size: clamp(1.3rem, 1.8vw, 2rem);
+  }
+
+  .journal__forthcoming {
+    padding-inline-start: 33.333%;
+  }
+}
+
+/* ==========================================================================
+   REDUCED MOTION — nothing moves, everything is present and in normal flow.
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .journal-item__rule {
+    will-change: auto;
+  }
+
+  .journal-item__image img,
+  .journal-item__meta {
+    transition: none;
+  }
+
+  .journal-item[data-state="published"]:hover .journal-item__image img {
+    transform: none;
+  }
+}

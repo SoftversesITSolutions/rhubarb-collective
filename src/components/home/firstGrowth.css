@@ -1,0 +1,308 @@
+/* ==========================================================================
+   SECTION 02 — FIRST GROWTH
+
+   The section's height is an aspect-ratio locked to the generated field's
+   proportion (1600×1900 desktop, 1080×1850 tablet, 760×2200 mobile). That is
+   load-bearing, not decoration: with the box and the field in the same
+   proportion, `preserveAspectRatio="meet"` maps one field unit to exactly one
+   layout percentage. Which means:
+
+     • a keep-out rectangle in lib/first-growth/config.ts sits precisely under
+       the block of type it was drawn for
+     • a value label placed at a node's normalised coordinate lands on that node
+     • an inlet at x = 42 meets the hero strand that exited at x = 42
+
+   Change a field size there and change the ratio here, or the two drift apart.
+   ========================================================================== */
+
+.first-growth {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 760 / 2200;
+  /* Nothing may ever be squeezed out of the box if the aspect is short. */
+  min-height: 46rem;
+  background: var(--rh-black);
+  overflow: hidden;
+}
+
+/* Pre-animation state. Present in the server-rendered markup, so the first
+   painted frame is already correct and no assembled copy flashes before the
+   timeline takes over. `noscript` in the root layout releases this. */
+.first-growth[data-fg-state="idle"] [data-fg-reveal] {
+  opacity: 0;
+}
+
+/* --------------------------------------------------------------------------
+   NETWORK
+   -------------------------------------------------------------------------- */
+.fg-network {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  overflow: visible;
+}
+
+/* The one strand permitted to fall straight through the copy. */
+.fg-network__behind {
+  opacity: 0.32;
+}
+
+/* --------------------------------------------------------------------------
+   COPY
+   -------------------------------------------------------------------------- */
+.fg-copy {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.fg-marker,
+.fg-statement,
+.fg-narrative {
+  position: absolute;
+}
+
+/* --- 01 / WHO WE ARE ------------------------------------------------------ */
+.fg-marker {
+  top: 7.64%;
+  left: var(--gutter);
+  display: flex;
+  align-items: center;
+  gap: clamp(0.6rem, 1.2vw, 1rem);
+  font-family: var(--font-body);
+  font-size: var(--step-eyebrow);
+  line-height: 1;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+}
+
+.fg-marker__index {
+  color: var(--rh-cream);
+}
+
+.fg-marker__rule {
+  display: block;
+  width: clamp(18px, 2.6vw, 44px);
+  height: 1px;
+  background: var(--rh-cream-42);
+}
+
+/* --- the primary statement ------------------------------------------------ */
+.fg-statement {
+  top: 16.36%;
+  left: var(--gutter);
+  right: var(--gutter);
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  /* Deliberately smaller than the hero's headline. Section two deepens the
+     idea; it does not try to out-shout the introduction. */
+  font-size: var(--step-statement);
+  line-height: 1.02;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream);
+  overflow-wrap: break-word;
+}
+
+.fg-statement__line {
+  display: block;
+  overflow: hidden;
+  padding-block-end: 0.16em;
+  margin-block-end: -0.16em;
+}
+
+.fg-statement__inner {
+  display: block;
+  will-change: transform;
+}
+
+/* --- brand voice ---------------------------------------------------------- */
+.fg-values {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fg-values__item {
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1.2;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--rh-cream-78);
+}
+
+/* Mobile default: a plain stacked list in the reading column. */
+.fg-values:not([data-anchored]) {
+  position: absolute;
+  top: 36.82%;
+  left: var(--gutter);
+  right: var(--gutter);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.1rem, 4vw, 1.75rem);
+}
+
+.fg-values:not([data-anchored]) .fg-values__item {
+  position: relative;
+  padding-inline-start: 1.35rem;
+}
+
+/* A node of its own, so the list still reads as part of the system. */
+.fg-values:not([data-anchored]) .fg-values__item::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0.42em;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--rh-cream);
+}
+
+/* Anchored: each label hangs off the junction the generator chose for it. The
+   leader line itself is drawn in the SVG.
+
+   The label is tied to its node by whichever *edge* faces the node — `left` for
+   a label running right, `right` for one running left — never by a percentage
+   translate. The timeline owns `transform` here, so a translate set in CSS
+   would be overwritten the first time GSAP touched the element. The vertical
+   centring below is the no-JS fallback only; GSAP restates it as yPercent. */
+.fg-values[data-anchored] .fg-values__item {
+  position: absolute;
+  width: max-content;
+  white-space: nowrap;
+  transform: translateY(-50%);
+}
+
+.fg-values[data-anchored] .fg-values__item[data-side="right"] {
+  padding-inline-start: clamp(1.5rem, 4.4vw, 4rem);
+}
+
+.fg-values[data-anchored] .fg-values__item[data-side="left"] {
+  padding-inline-end: clamp(1.5rem, 4.4vw, 4rem);
+  text-align: end;
+}
+
+/* --- supporting narrative ------------------------------------------------- */
+.fg-narrative {
+  top: 62.27%;
+  left: var(--gutter);
+  right: var(--gutter);
+  max-width: 42ch;
+  font-family: var(--font-body);
+  font-size: var(--step-body);
+  line-height: 1.55;
+  color: var(--rh-cream-78);
+}
+
+/* --------------------------------------------------------------------------
+   BOUNDARY — the route into Work
+   Same procedural halftone technique as the hero's lower edge, so the two
+   seams speak the same language.
+   -------------------------------------------------------------------------- */
+.fg-boundary {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: clamp(88px, 16vh, 190px);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.fg-boundary__halftone {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(var(--rh-cream) 0.7px, transparent 0.8px);
+  background-size: 9px 9px;
+  mask-image: linear-gradient(to bottom, transparent, #000);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000);
+  opacity: 0.18;
+}
+
+.fg-boundary__strands {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ==========================================================================
+   TABLET
+   ========================================================================== */
+@media (min-width: 700px) {
+  .first-growth {
+    aspect-ratio: 1080 / 1850;
+  }
+
+  .fg-marker {
+    top: 11.35%;
+  }
+
+  .fg-statement {
+    top: 20.54%;
+  }
+
+  /* The three lines get shorter, so indenting each one further than the last
+     would read as accidental centring. The rag steps out and then jumps, which
+     can only be deliberate. */
+  .fg-statement__line[data-line="2"] {
+    margin-inline-start: 8%;
+  }
+
+  .fg-statement__line[data-line="3"] {
+    margin-inline-start: 42%;
+  }
+
+  .fg-narrative {
+    top: 71.89%;
+    left: 39.8%;
+    right: var(--gutter);
+    max-width: 46ch;
+  }
+}
+
+/* ==========================================================================
+   DESKTOP
+   ========================================================================== */
+@media (min-width: 1100px) {
+  .first-growth {
+    aspect-ratio: 1600 / 1900;
+  }
+
+  .fg-marker {
+    top: 12.21%;
+  }
+
+  .fg-statement {
+    top: 22.63%;
+  }
+
+  .fg-statement__line[data-line="2"] {
+    margin-inline-start: 12%;
+  }
+
+  .fg-statement__line[data-line="3"] {
+    margin-inline-start: 44%;
+  }
+
+  .fg-narrative {
+    top: 70%;
+    left: 58.75%;
+    right: var(--gutter);
+    max-width: 40ch;
+  }
+}
+
+/* ==========================================================================
+   REDUCED MOTION
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .fg-statement__inner {
+    will-change: auto;
+  }
+}

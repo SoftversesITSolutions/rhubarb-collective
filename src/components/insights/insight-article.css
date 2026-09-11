@@ -1,0 +1,813 @@
+/* ==========================================================================
+   /insights/[slug] — THE PIECE
+
+   An editorial reading environment. Same four tools as every other inner route
+   — type, rule, space and the field's edges — and the same prohibitions: no
+   card, no panel, no border box, no fill, no radius, no shadow, no gradient, no
+   scrim, no glass, no chip, no pill and no icon. A picture is a rectangle; the
+   type around it is the piece.
+
+   TOKENS ARE THE SITE'S. Colour, both faces, the eyebrow tracking, the display
+   tracking and `--gutter` come from globals.css unchanged. No colour is
+   introduced for this route and there is no "editorial accent". The only values
+   declared below are this route's own type steps, its measures and its rhythm.
+
+   ─────────────────────────────────────────────────────────────────────────────
+   THE CONTENT IS THE HERO, AND THE MEASURE IS HOW THAT IS ENFORCED
+   ─────────────────────────────────────────────────────────────────────────────
+   /work is an archive of pictures whose type is metadata; a case study inverts
+   that; this page goes one step further again. It is the quietest, most
+   literary route on the site: the reading column never leaves its measure, the
+   type scale below the title is small, and every piece of the composition's
+   drama comes from the contrast between a narrow column of prose and the width
+   of the field around it.
+
+   THE MEASURE IS SET IN `ch` AND THEN CHECKED IN CHARACTERS, because those are
+   not the same thing — `ch` is the width of a zero and Agrandir's zero is wide.
+   `--ia-measure` inherits the value the case study arrived at by grouping
+   per-character rects into line boxes and counting the longest rendered line;
+   `--ia-lede-measure` is a step narrower because the lede is set a step larger,
+   and a measure that is comfortable at reading size is too long one step up.
+
+   ─────────────────────────────────────────────────────────────────────────────
+   SLOTS
+   ─────────────────────────────────────────────────────────────────────────────
+   A piece is a fixed, curated sequence — unlike the /insights archive, whose
+   placement has to survive an arbitrary filtered subset — so each block is
+   hand-placed by `data-slot`, and consecutive blocks do not share an edge:
+
+     full ........... the whole field
+     wide-left ...... columns 1–8
+     wide-right ..... columns 5–12
+     narrow-left .... columns 1–6
+     narrow-right ... columns 7–12
+
+   No `order`, no `grid-auto-flow: dense` and no absolute positioning is used
+   anywhere on this route, so the visual order is the DOM order on every tier.
+
+   MOTION STATE. `[data-ia-state="idle"]` is the resting state in the
+   server-rendered HTML, so the first painted frame is correct before any
+   JavaScript runs; the `noscript` block in the root layout releases it.
+   ========================================================================== */
+
+.ia {
+  position: relative;
+  background: var(--rh-black);
+  /* Belt and braces: nothing on this route may produce a horizontal scrollbar. */
+  overflow-x: clip;
+
+  /* --- this page's type steps ---------------------------------------- */
+
+  /* The title, and the strongest typographic element on the page. Set below a
+     case study's, because an article title is a sentence rather than a single
+     word and the same step would run to six lines. */
+  --ia-title: clamp(1.9rem, 6.6vw, 4.4rem);
+  /* The one typographic pause. The largest thing after the title.
+     THE FLOOR IS THE VALUE THAT MATTERS. 2.85vw is 11px on a 390 column, so
+     without a floor this lands at the clamp minimum — and measured on a phone,
+     a minimum near the lede's size reads as bold body copy rather than as the
+     page's one break. It is set a clear step above both the lede and the body. */
+  --ia-pause: clamp(1.45rem, 2.85vw, 2rem);
+  /* A block heading. */
+  --ia-heading: clamp(1.15rem, 2.6vw, 1.8rem);
+  /* The opening paragraph — one step above reading size, and no more. */
+  --ia-lede: clamp(1.08rem, 1.6vw, 1.45rem);
+  /* Reading size. This is the page's most important value. */
+  --ia-body: clamp(1rem, 1.28vw, 1.18rem);
+
+  /* --- this page's measures ------------------------------------------- */
+  /* Checked by counting characters on the longest rendered line, not by
+     trusting the unit — see the note at the top of this file. */
+  --ia-measure: 46ch;
+  --ia-lede-measure: 40ch;
+
+  /* --- this page's rhythm --------------------------------------------- */
+  --ia-block-gap: clamp(4rem, 11vh, 7.5rem);
+}
+
+/* --------------------------------------------------------------------------
+   RESTING STATE
+   -------------------------------------------------------------------------- */
+.ia[data-ia-state="idle"] [data-ia-reveal] {
+  clip-path: inset(0 0 100% 0);
+  opacity: 0;
+}
+
+.ia[data-ia-state="idle"] [data-ia-rule] {
+  transform: scaleX(0);
+}
+
+.ia[data-ia-state="idle"] [data-ia-hero] {
+  clip-path: inset(0 0 100% 0);
+}
+
+/* Shared hairline. One rule, one weight, everywhere on the page. */
+.ia-masthead__rule,
+.ia-pause__rule,
+.ia-colophon__rule,
+.ia-return__rule {
+  display: block;
+  width: 100%;
+  height: 1px;
+  background: var(--rh-cream-24);
+  transform-origin: 0 50%;
+}
+
+/* ==========================================================================
+   OUT — the route back to the archive
+
+   At the top, where a reader who followed a link they did not mean to will look
+   for it. Identical in language to /work's case study, because it does the
+   identical job.
+   ========================================================================== */
+.ia-back {
+  margin-inline: var(--gutter);
+  padding-block-start: clamp(5.5rem, 15vh, 8rem);
+}
+
+.ia-back__link,
+.ia-return__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  /* Padding is the touch target; it draws nothing. */
+  min-block-size: 44px;
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+  text-decoration: none;
+  transition: color 220ms var(--ease-organic);
+}
+
+.ia-back__arrow,
+.ia-return__arrow {
+  /* Not an icon — the character. It moves a hair on hover and nothing else. */
+  display: inline-block;
+  transition: transform 260ms var(--ease-organic);
+}
+
+.ia-back__link:hover,
+.ia-back__link:focus-visible,
+.ia-return__link:hover,
+.ia-return__link:focus-visible {
+  color: var(--rh-cream);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ia-back__link:hover .ia-back__arrow,
+  .ia-return__link:hover .ia-return__arrow {
+    transform: translateX(-3px);
+  }
+}
+
+/* ==========================================================================
+   MASTHEAD
+
+   The strand, the title, a rule, and one quiet line of metadata. The title is
+   the only thing here set at display scale; everything else is deliberately
+   small, because the whole job of this block is to hand the reader over to the
+   piece rather than to perform.
+   ========================================================================== */
+.ia-masthead {
+  margin-inline: var(--gutter);
+  padding-block-start: clamp(2rem, 6vh, 3.5rem);
+}
+
+.ia-masthead__eyebrow {
+  font-family: var(--font-body);
+  font-size: var(--step-eyebrow);
+  line-height: 1;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+}
+
+.ia-masthead__title {
+  margin-block-start: clamp(0.75rem, 2.5vh, 1.5rem);
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--ia-title);
+  line-height: 0.96;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  color: var(--rh-cream);
+  /* The face is wide; a long title needs the whole field on a phone and is
+     given a column on the desktop grid instead. */
+  text-wrap: balance;
+}
+
+.ia-masthead__title-inner {
+  /* `clip-path` does not apply to a non-replaced inline element. */
+  display: block;
+}
+
+/* A standfirst, where the piece has one. Reading size, not display size — it is
+   prose lifted from the piece, not a second headline. */
+.ia-masthead__excerpt {
+  margin-block-start: clamp(1.1rem, 3vh, 1.6rem);
+  font-family: var(--font-body);
+  font-size: var(--ia-lede);
+  line-height: 1.5;
+  color: var(--rh-cream-90);
+  max-width: var(--ia-lede-measure);
+}
+
+.ia-masthead__rule {
+  margin-block-start: clamp(1.5rem, 4vh, 2.25rem);
+}
+
+/* THE METADATA. Micro type at the palette's quietest weight, on one line that
+   wraps rather than truncates. It is understated by construction and cannot
+   compete with the title above it. */
+.ia-masthead__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: clamp(0.5rem, 1.2vw, 0.9rem);
+  margin-block-start: clamp(0.9rem, 2.4vh, 1.2rem);
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1.3;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rh-cream-42);
+}
+
+/* The byline is the one metadatum set at full strength — it is a person, and
+   the rest are facts about the file. */
+.ia-masthead__author {
+  color: var(--rh-cream-78);
+}
+
+/* Drawn between items rather than typed into the copy, so a missing byline or
+   date cannot leave a stranded separator behind it. */
+.ia-masthead__separator {
+  display: block;
+  width: 1px;
+  height: 0.8em;
+  background: var(--rh-cream-24);
+}
+
+/* ==========================================================================
+   HERO PICTURE
+
+   Wide, at the asset's own aspect ratio, with the field's whitespace around it.
+   The frame reserves the proportions before the file lands, so the type below
+   never moves. No overlay, no scrim, no filter, no caption set over it and no
+   title on top of it.
+   ========================================================================== */
+.ia-hero {
+  position: relative;
+  margin-inline: var(--gutter);
+  margin-block-start: clamp(2.5rem, 8vh, 4.5rem);
+  overflow: hidden;
+  background: var(--rh-black-raised);
+  will-change: clip-path;
+}
+
+.ia-hero__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* The frame already carries the asset's own ratio, so `cover` never crops in
+     practice — it is here so a future asset whose file does not match its
+     recorded dimensions fills the frame rather than distorting inside it. */
+  object-fit: cover;
+}
+
+.ia-hero__caption,
+.ia-block__caption {
+  margin-inline: var(--gutter);
+  margin-block-start: clamp(0.8rem, 2vh, 1.1rem);
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1.4;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rh-cream-42);
+}
+
+/* A block's caption is inside the block's own inline margin already. */
+.ia-block__caption {
+  margin-inline: 0;
+}
+
+/* ==========================================================================
+   A BLOCK
+   ========================================================================== */
+.ia-block {
+  margin-inline: var(--gutter);
+  padding-block-start: var(--ia-block-gap);
+}
+
+.ia-block__marker {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.6rem, 1.2vw, 1rem);
+  font-family: var(--font-body);
+  font-size: var(--step-eyebrow);
+  line-height: 1;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+}
+
+.ia-block__index {
+  color: var(--rh-cream);
+}
+
+.ia-block__marker-rule {
+  display: block;
+  width: clamp(18px, 2.6vw, 44px);
+  height: 1px;
+  background: var(--rh-cream-42);
+}
+
+.ia-block__heading {
+  margin-block-start: clamp(1.1rem, 3vh, 1.75rem);
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--ia-heading);
+  line-height: 1.1;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream);
+  max-width: 18ch;
+}
+
+.ia-block__heading-inner {
+  display: block;
+}
+
+/* --- prose --------------------------------------------------------------- */
+.ia-block__body {
+  margin-block-start: clamp(1.1rem, 3vh, 1.6rem);
+  font-family: var(--font-body);
+  font-size: var(--ia-body);
+  /* The page's most important number. Long-form prose in a wide-ish face wants
+     more leading than the site's 1.5 default. */
+  line-height: 1.72;
+  color: var(--rh-cream-78);
+  max-width: var(--ia-measure);
+}
+
+/* THE LEDE — the opening paragraph, one step up and at full strength. This is
+   the entire difference between it and a prose block: no ornament, no drop cap,
+   no rule above it, and not one word added to what was written. */
+.ia-block[data-type="lede"] .ia-block__body {
+  margin-block-start: 0;
+  font-size: var(--ia-lede);
+  line-height: 1.6;
+  color: var(--rh-cream);
+  max-width: var(--ia-lede-measure);
+}
+
+.ia-block[data-type="lede"] {
+  padding-block-start: clamp(3rem, 9vh, 6rem);
+}
+
+/* Where a quoted block came from. The quietest weight on the page — provenance,
+   not content, but it has to be there so a reader can tell whose words these
+   are. */
+.ia-block__source {
+  margin-block-start: clamp(0.9rem, 2.4vh, 1.3rem);
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1.4;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rh-cream-24);
+}
+
+/* --- a figure ------------------------------------------------------------ */
+.ia-block__figure {
+  margin: 0;
+}
+
+.ia-block__frame {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: var(--rh-black-raised);
+  will-change: clip-path;
+}
+
+.ia-block__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* --- a list -------------------------------------------------------------- */
+
+/* The list's heading is prose rather than display type: it is a sentence
+   introducing the list under it, not a section title. */
+.ia-block__list-heading {
+  margin-block-start: clamp(1.1rem, 3vh, 1.6rem);
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: var(--ia-body);
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  color: var(--rh-cream-90);
+  max-width: var(--ia-measure);
+}
+
+.ia-block__items {
+  margin: clamp(1.25rem, 3.5vh, 2rem) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* One name a line, separated by the page's own hairline. No bullets, no chips,
+   no boxes — a stated order of eight names is a list, and it is set as one. */
+.ia-block__item {
+  padding-block: clamp(0.6rem, 1.7vh, 0.85rem);
+  border-block-start: 1px solid var(--rh-cream-12);
+  font-family: var(--font-body);
+  font-size: clamp(0.92rem, 1.1vw, 1.02rem);
+  line-height: 1.35;
+  color: var(--rh-cream-78);
+}
+
+.ia-block__item:last-child {
+  border-block-end: 1px solid var(--rh-cream-12);
+}
+
+/* ==========================================================================
+   THE PAUSE
+
+   The page's one typographic break, and the only place the reading rhythm
+   stops. A line of the piece set at display scale with the field's whitespace
+   around it.
+
+   NOT a `<blockquote>` and no quotation marks: it is a block of this piece
+   given emphasis, not a statement quoted from a speaker, and setting it in
+   quotes would imply an attributable source the material does not have.
+   ========================================================================== */
+.ia-pause {
+  margin-inline: var(--gutter);
+  padding-block-start: clamp(4.5rem, 13vh, 8.5rem);
+}
+
+.ia-pause__rule {
+  margin-block-end: clamp(1.75rem, 5vh, 3rem);
+}
+
+.ia-pause__line {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--ia-pause);
+  line-height: 1.12;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream);
+  /* Wider than a case study's pause, because this line is a whole sentence
+     rather than a phrase — the same measure would set it as nine lines. */
+  max-width: 26ch;
+}
+
+.ia-pause__inner {
+  display: block;
+}
+
+.ia-pause__source {
+  margin-block-start: clamp(1.25rem, 3.5vh, 2rem);
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1.4;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rh-cream-24);
+}
+
+/* ==========================================================================
+   COLOPHON
+
+   How the piece closes. A publication ends with a colophon rather than a sales
+   block — the site's three real invitations live on /about, /services and
+   /contact, and the footer directly beneath carries every contact route the
+   site has, so a fourth here would be furniture. /insights closes the same way.
+   ========================================================================== */
+.ia-colophon {
+  margin-inline: var(--gutter);
+  padding-block-start: var(--ia-block-gap);
+}
+
+.ia-colophon__label {
+  margin-block-start: clamp(1.5rem, 4vh, 2.25rem);
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: var(--step-eyebrow);
+  line-height: 1;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+}
+
+.ia-colophon__body {
+  margin-block-start: clamp(1rem, 2.8vh, 1.4rem);
+  font-family: var(--font-body);
+  font-size: var(--ia-body);
+  line-height: 1.65;
+  color: var(--rh-cream-78);
+  max-width: var(--ia-measure);
+}
+
+/* The closing statement of fact, set quieter than the line above it. */
+.ia-colophon__body:last-child {
+  color: var(--rh-cream-42);
+}
+
+/* ==========================================================================
+   THE RETURN
+
+   Back into the archive, and one piece onward where a second piece exists. No
+   card, no picture, no "related reads" grid — a piece ends by pointing
+   somewhere, once.
+   ========================================================================== */
+.ia-return {
+  margin-inline: var(--gutter);
+  padding-block: var(--ia-block-gap) clamp(4rem, 12vh, 8rem);
+}
+
+.ia-next {
+  display: block;
+  padding-block: clamp(1.5rem, 4vh, 2.5rem) 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.ia-next__label {
+  display: block;
+  font-family: var(--font-body);
+  font-size: var(--step-eyebrow);
+  line-height: 1;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+}
+
+.ia-next__title {
+  display: block;
+  margin-block-start: clamp(0.8rem, 2.4vh, 1.2rem);
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--ia-heading);
+  line-height: 1.08;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream);
+  transition: color 260ms var(--ease-organic);
+}
+
+.ia-next__kind {
+  display: block;
+  margin-block-start: clamp(0.5rem, 1.6vh, 0.8rem);
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1.3;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rh-cream-42);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ia-next:hover .ia-next__title {
+    color: var(--rh-cream-90);
+  }
+}
+
+.ia-return__link {
+  margin-block-start: clamp(1.5rem, 4vh, 2.5rem);
+}
+
+/* ==========================================================================
+   TABLET — 700px and up
+
+   The reading blocks step in from the field's edge; the pictures do not. The
+   measure is unchanged from the phone, which is the point — a comfortable
+   column does not get wider because the screen did.
+   ========================================================================== */
+@media (min-width: 700px) {
+  .ia-masthead__excerpt,
+  .ia-block[data-type="lede"] .ia-block__body,
+  .ia-block[data-type="prose"] .ia-block__heading,
+  .ia-block[data-type="prose"] .ia-block__body,
+  .ia-block[data-type="prose"] .ia-block__source,
+  .ia-block[data-type="list"] .ia-block__list-heading,
+  .ia-block[data-type="list"] .ia-block__items,
+  .ia-pause__line,
+  .ia-pause__source,
+  .ia-colophon__body {
+    margin-inline-start: clamp(2rem, 10vw, 8rem);
+  }
+
+  /* A figure's own type steps in with the prose; the picture itself does not. */
+  .ia-block[data-type="figure"] .ia-block__caption {
+    margin-inline-start: clamp(2rem, 10vw, 8rem);
+  }
+
+  /* The pause's rule stays at the field's left edge, so the reader can see the
+     break is a break in the page and not just in the column. */
+  .ia-pause__rule {
+    margin-inline-start: 0;
+  }
+
+  /* A portrait asset is held to half the field rather than being allowed to
+     grow with the screen — a full-measure portrait is a picture a reader
+     scrolls past instead of looking at. */
+  .ia-block[data-slot="narrow-left"] .ia-block__figure,
+  .ia-block[data-slot="narrow-right"] .ia-block__figure {
+    max-width: 62%;
+  }
+
+  .ia-block[data-slot="narrow-right"] .ia-block__figure {
+    margin-inline-start: auto;
+  }
+}
+
+/* ==========================================================================
+   DESKTOP — 1100px and up
+
+   The 12-column field. The pictures take a slot and the reading blocks take
+   theirs, so the page alternates between a wide picture and a narrow column of
+   prose — which is the rhythm the whole composition is built on.
+   ========================================================================== */
+@media (min-width: 1100px) {
+  .ia-masthead,
+  .ia-block,
+  .ia-pause,
+  .ia-colophon,
+  .ia-return {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: clamp(1rem, 1.6vw, 1.75rem);
+  }
+
+  /* Anything not placed explicitly spans the field, so a block can be added to
+     the data without first being given a grid position. */
+  .ia-masthead > *,
+  .ia-block > *,
+  .ia-pause > *,
+  .ia-colophon > *,
+  .ia-return > * {
+    grid-column: 1 / -1;
+  }
+
+  /* ---- masthead ---- */
+
+  /* The title takes ten of the twelve columns and the field's whitespace holds
+     the last two — the composition's first deliberate asymmetry. */
+  .ia-masthead__title {
+    grid-column: 1 / 11;
+  }
+
+  .ia-masthead__excerpt {
+    grid-column: 1 / 8;
+    margin-inline-start: 0;
+  }
+
+  /* ---- hero ---- */
+
+  /* Wide, but not the whole field: an eleven-column picture reads as an
+     editorial plate, and a twelve-column one reads as a banner. */
+  .ia-hero {
+    margin-inline-end: calc(var(--gutter) + 8.33vw);
+  }
+
+  /* ---- the reading slots ---- */
+  .ia-block[data-slot="narrow-left"] .ia-block__heading,
+  .ia-block[data-slot="narrow-left"] .ia-block__body,
+  .ia-block[data-slot="narrow-left"] .ia-block__list-heading,
+  .ia-block[data-slot="narrow-left"] .ia-block__items,
+  .ia-block[data-slot="narrow-left"] .ia-block__figure,
+  .ia-block[data-slot="narrow-left"] .ia-block__source {
+    grid-column: 1 / 7;
+    margin-inline-start: 0;
+  }
+
+  .ia-block[data-slot="narrow-right"] .ia-block__heading,
+  .ia-block[data-slot="narrow-right"] .ia-block__body,
+  .ia-block[data-slot="narrow-right"] .ia-block__list-heading,
+  .ia-block[data-slot="narrow-right"] .ia-block__items,
+  .ia-block[data-slot="narrow-right"] .ia-block__figure,
+  .ia-block[data-slot="narrow-right"] .ia-block__source {
+    grid-column: 7 / -1;
+    margin-inline-start: 0;
+  }
+
+  .ia-block[data-slot="wide-left"] .ia-block__heading,
+  .ia-block[data-slot="wide-left"] .ia-block__body,
+  .ia-block[data-slot="wide-left"] .ia-block__list-heading,
+  .ia-block[data-slot="wide-left"] .ia-block__items,
+  .ia-block[data-slot="wide-left"] .ia-block__figure,
+  .ia-block[data-slot="wide-left"] .ia-block__source {
+    grid-column: 1 / 9;
+    margin-inline-start: 0;
+  }
+
+  .ia-block[data-slot="wide-right"] .ia-block__heading,
+  .ia-block[data-slot="wide-right"] .ia-block__body,
+  .ia-block[data-slot="wide-right"] .ia-block__list-heading,
+  .ia-block[data-slot="wide-right"] .ia-block__items,
+  .ia-block[data-slot="wide-right"] .ia-block__figure,
+  .ia-block[data-slot="wide-right"] .ia-block__source {
+    grid-column: 5 / -1;
+    margin-inline-start: 0;
+  }
+
+  /* The block marker stays at the field's left edge on every slot — it is the
+     page's spine, and moving it with the prose would lose the reader's place. */
+  .ia-block__marker {
+    grid-column: 1 / -1;
+  }
+
+  /* A figure's caption sits under its picture, in the picture's own columns. */
+  .ia-block[data-slot="narrow-left"] .ia-block__caption {
+    grid-column: 1 / 7;
+    margin-inline-start: 0;
+  }
+
+  .ia-block[data-slot="narrow-right"] .ia-block__caption {
+    grid-column: 7 / -1;
+    margin-inline-start: 0;
+  }
+
+  /* The half-field cap is the grid's job here, so the tablet rule is released
+     rather than compounding with it. */
+  .ia-block[data-slot="narrow-left"] .ia-block__figure,
+  .ia-block[data-slot="narrow-right"] .ia-block__figure {
+    max-width: none;
+    margin-inline-start: 0;
+  }
+
+  /* ---- the pause, offset into the field ---- */
+  .ia-pause__line,
+  .ia-pause__source {
+    grid-column: 4 / -1;
+    margin-inline-start: 0;
+  }
+
+  .ia-pause[data-slot="wide-right"] .ia-pause__line,
+  .ia-pause[data-slot="wide-right"] .ia-pause__source {
+    grid-column: 5 / -1;
+  }
+
+  /* ---- colophon ---- */
+  .ia-colophon__label {
+    grid-column: 1 / 4;
+  }
+
+  .ia-colophon__body {
+    grid-column: 5 / 11;
+    margin-inline-start: 0;
+  }
+
+  /* ---- return ---- */
+  .ia-next,
+  .ia-return__link {
+    grid-column: 5 / -1;
+  }
+
+  /* With no next read there is nothing in that column for the link to sit
+     under, and a lone micro link in the middle of an empty field reads as
+     stranded. It goes back to the field's left edge instead, where it bookends
+     the identical link at the top of the page. */
+  .ia-return:not([data-next]) .ia-return__link {
+    grid-column: 1 / 6;
+  }
+}
+
+/* ==========================================================================
+   REDUCED MOTION
+   The page behaves identically; it simply arrives.
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .ia[data-ia-state="idle"] [data-ia-reveal],
+  .ia[data-ia-state="idle"] [data-ia-hero] {
+    clip-path: none;
+    opacity: 1;
+  }
+
+  .ia[data-ia-state="idle"] [data-ia-rule] {
+    transform: none;
+  }
+
+  .ia-back__link,
+  .ia-back__arrow,
+  .ia-return__link,
+  .ia-return__arrow,
+  .ia-next__title {
+    transition: none;
+  }
+
+  .ia-back__link:hover .ia-back__arrow,
+  .ia-return__link:hover .ia-return__arrow {
+    transform: none;
+  }
+}

@@ -1,0 +1,430 @@
+/* ==========================================================================
+   SECTION 08 — CONTACT / ROUTES
+
+   The last frame of the page, and the quietest. Everything about this section
+   is a reduction of the one above it: fewer objects, lighter network, larger
+   negative space, and a single dominant piece of typography instead of a field
+   of competing ones. Complexity falls as the page ends.
+
+   There is no footer furniture here. No column grid of links, no sitemap, no
+   newsletter, no social row, no cookie strip, no boxed contact card, no
+   full-width CTA bar, no button. A route is a label, a hairline and the
+   destination itself.
+
+   HEIGHT is deliberately held down — roughly 1200–1600px at desktop widths —
+   because a closing frame earns its weight from space around the type, not from
+   stacked viewport heights. The padding below is the smallest of any section:
+   the page ends here, and a long empty run under the last line reads as a
+   missing section rather than as a resolution.
+
+   LAYERS
+   1  background ........ the section itself
+   2  network SVG ....... z-index 0, one field, never clipped to a route
+   3  routes ............ z-index 1
+   4  section type ...... z-index 2
+   ========================================================================== */
+
+.contact {
+  position: relative;
+  background: var(--rh-black);
+  padding-block: clamp(5rem, 13vh, 9rem) clamp(3.5rem, 8vh, 5.5rem);
+  overflow: hidden;
+}
+
+/* Pre-animation state, present in the server-rendered markup so the first
+   painted frame is correct. `noscript` in the root layout releases it. */
+.contact[data-contact-state="idle"] [data-contact-reveal],
+.contact[data-contact-state="idle"] [data-contact-line] {
+  clip-path: inset(0 0 100% 0);
+  opacity: 0;
+}
+
+.contact[data-contact-state="idle"] [data-contact-marker],
+.contact[data-contact-state="idle"] [data-contact-invitation],
+.contact[data-contact-state="idle"] [data-contact-meta],
+.contact[data-contact-state="idle"] [data-contact-colophon] {
+  opacity: 0;
+}
+
+.contact[data-contact-state="idle"] [data-contact-rule] {
+  transform: scaleX(0);
+}
+
+.contact__network {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* --------------------------------------------------------------------------
+   Opening — continues the 01 / 02 / 03 / 04 / 05 / 06 marker system
+   -------------------------------------------------------------------------- */
+.contact__opening {
+  position: relative;
+  z-index: 2;
+  margin-inline: var(--gutter);
+}
+
+.contact__marker {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.6rem, 1.2vw, 1rem);
+  margin-block-end: clamp(1.75rem, 5vh, 3.5rem);
+  font-family: var(--font-body);
+  font-size: var(--step-eyebrow);
+  line-height: 1;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+}
+
+.contact__index {
+  color: var(--rh-cream);
+}
+
+.contact__rule {
+  display: block;
+  width: clamp(18px, 2.6vw, 44px);
+  height: 1px;
+  background: var(--rh-cream-42);
+}
+
+/* The client's closing statement. The dominant object in the section and the
+   largest type on the page below the hero — but still a clear step under it,
+   because the hero is the visual peak and this is the resolution. */
+.contact__statement {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1.75rem, 8.6vw, 3rem);
+  line-height: 1.02;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream);
+}
+
+.contact__line {
+  display: block;
+}
+
+.contact__invitation {
+  margin-block-start: clamp(1.5rem, 4vh, 2.5rem);
+  font-family: var(--font-body);
+  font-size: var(--step-body);
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  color: var(--rh-cream-64);
+}
+
+/* --------------------------------------------------------------------------
+   The routes
+   -------------------------------------------------------------------------- */
+.contact__field {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  column-gap: clamp(0.75rem, 1.6vw, 1.5rem);
+  row-gap: clamp(2.75rem, 8vh, 4.5rem);
+  margin-block-start: clamp(4rem, 12vh, 7.5rem);
+  padding-inline: var(--gutter);
+}
+
+.contact-route {
+  position: relative;
+  grid-column: 1 / -1;
+}
+
+.contact-route__label {
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1.35;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--rh-cream-42);
+}
+
+.contact-route__rule {
+  display: block;
+  width: clamp(28px, 4vw, 56px);
+  height: 1px;
+  margin-block: clamp(0.7rem, 1.6vh, 1rem);
+  background: var(--rh-cream-24);
+  will-change: transform;
+}
+
+/* The destination itself. Set in the display face because it is the thing worth
+   reading — not shrunk into metadata beside an icon. */
+.contact-route__value {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  line-height: 1.12;
+  letter-spacing: var(--track-display);
+  color: var(--rh-cream);
+  /* Long addresses must never push the page sideways on a narrow column. */
+  overflow-wrap: anywhere;
+}
+
+.contact-route__detail {
+  display: block;
+  color: var(--rh-cream-64);
+}
+
+/* --------------------------------------------------------------------------
+   A route that goes somewhere.
+
+   The whole destination is the target, so the hit area is the address rather
+   than a glyph beside it — comfortably past the 44px touch minimum at every
+   tier. The response is a hairline under the destination and nothing else: no
+   colour flip, no translation, no scale, no cursor effect.
+   -------------------------------------------------------------------------- */
+.contact-route__link {
+  display: inline-block;
+  color: inherit;
+  text-decoration: none;
+  /* Drawn as a border rather than an underline so it can sit clear of the
+     descenders in the display face. */
+  border-block-end: 1px solid var(--rh-cream-24);
+  padding-block-end: 0.12em;
+  transition: border-color 0.35s var(--ease-organic);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .contact-route__link:hover {
+    border-block-end-color: var(--rh-cream);
+  }
+}
+
+.contact-route__link:focus-visible {
+  /* The global focus ring, kept clear of the border above. */
+  outline-offset: 6px;
+}
+
+/* --------------------------------------------------------------------------
+   COLOPHON — the registered entity.
+
+   Supporting information, and visibly so: the smallest type in the section,
+   with the GSTIN quieter again. It sits at the foot of the ecosystem rather
+   than among the routes.
+   -------------------------------------------------------------------------- */
+.contact__colophon {
+  position: relative;
+  z-index: 2;
+  margin-inline: var(--gutter);
+  margin-block-start: clamp(5rem, 15vh, 9rem);
+  padding-block-start: clamp(1.5rem, 4vh, 2.5rem);
+  border-block-start: 1px solid var(--rh-cream-12);
+}
+
+.contact__company {
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1.4;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+}
+
+.contact__address {
+  display: flex;
+  flex-direction: column;
+  margin-block-start: clamp(1rem, 2.5vh, 1.5rem);
+  font-family: var(--font-body);
+  font-style: normal;
+  font-size: clamp(0.72rem, 0.9vw, 0.84rem);
+  line-height: 1.65;
+  color: var(--rh-cream-42);
+}
+
+.contact__gstin {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.75rem;
+  margin-block-start: clamp(1rem, 2.5vh, 1.5rem);
+  font-family: var(--font-body);
+  /* The quietest line on the page, deliberately. */
+  font-size: clamp(0.62rem, 0.75vw, 0.72rem);
+  line-height: 1.4;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--rh-cream-24);
+}
+
+/* ==========================================================================
+   MOBILE — a single editorial column, read top to bottom:
+   statement → invitation → email → business → phone → location → company.
+   Widths and offsets vary so the network keeps a lane beside the column; this
+   is never a stack of identical full-width blocks.
+   ========================================================================== */
+.contact-route[data-slot="primary"] {
+  grid-column: 1 / 12;
+}
+.contact-route[data-slot="aside"] {
+  grid-column: 2 / 13;
+}
+.contact-route[data-slot="counter"] {
+  grid-column: 1 / 11;
+}
+.contact-route[data-slot="drift"] {
+  grid-column: 3 / 13;
+}
+
+.contact-route[data-size="major"] .contact-route__value {
+  font-size: clamp(1rem, 5vw, 1.6rem);
+}
+.contact-route[data-size="minor"] .contact-route__value {
+  font-size: clamp(0.9rem, 4.2vw, 1.35rem);
+}
+
+/* ==========================================================================
+   TABLET — the composition tightens and the routes pair up, but the asymmetry
+   stays: no two share a width or a baseline.
+   ========================================================================== */
+@media (min-width: 700px) {
+  .contact__statement {
+    font-size: clamp(2.6rem, 5.6vw, 3.8rem);
+  }
+
+  .contact__field {
+    row-gap: clamp(3rem, 9vh, 5rem);
+  }
+
+  .contact-route[data-slot="primary"] {
+    grid-column: 1 / 8;
+    grid-row: 1;
+  }
+  .contact-route[data-slot="counter"] {
+    grid-column: 8 / 13;
+    grid-row: 1;
+    margin-block-start: clamp(2rem, 6vh, 3.5rem);
+  }
+  .contact-route[data-slot="aside"] {
+    grid-column: 2 / 9;
+    grid-row: 2;
+  }
+  .contact-route[data-slot="drift"] {
+    grid-column: 9 / 13;
+    grid-row: 2;
+    margin-block-start: clamp(1.5rem, 5vh, 3rem);
+  }
+
+  .contact-route[data-size="major"] .contact-route__value {
+    font-size: clamp(1.15rem, 2.4vw, 1.75rem);
+  }
+  .contact-route[data-size="minor"] .contact-route__value {
+    font-size: clamp(1rem, 2vw, 1.45rem);
+  }
+
+  .contact__colophon {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    column-gap: clamp(0.75rem, 1.6vw, 1.5rem);
+  }
+
+  .contact__company {
+    grid-column: 1 / 7;
+  }
+
+  .contact__address {
+    grid-column: 7 / 11;
+    margin-block-start: 0;
+  }
+
+  .contact__gstin {
+    grid-column: 11 / 13;
+    flex-direction: column;
+    margin-block-start: 0;
+  }
+}
+
+/* ==========================================================================
+   DESKTOP — the wide closing frame. The statement holds the left, the routes
+   spread across the field at four different heights, and the whole right side
+   of the opening is left to the network. Nothing is centred.
+   ========================================================================== */
+@media (min-width: 1100px) {
+  .contact__statement {
+    /* A clear step under the hero, which tops out at 6.6rem. */
+    font-size: clamp(3rem, 4.6vw, 5rem);
+  }
+
+  .contact__invitation {
+    font-size: clamp(1.05rem, 1.5vw, 1.4rem);
+  }
+
+  .contact__field {
+    margin-block-start: clamp(5rem, 14vh, 8.5rem);
+    row-gap: clamp(3.5rem, 10vh, 5.5rem);
+  }
+
+  /* Row 1 — the primary address wide and left; the number well over to the
+     right and dropped below it. */
+  .contact-route[data-slot="primary"] {
+    grid-column: 1 / 7;
+    grid-row: 1;
+  }
+  .contact-route[data-slot="counter"] {
+    grid-column: 9 / 13;
+    grid-row: 1;
+    margin-block-start: clamp(3rem, 9vh, 6rem);
+  }
+
+  /* Row 2 — indented under the primary, with the place last and lowest. */
+  .contact-route[data-slot="aside"] {
+    grid-column: 2 / 8;
+    grid-row: 2;
+  }
+  .contact-route[data-slot="drift"] {
+    grid-column: 9 / 13;
+    grid-row: 2;
+    margin-block-start: clamp(2rem, 7vh, 4.5rem);
+  }
+
+  .contact-route[data-size="major"] .contact-route__value {
+    font-size: clamp(1.3rem, 1.85vw, 2rem);
+  }
+  .contact-route[data-size="minor"] .contact-route__value {
+    font-size: clamp(1.1rem, 1.5vw, 1.65rem);
+  }
+}
+
+/* ==========================================================================
+   REDUCED MOTION — nothing moves, everything is present and in normal flow.
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .contact-route__rule {
+    will-change: auto;
+  }
+
+  .contact-route__link {
+    transition: none;
+  }
+}
+
+/* ==========================================================================
+   COLOPHON VARIANT
+
+   What the footer renders on /contact, where the page above has already given
+   the statement, the invitation and all four routes the width of the screen.
+   Only the registered entity is left, so the section's own opening padding —
+   sized for a full closing frame with a network in it — would leave the company
+   details floating in an empty field.
+
+   Every rule here is scoped to the variant attribute. Nothing above this block
+   is touched, so "/" and "/about" render exactly as they always have.
+   ========================================================================== */
+.contact[data-contact-variant="colophon"] {
+  padding-block: clamp(2.5rem, 7vh, 4rem) clamp(3rem, 8vh, 5rem);
+}
+
+/* The colophon's own top margin clears the routes field above it. There is no
+   routes field here, so it would simply be a gap. Its hairline is kept: with
+   the page's closing statement above instead, that rule is doing exactly the
+   job it always did — separating the registered entity from the words. */
+.contact[data-contact-variant="colophon"] .contact__colophon {
+  margin-block-start: 0;
+}

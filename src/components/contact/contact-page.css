@@ -1,0 +1,960 @@
+/* ==========================================================================
+   /CONTACT
+
+   The simplest page on the site. Four tools — type, rule, space and the
+   field's edges — and nothing else: no network, no generated geometry, no
+   image, no card, no border box, no radius, no shadow, no fill, no gradient,
+   no blur, no glass and no icon.
+
+   THE FORM IS BUILT FROM THOSE FOUR TOOLS TOO, which is the whole of its
+   design. An input is a label, a value and the hairline under it — the same
+   anatomy as a route, turned upside down — so it is drawn with the rule that
+   already runs the length of this page rather than with a border box borrowed
+   from somewhere else. It has no container, no panel and no card of its own,
+   and the only mark on it that is not type or a straight rule is the select's
+   caret, which is two of those rules rotated 45°.
+
+   TOKENS ARE THE SITE'S. Colour, both faces, the eyebrow tracking, the display
+   tracking and `--gutter` all come from globals.css unchanged. The only values
+   declared here are this page's own type steps and its vertical rhythm.
+
+   COMPOSITION. One 12-column field from 1100px up, and the four routes are
+   placed in it by hand on explicit rows so the page reads as a staggered
+   column rather than a list:
+
+     hero ........ statement full bleed, invitation offset into columns 6–12
+     email ....... row 1, columns 6–12   ← primary
+     phone ....... row 2, columns 1–5
+     business .... row 2, columns 7–12
+     location .... row 3, columns 1–7
+     form intro .. columns 1–5     ← the heading, held against the fields
+     form body ... columns 7–12
+     closing ..... columns 5–12
+
+   THE FORM IS THE PAGE'S ONE TRUE SPREAD. Every other block on this route is a
+   single object placed in the field; this one is two — a heading on the left
+   and the fields on the right, reading across the gutter rather than down. That
+   is what stops seven inputs reading as a stack, and it is the same asymmetry
+   the routes above get from their explicit rows, applied to a block that has
+   enough content to hold both halves at once.
+
+   The two majors — the primary email and the phone number, per the client's
+   own `size` on each route — are set a step above the two minors.
+
+   Placement is by grid position, never by reordering, so the visual order
+   never diverges from the DOM order the tab sequence and a screen reader
+   follow. Below 1100px the field flattens to one column in that same source
+   order — primary email first — and the offsets are dropped rather than
+   scaled, because a stagger that composes at 1440 only cramps a 390 column.
+
+   MOTION STATE. `[data-cp-state="idle"]` is the resting state in the
+   server-rendered HTML, so the first painted frame is correct before any
+   JavaScript runs. `lib/contact/pageAnimation` replaces it with "running" or
+   "static"; the `noscript` block in the root layout releases it outright.
+   ========================================================================== */
+
+.cp {
+  position: relative;
+  background: var(--rh-black);
+  /* Nothing on this page should be able to widen it, and a long unbroken email
+     address must wrap rather than push. */
+  overflow-x: clip;
+
+  /* --- this page's type steps ---------------------------------------- */
+
+  /* The one statement. A step under the homepage hero, level with the About
+     page's headings — this page is the quietest of the three. */
+  --cp-statement: clamp(1.6rem, 8vw, 3.1rem);
+  /* A destination: an address, a number, a place. */
+  --cp-route: clamp(1.15rem, 3.6vw, 1.85rem);
+  /* A route the client marks `major`: the primary email and the phone number. */
+  --cp-route-major: clamp(1.3rem, 4.4vw, 2.3rem);
+
+  /* --- this page's rhythm --------------------------------------------- */
+  --cp-section-gap: clamp(4.5rem, 13vh, 9rem);
+  --cp-route-gap: clamp(2.75rem, 8vh, 4.5rem);
+}
+
+/* --------------------------------------------------------------------------
+   RESTING STATE
+   Present in the markup, released by the animation or by `noscript`.
+   -------------------------------------------------------------------------- */
+.cp[data-cp-state="idle"] [data-cp-reveal] {
+  clip-path: inset(0 0 100% 0);
+  opacity: 0;
+}
+
+.cp[data-cp-state="idle"] [data-cp-rule] {
+  transform: scaleX(0);
+}
+
+/* Shared hairline. Always 1px, always the same colour; only its length changes,
+   and it is the only non-type mark on the page. */
+.cp-hero__rule,
+.cp-route__rule,
+.cp-form__rule {
+  display: block;
+  width: 100%;
+  height: 1px;
+  background: var(--rh-cream-24);
+  transform-origin: 0 50%;
+}
+
+/* ==========================================================================
+   HERO
+   ========================================================================== */
+.cp-hero {
+  position: relative;
+  margin-inline: var(--gutter);
+  /* Clears the fixed menu trigger, which sits 1.25–2rem from the top. */
+  padding-block: clamp(6.5rem, 19vh, 11rem) 0;
+}
+
+.cp-hero__eyebrow {
+  font-family: var(--font-body);
+  font-size: var(--step-eyebrow);
+  line-height: 1;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+}
+
+.cp-hero__statement {
+  margin-block-start: clamp(1.5rem, 4vh, 2.5rem);
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--cp-statement);
+  line-height: 1.02;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream);
+  /* Where the sentence turns. A short measure in a wide face — it falls as
+     "We make brands / harder to ignore." at every tier without a hand-placed
+     break to rag at 390. */
+  max-width: 15ch;
+  overflow-wrap: break-word;
+}
+
+.cp-hero__statement-inner {
+  /* `clip-path` and `transform` do not apply to a non-replaced inline element,
+     so a reveal wrapper that stayed inline would be clipped to its first line
+     box and lose the second line for the whole animation. */
+  display: block;
+}
+
+.cp-hero__rule {
+  margin-block-start: clamp(2rem, 6vh, 3.25rem);
+}
+
+.cp-hero__invitation {
+  margin-block-start: clamp(1.25rem, 3.5vh, 2rem);
+  font-family: var(--font-body);
+  font-size: clamp(1rem, 1.5vw, 1.3rem);
+  line-height: 1.4;
+  color: var(--rh-cream-78);
+}
+
+/* ==========================================================================
+   ROUTES
+   The page's functional core. A label, a hairline, and the destination itself
+   at display weight — no card, no box, no icon, no chevron, no button.
+   ========================================================================== */
+.cp-routes {
+  margin-inline: var(--gutter);
+  padding-block-start: var(--cp-section-gap);
+}
+
+.cp-routes__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cp-route + .cp-route {
+  margin-block-start: var(--cp-route-gap);
+}
+
+.cp-route__label {
+  margin-block-start: clamp(0.9rem, 2.4vh, 1.25rem);
+  font-family: var(--font-body);
+  font-size: var(--step-eyebrow);
+  line-height: 1;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+}
+
+.cp-route__value {
+  margin-block-start: clamp(0.5rem, 1.6vh, 0.85rem);
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--cp-route);
+  line-height: 1.1;
+  letter-spacing: var(--track-display);
+  color: var(--rh-cream);
+  /* An email address is one long unbroken token, so it must be allowed to wrap
+     rather than widen the page. `anywhere` and not `break-word` because at 320
+     "Contact@rhubarbcollective.com" exceeds the column on its own and
+     `break-word` would let it overflow instead. Every column below is sized so
+     that a break is never actually needed above 700. */
+  overflow-wrap: anywhere;
+}
+
+/* Weight, from the client's own `size` on each route. The two majors — the
+   primary email and the phone number — are set a step above the two minors,
+   which is what makes the four read as a hierarchy rather than as a list. */
+.cp-route[data-size="major"] .cp-route__value {
+  font-size: var(--cp-route-major);
+}
+
+/*
+ * THE TAP TARGET.
+ *
+ * The whole destination is the hit area, not a glyph beside it — and the link's
+ * box is what carries it, because nothing else can. An overlay pseudo-element
+ * was tried first and does not work here: the reveal puts a `clip-path` on the
+ * value above, and a clip-path on an ancestor clips a descendant that overflows
+ * its box for hit-testing as well as for paint, so the extra height existed and
+ * was untappable. Measured, not assumed — `elementFromPoint` 21px either side
+ * of centre still returned the list item.
+ *
+ * So the link is a 44px box, and the rule moves to an inner span. The underline
+ * stays tight against the words at every size while the target stays
+ * comfortable at 320, where the type alone is only 36px tall.
+ */
+.cp-route__link {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 44px;
+  padding-block: 0.25em;
+  color: inherit;
+  text-decoration: none;
+}
+
+.cp-route__underline {
+  border-block-end: 1px solid var(--rh-cream-24);
+  padding-block-end: 0.12em;
+  transition: border-color 200ms var(--ease-organic);
+}
+
+.cp-route__link:hover .cp-route__underline,
+.cp-route__link:focus-visible .cp-route__underline {
+  border-block-end-color: var(--rh-cream);
+}
+
+/* The location, which has no supplied map URL and is therefore not a link. Set
+   as plain type rather than as a dead link or a click handler pretending to be
+   one, so it never looks interactive. */
+.cp-route:not([data-linked]) .cp-route__value {
+  color: var(--rh-cream-78);
+}
+
+.cp-route__detail {
+  display: block;
+  margin-block-start: 0.24em;
+  font-size: 0.62em;
+  letter-spacing: 0.02em;
+  color: var(--rh-cream-42);
+}
+
+/* ==========================================================================
+   02 — ENQUIRY FORM
+
+   THE FIELD IS THE ROUTE, INVERTED. A route above is a hairline, a label and a
+   destination; a field here is a label, a value and the hairline under it. Same
+   three parts, same weights, same colours, drawn with the same 1px rule — which
+   is the entire reason this block does not read as a form dropped onto the
+   page. There is no card, no panel, no box, no fill, no radius, no shadow and
+   no field container: the only closed shape anywhere in it is the focus ring
+   globals.css already draws on every focusable thing on the site.
+
+   THE CARET IS THE ONE NON-TYPE MARK, and it is two of the page's own hairlines
+   rotated 45° — the menu trigger's vocabulary, at the weight the network draws
+   its strokes. No icon font, no SVG, no library, no chevron glyph.
+
+   ERROR IS WEIGHT, NOT COLOUR. The palette is black and cream; there is no red
+   in it and one is not invented. A field in error takes its hairline from 1px
+   to 2px and its label to full strength, and — the part that actually matters —
+   prints a sentence underneath, wired to the control with `aria-describedby`.
+   Focus changes colour, error changes weight, so the two never read as the
+   same event, and neither is the sole carrier of the message.
+
+   NO LAYOUT SHIFT ON ERROR. The extra border pixel is taken back out of the
+   control's bottom padding, so a message appearing does not nudge the field
+   above it.
+   ========================================================================== */
+.cp-form {
+  margin-inline: var(--gutter);
+  padding-block-start: var(--cp-section-gap);
+
+  /* The heading. Held well under the hero statement, and under its own line
+     count: "Let's make something" is 20 characters in a very wide face, where
+     the hero's longest line is 14, so this scale is roughly 0.7 of the hero's
+     by design rather than by eye. */
+  --cp-form-heading: clamp(1.15rem, 5.8vw, 2.4rem);
+  /* The value you type. A step above page body, so a long description is
+     comfortable to read back before sending. */
+  --cp-field: clamp(1rem, 1.35vw, 1.15rem);
+  /* Between one field and the next. Generous on purpose: seven controls at a
+     list's spacing is a list, not a page. */
+  --cp-field-gap: clamp(1.9rem, 5.2vh, 2.6rem);
+}
+
+/* ---- the intro column ---- */
+.cp-form__intro {
+  padding-block-start: clamp(1.5rem, 4vh, 2.25rem);
+}
+
+.cp-form__eyebrow {
+  font-family: var(--font-body);
+  font-size: var(--step-eyebrow);
+  line-height: 1;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+}
+
+.cp-form__heading {
+  margin-block-start: clamp(1.1rem, 3vh, 1.75rem);
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--cp-form-heading);
+  line-height: 1.04;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream);
+  /* The lines are pre-broken in `CONTACT_PAGE_FORM.headingLines`; this is the
+     guard for the narrowest possible column, not the mechanism. */
+  overflow-wrap: break-word;
+}
+
+.cp-form__heading-line {
+  /* Same reason as `.cp-hero__statement-inner`: `clip-path` does not apply to a
+     non-replaced inline box, so a reveal wrapper must not stay inline. */
+  display: block;
+}
+
+.cp-form__note {
+  margin-block-start: clamp(1.1rem, 3vh, 1.6rem);
+  font-family: var(--font-body);
+  font-size: clamp(0.92rem, 1.15vw, 1.05rem);
+  line-height: 1.5;
+  color: var(--rh-cream-78);
+  max-width: 34ch;
+}
+
+/* ---- the fields ---- */
+.cp-form__body {
+  margin-block-start: clamp(2.5rem, 7vh, 3.5rem);
+}
+
+.cp-form__fields {
+  display: grid;
+  gap: var(--cp-field-gap);
+}
+
+.cp-field {
+  display: grid;
+  /* A field never widens its track. Without this a `select` whose longest
+     option is wider than the column pushes the grid out and takes the page
+     with it. */
+  min-width: 0;
+}
+
+/*
+ * FLOWED, NOT LAID OUT. The label was a flex row for a while, and in a 310px
+ * half column that put "OPTIONAL" on a third line of its own under a label that
+ * had already wrapped to two. As inline text it simply follows the last word,
+ * and the label wraps as one sentence — which is what it is.
+ */
+.cp-field__label {
+  display: block;
+  font-family: var(--font-body);
+  font-size: var(--step-eyebrow);
+  line-height: 1.3;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+  transition: color 200ms var(--ease-organic);
+}
+
+/* Optional is stated once, on the field it applies to, rather than four
+   required fields carrying an asterisk each. */
+.cp-field__optional {
+  margin-inline-start: 0.85rem;
+  font-size: 0.86em;
+  letter-spacing: 0.16em;
+  color: var(--rh-cream-24);
+  /* It never begins a line on its own — if it does not fit beside the last
+     word, the whole phrase turns together. */
+  white-space: nowrap;
+}
+
+.cp-field:focus-within .cp-field__label {
+  color: var(--rh-cream);
+}
+
+.cp-field__control {
+  position: relative;
+  display: block;
+  margin-block-start: clamp(0.4rem, 1.2vh, 0.65rem);
+}
+
+/*
+ * THE CONTROL ITSELF. Every browser default is removed rather than overridden
+ * around: no border box, no radius (iOS adds one to every text input), no
+ * background, no inner shadow, no system font. What is left is a line of type
+ * sitting on a hairline.
+ */
+.cp-field__input {
+  display: block;
+  width: 100%;
+  /* Comfortable to tap at 320 without drawing anything taller. */
+  min-block-size: 2.75rem;
+  margin: 0;
+  padding: 0.55rem 0 0.6rem;
+  border: 0;
+  border-block-end: 1px solid var(--rh-cream-24);
+  border-radius: 0;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: var(--cp-field);
+  line-height: 1.45;
+  color: var(--rh-cream);
+  appearance: none;
+  -webkit-appearance: none;
+  transition: border-color 200ms var(--ease-organic), color 200ms var(--ease-organic);
+}
+
+/* An example, set well back from the answer. Firefox dims placeholders by
+   default, which would take this below the contrast the token was chosen for. */
+.cp-field__input::placeholder {
+  color: var(--rh-cream-42);
+  opacity: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cp-field__input:hover:not(:disabled) {
+    border-block-end-color: var(--rh-cream-42);
+  }
+}
+
+/* Focus is the site's own ring — inherited from globals.css, not redeclared —
+   plus the hairline coming up to full strength. */
+.cp-field__input:focus {
+  border-block-end-color: var(--rh-cream);
+}
+
+/* ---- error ---- */
+.cp-field[data-invalid] .cp-field__input {
+  border-block-end-width: 2px;
+  border-block-end-color: var(--rh-cream-78);
+  /* The second pixel comes out of the padding, so nothing below moves. */
+  padding-block-end: calc(0.6rem - 1px);
+}
+
+.cp-field[data-invalid] .cp-field__label {
+  color: var(--rh-cream-90);
+}
+
+.cp-field__error {
+  margin-block-start: 0.65rem;
+  font-family: var(--font-body);
+  font-size: clamp(0.78rem, 0.95vw, 0.88rem);
+  line-height: 1.4;
+  color: var(--rh-cream-90);
+}
+
+/* ---- select ---- */
+.cp-field__select {
+  /* Room for the caret, so the longest option never runs under it. */
+  padding-inline-end: 2rem;
+  cursor: pointer;
+  text-overflow: ellipsis;
+}
+
+/* Unanswered, so the option set back like a placeholder — and back to full
+   strength the moment it holds a real answer. */
+.cp-field__select[data-empty] {
+  color: var(--rh-cream-42);
+}
+
+/*
+ * The dropdown itself is OS chrome. `color-scheme: dark` in the root viewport
+ * config already makes it dark on Chromium and Safari; these two declarations
+ * are what Firefox and Windows need to match.
+ */
+.cp-field__select option {
+  background: var(--rh-black);
+  color: var(--rh-cream);
+}
+
+.cp-field__caret {
+  position: absolute;
+  inset-inline-end: 0.4rem;
+  inset-block-start: calc(50% - 7px);
+  width: 8px;
+  height: 8px;
+  border-inline-end: 1px solid var(--rh-cream-64);
+  border-block-end: 1px solid var(--rh-cream-64);
+  transform: rotate(45deg);
+  pointer-events: none;
+  transition: border-color 200ms var(--ease-organic);
+}
+
+.cp-field:focus-within .cp-field__caret {
+  border-color: var(--rh-cream);
+}
+
+/* ---- textarea ---- */
+.cp-field__textarea {
+  min-block-size: clamp(7.5rem, 20vh, 11rem);
+  padding-block-end: 0.85rem;
+  /* Vertical only: a horizontally resizable textarea can be dragged past the
+     viewport, and this page has spent a lot of effort not overflowing. */
+  resize: vertical;
+}
+
+.cp-field[data-invalid] .cp-field__textarea {
+  padding-block-end: calc(0.85rem - 1px);
+}
+
+/* ---- disabled: while sending, and after a successful send ---- */
+.cp-field__input:disabled {
+  color: var(--rh-cream-42);
+  border-block-end-color: var(--rh-cream-12);
+  cursor: default;
+  /* iOS dims a disabled control to ~0.4 on top of whatever colour it is given. */
+  opacity: 1;
+  -webkit-text-fill-color: var(--rh-cream-42);
+}
+
+.cp-form__form[data-sent] .cp-field__label,
+.cp-form__form[data-sent] .cp-field__caret {
+  color: var(--rh-cream-42);
+  border-color: var(--rh-cream-12);
+}
+
+/* ==========================================================================
+   SUBMIT
+   The About page's closing link, as a button: display type on a rule that
+   thickens in colour. No pill, no fill, no box, no arrow — the site has exactly
+   one button already and it is transparent text too.
+   ========================================================================== */
+.cp-form__foot {
+  margin-block-start: clamp(2.5rem, 7vh, 3.5rem);
+}
+
+.cp-form__submit {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 44px;
+  margin: 0;
+  padding: 0.3rem 0 0.45rem;
+  border: 0;
+  border-block-end: 1px solid var(--rh-cream-42);
+  border-radius: 0;
+  background: none;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1.1rem, 3.4vw, 1.6rem);
+  line-height: 1.1;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: border-color 220ms var(--ease-organic), color 220ms var(--ease-organic);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cp-form__submit:hover:not(:disabled) {
+    border-block-end-color: var(--rh-cream);
+  }
+}
+
+.cp-form__submit:focus-visible {
+  border-block-end-color: var(--rh-cream);
+}
+
+.cp-form__submit:disabled {
+  color: var(--rh-cream-42);
+  border-block-end-color: var(--rh-cream-12);
+  cursor: default;
+}
+
+/*
+ * THE SENDING STATE. A hairline that grows out of the word and breathes — not a
+ * spinner, because there is not a single circle anywhere on this site, and not
+ * an ellipsis, because three animated dots are a spinner with worse timing. It
+ * is 1px, in the page's own rule colour, and it is `aria-hidden`: the state
+ * that matters to a screen reader is on the button's own label and in the live
+ * region below it.
+ */
+.cp-form__submit-rule {
+  display: block;
+  width: 0;
+  height: 1px;
+  background: var(--rh-cream-42);
+  transition: width 200ms var(--ease-organic), margin-inline-start 200ms var(--ease-organic);
+}
+
+.cp-form__submit[data-submitting] .cp-form__submit-rule {
+  width: clamp(18px, 2vw, 26px);
+  margin-inline-start: 0.7rem;
+  animation: cp-sending 1.15s var(--ease-organic) infinite;
+}
+
+@keyframes cp-sending {
+  0%,
+  100% {
+    opacity: 0.28;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* ==========================================================================
+   OUTCOME
+
+   One block for all four results, and its wording is the honest one — see
+   `CONTACT_PAGE_FORM_STATES`. It is separated by a hairline rather than boxed,
+   for the same reason nothing else on this page is boxed.
+   ========================================================================== */
+.cp-form__status {
+  margin-block-start: clamp(1.5rem, 4vh, 2.25rem);
+}
+
+/* Nothing has happened yet, so nothing takes space. */
+.cp-form__status:empty {
+  display: none;
+  margin-block-start: 0;
+}
+
+.cp-form__noscript {
+  margin-block-start: clamp(1.5rem, 4vh, 2.25rem);
+  color: var(--rh-cream-78);
+  max-width: 46ch;
+}
+
+.cp-form__status-line {
+  font-family: var(--font-body);
+  font-size: clamp(0.82rem, 1vw, 0.92rem);
+  line-height: 1.4;
+  color: var(--rh-cream-90);
+}
+
+.cp-form__outcome {
+  padding-block-start: clamp(1.1rem, 3vh, 1.6rem);
+  border-block-start: 1px solid var(--rh-cream-24);
+  max-width: 46ch;
+}
+
+.cp-form__outcome-heading {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1rem, 2.8vw, 1.25rem);
+  line-height: 1.15;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream);
+}
+
+.cp-form__outcome-body {
+  margin-block-start: 0.7rem;
+  font-family: var(--font-body);
+  font-size: clamp(0.88rem, 1.1vw, 1rem);
+  line-height: 1.5;
+  color: var(--rh-cream-78);
+}
+
+/* The fallback the two failing states offer. A native underline, offset off the
+   baseline — the page's underline language, at the page's hairline weight. */
+.cp-form__outcome-link {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 44px;
+  font-family: var(--font-body);
+  font-size: clamp(0.78rem, 0.95vw, 0.88rem);
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.5em;
+  text-decoration-color: var(--rh-cream-42);
+  transition: text-decoration-color 200ms var(--ease-organic);
+}
+
+.cp-form__outcome-link:hover,
+.cp-form__outcome-link:focus-visible {
+  text-decoration-color: var(--rh-cream);
+}
+
+/* ==========================================================================
+   CLOSING
+   ========================================================================== */
+.cp-closing {
+  margin-inline: var(--gutter);
+  padding-block: var(--cp-section-gap) clamp(3.5rem, 10vh, 6.5rem);
+}
+
+.cp-closing__eyebrow {
+  font-family: var(--font-body);
+  font-size: var(--step-eyebrow);
+  line-height: 1;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+}
+
+.cp-closing__statement {
+  margin-block-start: clamp(1.1rem, 3vh, 1.75rem);
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1.25rem, 5.4vw, 2rem);
+  line-height: 1.1;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  color: var(--rh-cream);
+  max-width: 22ch;
+}
+
+.cp-closing__statement-inner {
+  display: block;
+}
+
+/* ==========================================================================
+   TABLET — 700px and up
+   The single column keeps its order and simply gets room; nothing becomes a
+   column that would be under 30ch wide.
+   ========================================================================== */
+@media (min-width: 700px) {
+  .cp-hero__invitation,
+  .cp-closing__statement {
+    margin-inline-start: clamp(2rem, 10vw, 8rem);
+  }
+
+  /* A gentle stagger, still one column — enough to stop four routes reading as
+     a table without splitting them at a width that cannot hold two. */
+  .cp-route[data-route="business"],
+  .cp-route[data-route="location"] {
+    margin-inline-start: clamp(2rem, 12vw, 9rem);
+  }
+
+  /*
+   * THE FORM IS THE ONE BLOCK THAT SPLITS HERE, because it is the only one with
+   * two things to say at once. The heading stays at the margin and the fields
+   * step in under it — the page's existing indent, applied to the half that is
+   * not the heading — and the two short pairs go two-up. Nothing becomes a
+   * column that would be under 30ch wide.
+   */
+  .cp-form__body {
+    margin-inline-start: clamp(2rem, 10vw, 8rem);
+  }
+
+  .cp-form__fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: clamp(1.5rem, 4vw, 3rem);
+  }
+
+  .cp-field[data-width="full"] {
+    grid-column: 1 / -1;
+  }
+
+  /*
+   * TWO FIELDS ON A ROW SHARE THEIR ROWS, not just their row.
+   *
+   * MEASURED, NOT ASSUMED. At 1440 the eyebrow step is 13px and a 310px half
+   * column takes "BUDGET / APPROXIMATE INVESTMENT" onto a second line while
+   * "PREFERRED TIMELINE" stays on one — which put the two hairlines 10px out of
+   * level, and two underlines 10px apart is exactly the kind of thing this page
+   * has no other example of.
+   *
+   * A reserved label height fixes that pair and breaks at the next reworded
+   * label, so `subgrid` does it properly instead: the field's three rows —
+   * label, control, message — ARE the parent's rows, so both fields in a band
+   * take their label height, their control position and their message height
+   * from the taller of the two. It holds for any label at any length, and it
+   * holds when one field of a pair is showing an error and the other is not.
+   *
+   * The parent's `row-gap` has to go to zero for that (it would otherwise open
+   * between a label and its own control), so the space between one band and the
+   * next moves to a margin on the field. Both fields of a band carry the same
+   * margin, so the band spacing is unchanged.
+   */
+  @supports (grid-template-rows: subgrid) {
+    .cp-form__fields {
+      row-gap: 0;
+    }
+
+    .cp-field {
+      grid-row: span 3;
+      grid-template-rows: subgrid;
+      margin-block-end: var(--cp-field-gap);
+    }
+
+    /* The last band needs no trailing gap — `.cp-form__foot` sets its own. */
+    .cp-field:nth-last-child(-n + 2) {
+      margin-block-end: 0;
+    }
+  }
+}
+
+/* ==========================================================================
+   DESKTOP — 1100px and up
+   The 12-column field. The margin offsets above are dropped: a grid column and
+   a margin indent doing the same job at once is how a layout ends up off the
+   right edge.
+   ========================================================================== */
+@media (min-width: 1100px) {
+  .cp-hero,
+  .cp-routes__list,
+  .cp-closing {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: clamp(1rem, 1.6vw, 1.75rem);
+  }
+
+  /* Anything not placed explicitly spans the field, so a block can be added
+     without first being given a grid position. */
+  .cp-hero > *,
+  .cp-closing > * {
+    grid-column: 1 / -1;
+  }
+
+  .cp-hero__invitation {
+    grid-column: 6 / -1;
+    margin-inline-start: 0;
+    margin-block-start: clamp(1.5rem, 4vh, 2.25rem);
+  }
+
+  /* ---- the four routes, on explicit rows ---- */
+  .cp-routes__list {
+    row-gap: clamp(3rem, 9vh, 5.5rem);
+  }
+
+  .cp-route + .cp-route {
+    margin-block-start: 0;
+  }
+
+  /*
+   * Cleared at the same specificity the tablet stagger sets it with. A bare
+   * `.cp-route` reset loses to `.cp-route[data-route="business"]`, which left
+   * two of the four columns 144px narrower than the grid said they were — and
+   * that missing 144px is what pushed the business address onto a second line.
+   */
+  .cp-route[data-route="business"],
+  .cp-route[data-route="location"] {
+    margin-inline-start: 0;
+  }
+
+  .cp-route[data-route="email"] {
+    grid-row: 1;
+    grid-column: 6 / -1;
+  }
+
+  /*
+   * The two on row 2 share the field rather than sitting in narrow columns at
+   * its edges: "Contact@rhubarbcollective.com" is 29 characters in a wide
+   * display face and needs about 530px, which five columns do not give it. An
+   * address that breaks across a line mid-word is worse than one that is a
+   * little closer to its neighbour.
+   */
+  .cp-route[data-route="phone"] {
+    grid-row: 2;
+    grid-column: 1 / span 5;
+  }
+
+  .cp-route[data-route="business"] {
+    grid-row: 2;
+    grid-column: 7 / -1;
+  }
+
+  .cp-route[data-route="location"] {
+    grid-row: 3;
+    grid-column: 1 / span 7;
+  }
+
+  /* ---- the form, as a spread ---- */
+  .cp-form {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: clamp(1rem, 1.6vw, 1.75rem);
+    /* Re-tiered for the narrower intro column, which is where the heading now
+       lives rather than across the whole page. */
+    --cp-form-heading: clamp(1.7rem, 2.4vw, 2.4rem);
+  }
+
+  .cp-form__rule {
+    grid-column: 1 / -1;
+  }
+
+  /*
+   * Five columns, not four. The heading is set in a face wide enough that
+   * "LET'S MAKE SOMETHING" needs about 480px at this scale, and a four-column
+   * track at 1440 is 430 — which is how a pre-broken two-line heading ends up
+   * as four ragged ones.
+   */
+  .cp-form__intro {
+    grid-column: 1 / span 5;
+  }
+
+  .cp-form__body {
+    grid-column: 7 / -1;
+    /* The tablet indent and a grid column doing the same job at once is how a
+       layout ends up off the right edge — the routes above record the same. */
+    margin-inline-start: 0;
+    margin-block-start: clamp(1.5rem, 4vh, 2.25rem);
+  }
+
+  .cp-form__fields {
+    column-gap: clamp(1.5rem, 2.4vw, 2.5rem);
+  }
+
+  .cp-closing__statement {
+    grid-column: 5 / -1;
+    margin-inline-start: 0;
+  }
+}
+
+/* ==========================================================================
+   REDUCED MOTION
+   The animation already resolves everything in one pass rather than tweening
+   it, and creates no ScrollTrigger. This closes the two remaining gaps: the
+   resting state that ships in the HTML, and the link transition.
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .cp[data-cp-state="idle"] [data-cp-reveal] {
+    clip-path: none;
+    opacity: 1;
+  }
+
+  .cp[data-cp-state="idle"] [data-cp-rule] {
+    transform: none;
+  }
+
+  .cp-route__underline {
+    transition: none;
+  }
+
+  /*
+   * The form behaves identically — every state change still happens, it simply
+   * arrives. The sending rule keeps its length and loses only the pulse, so the
+   * one piece of feedback that says "still working" is not what gets removed.
+   */
+  .cp-field__input,
+  .cp-field__label,
+  .cp-field__caret,
+  .cp-form__submit,
+  .cp-form__submit-rule,
+  .cp-form__outcome-link {
+    transition: none;
+  }
+
+  .cp-form__submit[data-submitting] .cp-form__submit-rule {
+    animation: none;
+    opacity: 1;
+  }
+}
