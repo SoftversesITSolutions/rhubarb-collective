@@ -6,6 +6,7 @@ import { createHeroAnimation } from "@/lib/hero/animation";
 import { generateOrganicNetwork } from "@/lib/hero/network";
 import { useViewport } from "@/lib/hero/useViewport";
 import { HeroBoundary } from "./HeroBoundary";
+import { HeroIntro } from "./HeroIntro";
 import { HeroNetwork } from "./HeroNetwork";
 import { HeroTypography } from "./HeroTypography";
 import "./hero.css";
@@ -55,6 +56,13 @@ export function Hero() {
         {network && <HeroNetwork network={network} />}
         <HeroTypography />
         {network && <HeroBoundary descenders={network.descenders} />}
+        {/*
+          Always rendered, never gated on the network: it is the first thing
+          on screen, so its image must be in the server HTML to be preloaded,
+          and its pre-reveal state is plain CSS so the first frame stays the
+          void whether or not JavaScript has arrived yet.
+        */}
+        <HeroIntro />
       </div>
     </section>
   );

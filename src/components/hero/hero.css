@@ -254,6 +254,72 @@
   height: 100%;
 }
 
+/* --------------------------------------------------------------------------
+   OPENING — the logo intro
+   Sits above every hero layer, centred, and hands off to the lockup's own
+   logo at the end of its travel. Its resting CSS *is* its pre-reveal state
+   (mask closed, wordline transparent), so the server-rendered first frame is
+   still the void and nothing flashes before the timeline starts.
+   -------------------------------------------------------------------------- */
+.hero-intro {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  /* Optical centre: a hair above the geometric one. */
+  padding-block-end: 6vh;
+  pointer-events: none;
+}
+
+.hero-intro__mark {
+  position: relative;
+  width: clamp(140px, 22vmin, 250px);
+  aspect-ratio: 724 / 1000;
+  /* The glide scales from the top-left corner so its end state is a plain
+     translate + scale onto the lockup's box. */
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.hero-intro__img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* The mark: everything above COLLECTIVE. The wipe is a mask whose feathered
+   edge is driven by --wipe, from 0% (closed) to 112% (open, feather and all).
+   The band edges are measured from the PNG — see HeroIntro.tsx. */
+.hero-intro__img--mark {
+  --wipe: 0%;
+  clip-path: inset(0 0 9.5% 0);
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 calc(var(--wipe) - 12%),
+    transparent var(--wipe)
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    #000 calc(var(--wipe) - 12%),
+    transparent var(--wipe)
+  );
+}
+
+.hero-intro__img--wordline {
+  clip-path: inset(90.5% 0 0 0);
+  opacity: 0;
+}
+
+/* Under reduced motion the opening is skipped and the lockup logo is simply
+   present. The timeline hides this layer too; this rule is the belt to those
+   braces. */
+.hero[data-hero-state="static"] .hero-intro {
+  display: none;
+}
+
 /* ==========================================================================
    TABLET
    ========================================================================== */

@@ -164,7 +164,6 @@ export const NETWORK_CONFIG: Record<Tier, NetworkConfig> = {
 export const BEATS = {
   /** Window the procedural growth is spread across. */
   growth: { start: 0.02, end: 0.54 },
-  logo: { start: 0.28, end: 0.42 },
   eyebrow: { start: 0.36, end: 0.47 },
   headline: { start: 0.44, end: 0.72 },
   support: { start: 0.66, end: 0.78 },
@@ -172,4 +171,28 @@ export const BEATS = {
   interaction: { start: 0.54, end: 0.88 },
   /** Network reaching past the hero into the next section. */
   handoff: { start: 0.84, end: 1 },
+} as const;
+
+/* ------------------------------------------------------------------ *
+ * The opening: the logo intro that plays once on load, before the seed.
+ * In seconds, not scroll fractions — this part is autonomous. The logo
+ * used to arrive on the scrubbed timeline at 0.28–0.42; since the opening
+ * leaves it in the lockup, that beat no longer exists.
+ * ------------------------------------------------------------------ */
+export const LOGO_INTRO = {
+  /** Black hold before anything appears. */
+  void: 0.3,
+  /** The mark's soft top-down wipe. */
+  wipe: 1.0,
+  /** COLLECTIVE fades up beneath it, starting this long before the wipe ends. */
+  wordlineLead: 0.3,
+  wordline: 0.45,
+  /** The finished mark holding centre-stage before it moves. */
+  hold: 0.45,
+  /** The glide into the lockup. */
+  travel: 0.9,
+  /** How far into the travel the seed is born, as a fraction of it. */
+  seedOverlap: 0.4,
+  /** The longest the opening waits for the logo image before starting anyway. */
+  imageTimeout: 1.5,
 } as const;

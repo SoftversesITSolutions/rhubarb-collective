@@ -7,7 +7,8 @@
  * One entry point, one gsap.context, one ScrollTrigger. Everything the hero
  * does is expressed as either:
  *
- *   INTRO      — autonomous, plays once on load. The void, then the seed.
+ *   OPENING    — autonomous, plays once on load. The void, the mark, then
+ *                the seed it lifts away from.
  *   NARRATIVE  — a single scrubbed timeline of normalised duration 1, pinned.
  *                All ten storyboard phases are positions on this one timeline,
  *                so pacing is retuned by editing BEATS in ./config.
@@ -27,8 +28,14 @@
 
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { BEATS, SCROLL_LENGTH, type Tier } from "./config";
+import { BEATS, LOGO_INTRO, SCROLL_LENGTH, type Tier } from "./config";
 import type { OrganicNetwork } from "./network";
+
+/**
+ * The opening plays once per page life. A breakpoint change rebuilds the whole
+ * hero (new network, new timeline) and must not replay it; a reload does.
+ */
+let openingPlayed = false;
 
 export interface HeroAnimationOptions {
   /** Section that owns the scroll distance. */
@@ -68,6 +75,9 @@ export function createHeroAnimation({
 }: HeroAnimationOptions): () => void {
   gsap.registerPlugin(ScrollTrigger);
 
+  let cancelled = false;
+  const teardown: Array<() => void> = [];
+
   const ctx = gsap.context(() => {
     /* ---- elements ---------------------------------------------------- */
     const branches = all<SVGPathElement>(root, "[data-branch]");
@@ -84,6 +94,11 @@ export function createHeroAnimation({
     const behindLayer = one<SVGGElement>(root, "[data-layer='behind']");
 
     const logo = one<HTMLElement>(root, "[data-hero='logo']");
+    const lockupMark = one<HTMLElement>(root, "[data-hero='logo-mark']");
+    const introRoot = one<HTMLElement>(root, "[data-hero='intro']");
+    const introMark = one<HTMLElement>(root, "[data-hero='intro-mark']");
+    const introImg = one<HTMLImageElement>(root, "[data-hero='intro-img']");
+    const introWordline = one<HTMLElement>(root, "[data-hero='intro-wordline']");
     const eyebrow = one<HTMLElement>(root, "[data-hero='eyebrow']");
     const rule = one<HTMLElement>(root, "[data-hero='rule']");
     const headlineLines = all<HTMLElement>(root, "[data-hero='headline-line']");
@@ -92,7 +107,8 @@ export function createHeroAnimation({
     const cueMark = one<HTMLElement>(root, "[data-hero='cue-mark']");
     const boundary = one<HTMLElement>(root, "[data-hero='boundary']");
 
-    const copy = [logo, eyebrow, ...support].filter(
+    // The logo is not in here: the opening owns it until the hand-off.
+    const copy = [eyebrow, ...support].filter(
       (el): el is HTMLElement => el !== null,
     );
     const origin = `${network.seedPoint.x}px ${network.seedPoint.y}px`;
@@ -108,6 +124,10 @@ export function createHeroAnimation({
       gsap.set([seed, seedCore], { opacity: 1 });
       gsap.set(seedRing, { opacity: 1 });
       gsap.set([...copy, ...headlineLines], { opacity: 1 });
+      // No opening under reduced motion: the mark is simply present in its
+      // lockup from the first frame. The message stays, the movement goes.
+      gsap.set(logo, { opacity: 1 });
+      gsap.set(introRoot, { display: "none" });
       gsap.set(boundary, { opacity: 1 });
       gsap.set(rule, { opacity: 1 });
       // THE CUE STAYS VISIBLE HERE. It used to be set to opacity 0 in the
@@ -133,6 +153,12 @@ export function createHeroAnimation({
     gsap.set([growthLayer, ambientLayer], { transformOrigin: origin });
     gsap.set(headlineLines, { yPercent: 108, opacity: 1 });
     gsap.set(copy, { opacity: 0, y: 14 });
+    // Hidden, and deliberately *not* offset like the other copy: the opening
+    // measures this box to know where to land, so it must be transform-free.
+    gsap.set(logo, { opacity: 0 });
+    gsap.set(introImg, { "--wipe": "0%" });
+    gsap.set(introWordline, { opacity: 0, y: 6 });
+    gsap.set(introMark, { x: 0, y: 0, scale: 1, transformOrigin: "0 0" });
     gsap.set(rule, { opacity: 0, scaleX: 0, transformOrigin: "0% 50%" });
     gsap.set(boundary, { opacity: 0 });
     gsap.set(cue, { opacity: 0, y: 10 });
@@ -141,13 +167,72 @@ export function createHeroAnimation({
     gsap.set(cueMark, { yPercent: -100 });
 
     /* =================================================================== *
-     * PHASE 01–02 — INTRO: the void holds, then the first seed
+     * PHASE 00–02 — OPENING: the void, the mark, then the seed
+     *
+     * Time-based, not scrubbed. The mark wipes in centre-stage, its wordline
+     * follows, it holds, then it glides into the lockup and the seed is born
+     * beneath it as it lifts away. Clock values live in LOGO_INTRO.
      * =================================================================== */
-    const intro = gsap.timeline({ delay: 0.45 });
-    intro
-      .to(seedCore, { scale: 1, opacity: 1, duration: 1.5, ease: "expo.out" })
-      .to(seedRing, { scale: 1.5, opacity: 1, duration: 2.4, ease: "power2.out" }, 0.25)
-      .to(cue, { opacity: 1, y: 0, duration: 1, ease: "power2.out" }, 1.5)
+    const T = LOGO_INTRO;
+    const wipeAt = T.void;
+    const wordlineAt = wipeAt + T.wipe - T.wordlineLead;
+    const travelAt = Math.max(wipeAt + T.wipe, wordlineAt + T.wordline) + T.hold;
+    const travelEnd = travelAt + T.travel;
+    const seedAt = travelAt + T.travel * T.seedOverlap;
+
+    // Where the mark is going: the lockup logo's box. Measured when the travel
+    // starts rather than now, so it reads the settled layout. Both boxes live
+    // in the pinned stage, so the delta between their client rects is immune
+    // to whatever ScrollTrigger does to the stage, and neither carries a
+    // transform at that moment — which is why the lockup logo is excluded
+    // from the reveal offsets above.
+    let flight: { x: number; y: number; scale: number } | null = null;
+    const measureFlight = () => {
+      if (!flight) {
+        const from = introMark?.getBoundingClientRect();
+        const to = lockupMark?.getBoundingClientRect();
+        flight =
+          from && to
+            ? { x: to.left - from.left, y: to.top - from.top, scale: to.width / from.width }
+            : { x: 0, y: 0, scale: 1 };
+      }
+      return flight;
+    };
+
+    const opening = gsap.timeline({
+      paused: true,
+      onComplete: () => {
+        openingPlayed = true;
+      },
+    });
+    opening
+      .to(introImg, { "--wipe": "112%", duration: T.wipe, ease: "power2.inOut" }, wipeAt)
+      .to(
+        introWordline,
+        { opacity: 1, y: 0, duration: T.wordline, ease: "power2.out" },
+        wordlineAt,
+      )
+      // Function-based values resolve on the tween's first render, i.e. when
+      // the playhead reaches it — that is what makes the late measurement work.
+      .to(
+        introMark,
+        {
+          x: () => measureFlight().x,
+          y: () => measureFlight().y,
+          scale: () => measureFlight().scale,
+          duration: T.travel,
+          ease: "power3.inOut",
+        },
+        travelAt,
+      )
+      // The hand-off: the lockup's own logo takes over in the frame the
+      // travelling copy lands on it, and the opening layer leaves the page.
+      .set(logo, { opacity: 1 }, travelEnd)
+      .set(introRoot, { display: "none" }, travelEnd)
+      // The seed is born under the mark as it lifts away.
+      .to(seedCore, { scale: 1, opacity: 1, duration: 1.5, ease: "expo.out" }, seedAt)
+      .to(seedRing, { scale: 1.5, opacity: 1, duration: 2.4, ease: "power2.out" }, seedAt + 0.25)
+      .to(cue, { opacity: 1, y: 0, duration: 1, ease: "power2.out" }, seedAt + 1.3)
       // The breathe only starts once the seed has finished arriving, so the two
       // tweens never contend for the same property.
       .add(() => {
@@ -178,6 +263,38 @@ export function createHeroAnimation({
           },
         );
       });
+
+    // Reader intent always wins. Any scroll during the opening jumps it to its
+    // end state (callbacks included) so the scrubbed narrative never fights
+    // it; a restored scroll position or a second build in this page life skips
+    // it outright. The one thing the opening waits for is its own image, and
+    // only for so long — a slow network must not hold the hero hostage.
+    const skipOpening = () => {
+      if (opening.progress() < 1) opening.progress(1);
+    };
+    if (openingPlayed || window.scrollY > 0) {
+      skipOpening();
+    } else {
+      const loaded =
+        introImg && !introImg.complete
+          ? new Promise<void>((resolve) => {
+              introImg.addEventListener("load", () => resolve(), { once: true });
+              introImg.addEventListener("error", () => resolve(), { once: true });
+            })
+          : Promise.resolve();
+      const patience = new Promise<void>((resolve) => {
+        setTimeout(resolve, T.imageTimeout * 1000);
+      });
+      Promise.race([loaded, patience]).then(() => {
+        if (!cancelled && opening.progress() < 1) opening.play();
+      });
+
+      const intents = ["scroll", "wheel", "touchmove"] as const;
+      intents.forEach((type) => window.addEventListener(type, skipOpening, { passive: true }));
+      teardown.push(() => {
+        intents.forEach((type) => window.removeEventListener(type, skipOpening));
+      });
+    }
 
     /* =================================================================== *
      * PHASE 03–10 — the scrubbed narrative
@@ -233,12 +350,8 @@ export function createHeroAnimation({
     tl.to(seed, { scale: 0.7, duration: 0.24, ease: "sine.inOut" }, BEATS.growth.start + 0.2);
     tl.to(seedRing, { opacity: 0.35, duration: 0.2, ease: "sine.out" }, BEATS.growth.start + 0.2);
 
-    /* --- PHASE 05: identity emerges inside the composition -------------- */
-    tl.to(
-      logo,
-      { opacity: 1, y: 0, duration: span(BEATS.logo), ease: "power2.out" },
-      BEATS.logo.start,
-    );
+    /* --- PHASE 05 used to be the logo arriving here. The opening now leaves
+       it in the lockup before the first scroll, so the beat is gone. -------- */
 
     /* --- PHASE 06: the positioning statement ---------------------------- */
     tl.to(
@@ -363,5 +476,9 @@ export function createHeroAnimation({
     document.fonts.ready.then(() => ScrollTrigger.refresh());
   }, root);
 
-  return () => ctx.revert();
+  return () => {
+    cancelled = true;
+    teardown.forEach((fn) => fn());
+    ctx.revert();
+  };
 }

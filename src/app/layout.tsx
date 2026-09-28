@@ -50,6 +50,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <noscript>
           <style>{`
             [data-hero-state] [data-reveal] { opacity: 1 !important; }
+            [data-hero="intro"] { display: none !important; }
             [data-fg-state] [data-fg-reveal] { opacity: 1 !important; }
             [data-branch], [data-fg-branch], [data-fg-connection],
             [data-fg-leader], [data-descender] { stroke-dashoffset: 0 !important; }
