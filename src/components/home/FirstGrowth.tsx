@@ -3,13 +3,9 @@
 import { useEffect, useMemo, useRef } from "react";
 import { generateCascade } from "@/lib/first-growth/cascade";
 import { useViewport } from "@/lib/hero/useViewport";
-import {
-  ANNOTATION_OPTIONS,
-  CONNECTION_OPTIONS,
-  firstGrowthConfig,
-} from "@/lib/first-growth/config";
+import { ANNOTATION_OPTIONS, RIDGE_OPTIONS, firstGrowthConfig } from "@/lib/first-growth/config";
 import { annotationZones, deriveAnnotations } from "@/lib/first-growth/annotations";
-import { deriveConnections } from "@/lib/first-growth/connections";
+import { generateRidges } from "@/lib/first-growth/ridgelines";
 import { createFirstGrowthAnimation } from "@/lib/first-growth/animation";
 import { FirstGrowthContent } from "./FirstGrowthContent";
 import { FirstGrowthNetwork } from "./FirstGrowthNetwork";
@@ -47,19 +43,44 @@ export function FirstGrowth() {
         })
       : [];
 
-    // Chords must avoid the labels as well as the blocks of type — a link
-    // drawn through a word costs more than the link is worth.
-    const connections = deriveConnections(network, {
-      ...CONNECTION_OPTIONS[tier],
-      keepOut: [
-        ...config.keepOut,
-        ...annotationZones(
-          annotations,
-          network,
-          annotationOptions.labelWidth,
-          annotationOptions.labelHeight,
-        ),
-      ],
+    // The ridgeline field (note 4): its crests carry the values, and it fades
+    // under every block of type — the copy and the labels — and around the
+    // spine. The connection mesh this section used to draw is retired: the
+    // field is the section's texture now, and chords across it read as clutter.
+    //
+    // The zones it fades under are the blocks of copy from the config, minus
+    // the value rectangles there (those start at the anchor and would hide the
+    // crest apex the value sits on), plus the label boxes shifted past the
+    // label's own inline padding, so the apex and its node stay in the clear
+    // and the fade begins where the words begin.
+    const labelInset = network.width * 0.044; // padding-inline of an anchored value
+    const isValueZone = (zone: { x: number; y: number; width: number; height: number }) =>
+      annotationOptions.slots.some((slot) => {
+        const ax = slot.x * network.width;
+        const ay = slot.y * network.height;
+        const edge = slot.side === "right" ? zone.x : zone.x + zone.width;
+        return Math.abs(zone.y + zone.height / 2 - ay) < 30 && Math.abs(edge - ax) < 30;
+      });
+    const labelZones = annotationZones(
+      annotations,
+      network,
+      annotationOptions.labelWidth,
+      annotationOptions.labelHeight,
+    ).map((zone, i) => {
+      const side = annotations[i]?.side ?? "right";
+      return side === "right"
+        ? { ...zone, x: zone.x + labelInset, width: zone.width - labelInset }
+        : { ...zone, width: zone.width - labelInset };
+    });
+    const maskZones = [...config.keepOut.filter((zone) => !isValueZone(zone)), ...labelZones];
+    const ridges = generateRidges(network, maskZones, {
+      ...RIDGE_OPTIONS[tier],
+      crests: annotationOptions.anchored
+        ? annotationOptions.slots.map((slot) => ({
+            x: slot.x * network.width,
+            y: slot.y * network.height,
+          }))
+        : [],
     });
 
     // The Work route: the trunk run that reaches deepest. Offshoots are
@@ -73,8 +94,8 @@ export function FirstGrowth() {
 
     return {
       network,
+      ridges,
       annotations,
-      connections,
       anchored: annotationOptions.anchored,
       workBranchId: workBranch?.id ?? null,
     };
@@ -87,6 +108,7 @@ export function FirstGrowth() {
     return createFirstGrowthAnimation({
       root,
       network: model.network,
+      ridges: model.ridges,
       tier,
       reducedMotion,
     });
@@ -110,7 +132,8 @@ export function FirstGrowth() {
         {model && (
           <FirstGrowthNetwork
             network={model.network}
-            connections={model.connections}
+            ridges={model.ridges}
+            connections={[]}
             annotations={model.annotations}
             workBranchId={model.workBranchId}
           />

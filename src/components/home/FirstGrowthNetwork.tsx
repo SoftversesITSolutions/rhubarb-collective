@@ -2,9 +2,11 @@ import { memo, useMemo } from "react";
 import type { Branch, NetworkNode, OrganicNetwork } from "@/lib/hero/network";
 import type { Connection } from "@/lib/first-growth/connections";
 import type { Annotation } from "@/lib/first-growth/annotations";
+import { RIDGE_REST, ridgePath, type RidgeField } from "@/lib/first-growth/ridgelines";
 
 interface FirstGrowthNetworkProps {
   network: OrganicNetwork;
+  ridges: RidgeField | null;
   connections: Connection[];
   annotations: Annotation[];
   /** Branch id that carries the composition into the Work section. */
@@ -14,25 +16,25 @@ interface FirstGrowthNetworkProps {
 /**
  * The continuation network, as addressable SVG.
  *
- * Structurally a sibling of HeroNetwork rather than a copy of it — the geometry
- * comes from the same generator, but this section renders things the hero has
- * no concept of: a connection mesh, leader lines to annotated nodes, and a
- * single strand singled out as the route onward. There is no seed here, because
- * this network was not born here.
- *
- * This section's network is purely organic — paths, junctions and the
- * connections between them. No halftone clusters, no dot fields, no
- * decorative particles: where nothing is growing, there is black.
+ * Structurally a sibling of HeroNetwork rather than a copy of it — the spine
+ * comes from the same generator grammar, but this section renders things the
+ * hero has no concept of: the ridgeline field (its texture, see
+ * lib/first-growth/ridgelines), a connection mesh, leader lines to annotated
+ * nodes, and a single strand singled out as the route onward. There is no
+ * seed here, because this network was not born here.
  *
  * Layers, outermost first:
  *   g[data-fg-layer="drift"]     slow scroll-driven settle
+ *     g[data-fg-layer="ridges"]  the pulsar field, masked: it fades under type
+ *                                and around each trunk instead of crossing them
  *     g[data-fg-layer="behind"]  strands that fall through the copy
  *     g[data-fg-layer="front"]   everything routed around it
- *     g[data-fg-layer="mesh"]    connection chords — this section's subject
+ *     g[data-fg-layer="mesh"]    connection chords
  *     g[data-fg-layer="leaders"] hairlines tying labels to their nodes
  */
 function FirstGrowthNetworkView({
   network,
+  ridges,
   connections,
   annotations,
   workBranchId,
@@ -129,7 +131,85 @@ function FirstGrowthNetworkView({
       aria-hidden="true"
       focusable="false"
     >
+      {ridges && (
+        <defs>
+          {/*
+            The feather. Black over white, blurred: a ridge fades out as it
+            nears a block of type or a trunk, the way the pulsar's lines fade
+            at their margins. userSpaceOnUse so the rectangles are the same
+            field units as everything else.
+          */}
+          <filter id="fg-ridge-feather" x="-10%" y="-10%" width="120%" height="120%">
+            <feGaussianBlur stdDeviation={ridges.options.blur} />
+          </filter>
+          <mask
+            id="fg-ridge-mask"
+            maskUnits="userSpaceOnUse"
+            x={0}
+            y={0}
+            width={width}
+            height={height}
+          >
+            <rect x={0} y={0} width={width} height={height} fill="#fff" />
+            <g filter="url(#fg-ridge-feather)">
+              {ridges.maskRects.map((r, i) => (
+                <rect key={i} x={r.x} y={r.y} width={r.width} height={r.height} fill="#000" />
+              ))}
+              {ridges.spinePaths.map((d, i) => (
+                <path
+                  key={i}
+                  d={d}
+                  fill="none"
+                  stroke="#000"
+                  strokeWidth={ridges.options.fadeRadius * 2}
+                  strokeLinecap="round"
+                />
+              ))}
+            </g>
+          </mask>
+        </defs>
+      )}
+
       <g data-fg-layer="drift">
+        {ridges && (
+          <g data-fg-layer="ridges" mask="url(#fg-ridge-mask)">
+            {ridges.ridges.map((ridge) => (
+              <path
+                key={ridge.id}
+                data-fg-ridge=""
+                data-index={ridge.index}
+                data-at={ridge.at}
+                d={ridgePath(ridge, RIDGE_REST)}
+                fill="none"
+                stroke="var(--rh-cream)"
+                strokeWidth={ridges.options.width}
+                strokeOpacity={ridges.options.opacity}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            ))}
+            {/* One node per value, on the apex of its crest. */}
+            {ridges.crestNodes.map((node) => (
+              <g
+                key={node.id}
+                data-fg-ridge-node=""
+                data-at={ridges.ridges[node.ridge]?.at ?? 0}
+              >
+                <circle
+                  cx={node.x}
+                  cy={node.y}
+                  r={node.r * 3}
+                  fill="none"
+                  stroke="var(--rh-cream)"
+                  strokeWidth={0.6}
+                  strokeOpacity={0.28}
+                />
+                <circle cx={node.x} cy={node.y} r={node.r} fill="var(--rh-cream)" />
+              </g>
+            ))}
+          </g>
+        )}
+
         <g data-fg-layer="behind" className="fg-network__behind">
           {branches.filter((b) => b.behind).map(renderBranch)}
         </g>
@@ -138,7 +218,6 @@ function FirstGrowthNetworkView({
           {branches.filter((b) => !b.behind).map(renderBranch)}
         </g>
 
-        {/* The section's subject: separate filaments finding each other. */}
         <g data-fg-layer="mesh">
           {connections.map((connection) => (
             <path

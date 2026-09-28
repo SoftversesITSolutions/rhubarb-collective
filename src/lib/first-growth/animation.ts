@@ -21,7 +21,9 @@
  * Motion is split by role, which is what keeps this from being the hero again:
  *   arriving strands  — stroke draw, because they genuinely continue from above
  *   the rest          — resolve in place, because they are already there
- *   chords            — stroke draw, endpoint nodes gaining weight as they land
+ *   the ridgelines    — resolve line by line as the spine reaches them, then a
+ *                       swell travels down the stack with scroll (the pulsar's
+ *                       ripple), scrubbed and reversible
  *   the Work strand   — takes over at the end as the route onward
  */
 
@@ -30,10 +32,12 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { DIVE, DIVE_LENGTH, type Tier } from "@/lib/hero/config";
 import type { OrganicNetwork } from "@/lib/hero/network";
 import { FG_BEATS } from "./config";
+import { ridgePath, swell, type RidgeField } from "./ridgelines";
 
 export interface FirstGrowthAnimationOptions {
   root: HTMLElement;
   network: OrganicNetwork;
+  ridges: RidgeField | null;
   tier: Tier;
   reducedMotion: boolean;
 }
@@ -59,6 +63,7 @@ function one<T extends Element>(root: HTMLElement, selector: string): T | null {
 export function createFirstGrowthAnimation({
   root,
   network,
+  ridges,
   reducedMotion,
 }: FirstGrowthAnimationOptions): () => void {
   gsap.registerPlugin(ScrollTrigger);
@@ -73,6 +78,8 @@ export function createFirstGrowthAnimation({
     const drift = one<SVGGElement>(root, "[data-fg-layer='drift']");
     const workBranch = one<SVGPathElement>(root, "[data-fg-branch][data-work]");
     const boundary = one<HTMLElement>(root, "[data-fg='boundary']");
+    const ridgePaths = all<SVGPathElement>(root, "[data-fg-ridge]");
+    const ridgeNodes = all<SVGGElement>(root, "[data-fg-ridge-node]");
 
     const stage = one<HTMLElement>(root, "[data-fg='stage']");
     const marker = one<HTMLElement>(root, "[data-fg='marker']");
@@ -90,6 +97,8 @@ export function createFirstGrowthAnimation({
     if (reducedMotion) {
       gsap.set([...branches, ...connections, ...leaders], { strokeDashoffset: 0 });
       gsap.set(nodes, { opacity: 1 });
+      // The field at rest: every line at its resting amplitude, no ripple.
+      gsap.set([...ridgePaths, ...ridgeNodes], { opacity: 1 });
       gsap.set(
         [marker, ...statementLines, narrative, boundary].filter(Boolean),
         { opacity: 1, y: 0, yPercent: 0 },
@@ -141,6 +150,8 @@ export function createFirstGrowthAnimation({
     /* ---- initial state ---- */
     gsap.set(settling, { opacity: 0 });
     gsap.set(nodes, { scale: 0, opacity: 0, transformOrigin: "50% 50%" });
+    gsap.set(ridgePaths, { opacity: 0 });
+    gsap.set(ridgeNodes, { scale: 0, opacity: 0, transformOrigin: "50% 50%" });
     gsap.set(statementLines, { yPercent: 110, opacity: 1 });
     gsap.set([marker, narrative].filter(Boolean), { opacity: 0, y: 18 });
     // yPercent is restated here rather than left to CSS: GSAP owns transform on
@@ -190,6 +201,35 @@ export function createFirstGrowthAnimation({
       const at = onBeat(Number(el.dataset.at), FG_BEATS.arrival);
       tl.to(el, { scale: 1, opacity: 1, duration: 0.05, ease: "power2.out" }, at);
     });
+
+    /* --- the ridgelines ------------------------------------------------ */
+    // Each line resolves as the spine's arrival reaches its depth, top to
+    // bottom; the crest nodes land with their line.
+    ridgePaths.forEach((el) => {
+      const at = onBeat(Number(el.dataset.at), FG_BEATS.arrival);
+      tl.to(el, { opacity: 1, duration: 0.07, ease: "power1.out" }, at);
+    });
+    ridgeNodes.forEach((el) => {
+      const at = onBeat(Number(el.dataset.at), FG_BEATS.arrival) + 0.03;
+      tl.to(el, { scale: 1, opacity: 1, duration: 0.05, ease: "power2.out" }, at);
+    });
+
+    // The ripple: one swell travels down the stack across the whole pass. It
+    // is a per-line amplitude multiplier applied at draw time, so scrubbing it
+    // is just redrawing paths — reversible by construction, and the field
+    // never sits anywhere it was not generated to be.
+    if (ridges && ridgePaths.length) {
+      const count = ridges.ridges.length;
+      const ripple = { t: 0 };
+      const draw = () => {
+        ridgePaths.forEach((el) => {
+          const index = Number(el.dataset.index);
+          const ridge = ridges.ridges[index];
+          if (ridge) el.setAttribute("d", ridgePath(ridge, swell(index, count, ripple.t)));
+        });
+      };
+      tl.to(ripple, { t: 1, duration: 1, ease: "none", onUpdate: draw }, 0);
+    }
 
 
     /* --- PHASE: connection -------------------------------------------- */

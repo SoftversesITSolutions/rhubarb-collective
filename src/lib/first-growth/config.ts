@@ -29,6 +29,7 @@ import { generateOrganicNetwork, type OrganicNetwork } from "@/lib/hero/network"
 import type { CascadeConfig, CascadeInlet } from "./cascade";
 import type { ConnectionOptions } from "./connections";
 import type { AnnotationSlot } from "./annotations";
+import type { RidgeOptions } from "./ridgelines";
 
 /* ------------------------------------------------------------------ *
  * Inheriting the seam
@@ -98,12 +99,15 @@ const desktop = (): CascadeConfig => ({
   // becomes an unsupported filament.
   runLength: [380, 520],
   stepLength: 34,
-  curl: 0.16,
-  tropismStrength: 0.1,
-  // Radians below horizontal. At ~0.55 a run travels roughly 1.6 units sideways
-  // for every 1 unit down, which is what keeps the reading lateral.
-  descent: [0.42, 0.62],
-  descentSpread: 0.34,
+  curl: 0.1,
+  tropismStrength: 0.14,
+  // Radians below horizontal. The cascade used to run at ~0.55, lateral
+  // enough that a trunk crossed the whole field between walls and hairpinned
+  // at each one. With the ridgelines carrying the lateral rhythm (note 4) the
+  // trunks are steeper — long diagonals rather than zigzags: hairpins 9 → 4,
+  // crossings 23 → 14 on desktop — and fanned wider so they separate.
+  descent: [0.8, 1.0],
+  descentSpread: 0.5,
   // Steeper on arrival, matching the angle the hero's boundary strands leave
   // at, then pulled round to lateral inside the first run.
   entryAngle: 1.05,
@@ -111,22 +115,27 @@ const desktop = (): CascadeConfig => ({
   // GROWTH, a few dominant trunks with occasional offshoots — and reversals
   // in confined pockets were curling strands into the teardrop loops that
   // read as spaghetti at the top of the field.
-  offshootChance: 0.36,
-  offshootForkChance: 0.3,
-  reverseChance: 0.2,
+  // The spine (Sep 2026, note 4). With the ridgelines carrying the section's
+  // texture, the trunks are a few clear descending lines: no reversals (they
+  // drew the teardrop loops), few offshoots, a calmer walk, and type zones
+  // firm enough that a front strand routes around the copy rather than
+  // through it. Desktop went from 136 crossings to ~23, over-copy 5.4% → 0.
+  offshootChance: 0.18,
+  offshootForkChance: 0,
+  reverseChance: 0,
   baseWidth: 1.4,
   margin: 40,
   // One rectangle per real block of type. Mirrors firstGrowth.css.
   keepOut: [
-    { x: 60, y: 232, width: 300, height: 44, influence: 60, strength: 0.3 }, // 01 marker
-    { x: 60, y: 430, width: 1180, height: 82, influence: 84, strength: 0.42 }, // BUILT TO TURN ENDURING
-    { x: 188, y: 512, width: 1075, height: 82, influence: 84, strength: 0.42 }, // IDEAS INTO MEMORABLE
-    { x: 764, y: 594, width: 650, height: 82, influence: 84, strength: 0.42 }, // EXPERIENCES.
-    { x: 190, y: 808, width: 340, height: 44, influence: 54, strength: 0.3 }, // value 1
-    { x: 1060, y: 928, width: 340, height: 44, influence: 54, strength: 0.3 }, // value 2
-    { x: 330, y: 1048, width: 340, height: 44, influence: 54, strength: 0.3 }, // value 3
-    { x: 950, y: 1168, width: 340, height: 44, influence: 54, strength: 0.3 }, // value 4
-    { x: 940, y: 1330, width: 600, height: 360, influence: 84, strength: 0.44 }, // narrative
+    { x: 60, y: 232, width: 300, height: 44, influence: 60, strength: 0.5 }, // 01 marker
+    { x: 60, y: 430, width: 1180, height: 82, influence: 84, strength: 0.8 }, // BUILT TO TURN ENDURING
+    { x: 188, y: 512, width: 1075, height: 82, influence: 84, strength: 0.8 }, // IDEAS INTO MEMORABLE
+    { x: 764, y: 594, width: 650, height: 82, influence: 84, strength: 0.8 }, // EXPERIENCES.
+    { x: 190, y: 808, width: 340, height: 44, influence: 54, strength: 0.5 }, // value 1
+    { x: 1060, y: 928, width: 340, height: 44, influence: 54, strength: 0.5 }, // value 2
+    { x: 330, y: 1048, width: 340, height: 44, influence: 54, strength: 0.5 }, // value 3
+    { x: 950, y: 1168, width: 340, height: 44, influence: 54, strength: 0.5 }, // value 4
+    { x: 940, y: 1330, width: 600, height: 360, influence: 84, strength: 0.8 }, // narrative
   ],
 });
 
@@ -142,26 +151,28 @@ const tablet = (): CascadeConfig => ({
   segmentBudget: 36,
   runLength: [330, 450],
   stepLength: 30,
-  descent: [0.44, 0.64],
-  descentSpread: 0.32,
+  descent: [0.8, 1.0],
   // Trimmed for the same reason as mobile: the derived stage count lengthens
   // every trunk's descent, so the old rate would have raised the density along
   // with it. See `withDerivedStages`.
-  offshootChance: 0.26,
+  offshootChance: 0.18,
+  // A wider fan than desktop: three-plus trunks in a narrower column cross
+  // each other unless they are sent clearly apart.
+  descentSpread: 0.5,
   // 1080-unit design space at 834 is a 0.77× scale, so 1.4 units drew at
   // 1.08 CSS px. A small correction to sit level with the desktop weight.
   baseWidth: 1.55,
   margin: 34,
   keepOut: [
-    { x: 48, y: 210, width: 280, height: 40, influence: 50, strength: 0.3 }, // 01 marker
-    { x: 48, y: 380, width: 880, height: 76, influence: 70, strength: 0.42 }, // line 1
-    { x: 124, y: 456, width: 800, height: 76, influence: 70, strength: 0.42 }, // line 2
-    { x: 461, y: 532, width: 480, height: 76, influence: 70, strength: 0.42 }, // line 3
-    { x: 130, y: 790, width: 310, height: 40, influence: 44, strength: 0.3 }, // value 1
-    { x: 650, y: 906, width: 310, height: 40, influence: 44, strength: 0.3 }, // value 2
-    { x: 220, y: 1022, width: 310, height: 40, influence: 44, strength: 0.3 }, // value 3
-    { x: 600, y: 1138, width: 310, height: 40, influence: 44, strength: 0.3 }, // value 4
-    { x: 400, y: 1330, width: 630, height: 360, influence: 74, strength: 0.44 }, // narrative
+    { x: 48, y: 210, width: 280, height: 40, influence: 50, strength: 0.5 }, // 01 marker
+    { x: 48, y: 380, width: 880, height: 76, influence: 70, strength: 0.8 }, // line 1
+    { x: 124, y: 456, width: 800, height: 76, influence: 70, strength: 0.8 }, // line 2
+    { x: 461, y: 532, width: 480, height: 76, influence: 70, strength: 0.8 }, // line 3
+    { x: 130, y: 790, width: 310, height: 40, influence: 44, strength: 0.5 }, // value 1
+    { x: 650, y: 906, width: 310, height: 40, influence: 44, strength: 0.5 }, // value 2
+    { x: 220, y: 1022, width: 310, height: 40, influence: 44, strength: 0.5 }, // value 3
+    { x: 600, y: 1138, width: 310, height: 40, influence: 44, strength: 0.5 }, // value 4
+    { x: 400, y: 1330, width: 630, height: 360, influence: 74, strength: 0.8 }, // narrative
   ],
 });
 
@@ -173,21 +184,23 @@ const mobile = (): CascadeConfig => ({
   ...desktop(),
   width: 760,
   height: 2200,
-  inlets: inletsFor("mobile", 3),
+  // Two trunks, not three: on a 390 column a third trunk crosses the other
+  // two on its way down (measured 91 crossings against 5 with two).
+  inlets: inletsFor("mobile", 2),
   trunkStages: 7,
   segmentBudget: 22,
   runLength: [270, 360],
   stepLength: 26,
-  descent: [0.58, 0.8],
-  descentSpread: 0.26,
+  descent: [0.95, 1.15],
   entryAngle: 1.15,
   // Fewer side twigs than before. Deriving the stage count (see
   // `withDerivedStages`) roughly doubles how far a trunk travels down this
   // field, and holding the old offshoot rate over that longer descent would
   // have thickened the narrow column into a mat. The mobile field should read
   // as a few long strands running the length of the section, not a web.
-  offshootChance: 0.2,
-  offshootForkChance: 0.2,
+  offshootChance: 0,
+  offshootForkChance: 0,
+  descentSpread: 0.5,
   // The one responsive stroke adjustment on the page, and it is a correction
   // rather than a preference: this section renders in a fixed 760-unit design
   // space scaled to the viewport, so at 390 every stroke is drawn at 0.51× and
@@ -199,10 +212,10 @@ const mobile = (): CascadeConfig => ({
   // Mobile blocks are treated whole rather than line by line — the column is
   // narrow enough that per-line rectangles would leave no route through.
   keepOut: [
-    { x: 36, y: 168, width: 260, height: 40, influence: 40, strength: 0.3 },
-    { x: 36, y: 360, width: 640, height: 320, influence: 74, strength: 0.42 },
-    { x: 36, y: 810, width: 600, height: 380, influence: 62, strength: 0.3 },
-    { x: 36, y: 1370, width: 660, height: 500, influence: 80, strength: 0.44 },
+    { x: 36, y: 168, width: 260, height: 40, influence: 40, strength: 0.5 },
+    { x: 36, y: 360, width: 640, height: 320, influence: 74, strength: 0.8 },
+    { x: 36, y: 810, width: 600, height: 380, influence: 62, strength: 0.5 },
+    { x: 36, y: 1370, width: 660, height: 500, influence: 80, strength: 0.8 },
   ],
 });
 
@@ -326,7 +339,9 @@ export const ANNOTATION_OPTIONS: Record<
       { x: 0.206, y: 0.5632, side: "right" },
       { x: 0.806, y: 0.6263, side: "left" },
     ],
-    maxLeader: 230,
+    // No leaders: each value sits on a ridge crest with its node at the apex
+    // (see ./ridgelines), so there is nothing to reach for.
+    maxLeader: 0,
     labelWidth: 340,
     labelHeight: 44,
     anchored: true,
@@ -338,7 +353,7 @@ export const ANNOTATION_OPTIONS: Record<
       { x: 0.204, y: 0.5632, side: "right" },
       { x: 0.833, y: 0.6259, side: "left" },
     ],
-    maxLeader: 200,
+    maxLeader: 0,
     labelWidth: 310,
     labelHeight: 40,
     anchored: true,
@@ -349,6 +364,72 @@ export const ANNOTATION_OPTIONS: Record<
     labelWidth: 250,
     labelHeight: 40,
     anchored: false,
+  },
+};
+
+/* ------------------------------------------------------------------ *
+ * The ridgelines — see ./ridgelines.ts. `top`/`bottom` are field units;
+ * the stack starts below the section marker and ends above the foot. The
+ * value crests come from the annotation slots above, so the three agree.
+ * ------------------------------------------------------------------ */
+export const RIDGE_OPTIONS: Record<Tier, Omit<RidgeOptions, "crests">> = {
+  desktop: {
+    seed: NETWORK_SEED + 31,
+    count: 19,
+    top: 340,
+    bottom: 1780,
+    margin: 40,
+    sampleStep: 20,
+    spineHeight: 0.55,
+    spineSigma: 110,
+    crestSigma: 160,
+    crestFalloff: 0.55,
+    noiseAmplitude: 5,
+    noiseWavelength: 420,
+    // 0.9 CSS px at 1440 (1600-unit field).
+    width: 1,
+    opacity: 0.6,
+    fadeRadius: 26,
+    typePad: 18,
+    blur: 14,
+  },
+  tablet: {
+    seed: NETWORK_SEED + 31,
+    count: 18,
+    top: 300,
+    bottom: 1740,
+    margin: 34,
+    sampleStep: 20,
+    spineHeight: 0.55,
+    spineSigma: 90,
+    crestSigma: 140,
+    crestFalloff: 0.55,
+    noiseAmplitude: 5,
+    noiseWavelength: 360,
+    width: 1.2,
+    opacity: 0.6,
+    fadeRadius: 24,
+    typePad: 16,
+    blur: 12,
+  },
+  mobile: {
+    seed: NETWORK_SEED + 31,
+    count: 16,
+    top: 250,
+    bottom: 2150,
+    margin: 26,
+    sampleStep: 16,
+    spineHeight: 0.5,
+    spineSigma: 70,
+    crestSigma: 90,
+    crestFalloff: 0.55,
+    noiseAmplitude: 5,
+    noiseWavelength: 300,
+    width: 1.45,
+    opacity: 0.45,
+    fadeRadius: 20,
+    typePad: 14,
+    blur: 10,
   },
 };
 
