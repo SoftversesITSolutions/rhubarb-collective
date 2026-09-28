@@ -27,9 +27,18 @@ export const SCROLL_LENGTH: Record<Tier, number> = {
 };
 
 /* ------------------------------------------------------------------ *
- * DESKTOP — a wide lateral field. Growth starts low-left, runs right
- * along the base, then climbs the right edge and arcs back over the top,
- * cradling the headline in a soft C of organic structure.
+ * DESKTOP — a wide lateral field drawn as a C-shaped cradle: a base
+ * runner along the foot, a traverse through the slot beneath the
+ * headline, a riser that climbs the right column and fans over the
+ * top, and one single strand running behind the type.
+ *
+ * The Sep 2026 feedback round ("the lines feel jarring") replaced the
+ * earlier free-fanning primaries — 147 crossings, half the ink in a
+ * branching lineage under the type, a knot beneath the last headline
+ * line — with this ordered set, a calmer walk, crossing avoidance and
+ * a gentler keep-out gain. Strands now pass one another rather than
+ * cross, and the node family (which the client liked) is kept up with
+ * waypoint nodes rather than more lines.
  * ------------------------------------------------------------------ */
 const desktop: NetworkConfig = {
   seed: NETWORK_SEED,
@@ -39,42 +48,52 @@ const desktop: NetworkConfig = {
   stemAngle: -0.3,
   stemSteps: 6,
   primaries: [
-    { at: 0.3, angle: 0.42, tropism: 0.16, lengthScale: 0.85 }, // settles along the base
-    { at: 0.5, angle: -0.34, tropism: -0.14, lengthScale: 0.7 }, // low tendril under the type
-    { at: 0.72, angle: 0.2, tropism: -0.02, lengthScale: 1.6 }, // the long lateral traverse
-    { at: 0.88, angle: -0.2, tropism: -0.1, lengthScale: 1.35 }, // mid-field, slowly rising
-    { at: 1, angle: -0.16, tropism: -0.26, lengthScale: 1.5, behind: true }, // climbs under the type
+    { at: 0.3, angle: 0.5, tropism: 0.12, lengthScale: 1.0 }, // base runner along the foot
+    { at: 0.55, angle: 0.2, tropism: -0.02, lengthScale: 1.6 }, // the traverse through the slot
+    { at: 0.8, angle: 0.05, tropism: -0.7, lengthScale: 1.7 }, // the riser: right column, then over the top
+    { at: 1, angle: -0.25, tropism: -0.32, lengthScale: 1.6, behind: true, sterile: true }, // one strand under the type
   ],
-  maxDepth: 3,
-  branchBudget: 60,
+  maxDepth: 2,
+  branchBudget: 66,
   baseSteps: 26,
   stepLength: 34,
-  curl: 0.34,
-  tropismStrength: 0.07,
-  density: 0.55,
-  spread: 0.95,
+  curl: 0.14,
+  tropismStrength: 0.1,
+  density: 0.45,
+  spread: 0.62,
   childLengthRange: [0.5, 0.86],
   baseWidth: 1.5,
-  nodeProbability: 0.34,
+  nodeProbability: 0.62,
   ringProbability: 0.22,
   halftoneClusters: 3,
   margin: 60,
-  // One zone per headline line, following the staggered indents. Growth
-  // therefore threads the pockets the ragged setting leaves behind instead of
-  // being walled off by a single monolithic block.
+  avoidCrossings: true,
+  clearance: 8,
+  repulsionGain: 1.2,
+  waypointNodeProbability: 0.1,
+  // 0.7 CSS px at the design viewport (1600-unit field in a 1440px frame).
+  minWidth: 0.78,
+  behindKeepOut: 0,
   keepOut: [
-    { x: 60, y: 246, width: 530, height: 84, influence: 54, strength: 0.95 }, // WE ARE A
-    { x: 245, y: 336, width: 955, height: 84, influence: 54, strength: 0.95 }, // FORWARD-THINKING,
-    { x: 60, y: 426, width: 710, height: 84, influence: 54, strength: 0.95 }, // NO-NONSENSE
-    { x: 325, y: 516, width: 885, height: 84, influence: 54, strength: 0.95 }, // CREATIVE STUDIO.
-    { x: 60, y: 108, width: 500, height: 64, influence: 44, strength: 0.6 }, // eyebrow
-    { x: 900, y: 676, width: 640, height: 124, influence: 96, strength: 1 }, // supporting copy
+    // Measured from the rendered glyph line boxes at 1440x900 (Sep 2026), inset
+    // to the ink band. One zone per headline line, following the staggered
+    // indents, so growth threads the pockets the ragged setting leaves.
+    { x: 52, y: 224, width: 534, height: 90, influence: 54, strength: 0.95 }, // WE ARE A
+    { x: 230, y: 317, width: 1151, height: 90, influence: 54, strength: 0.95 }, // FORWARD-THINKING,
+    { x: 52, y: 410, width: 831, height: 90, influence: 54, strength: 0.95 }, // NO-NONSENSE
+    { x: 304, y: 503, width: 995, height: 90, influence: 54, strength: 0.95 }, // CREATIVE STUDIO.
+    { x: 60, y: 72, width: 460, height: 66, influence: 44, strength: 0.6 }, // logo lockup + eyebrow
+    // A soft zone sized to the two lines of copy, not the block around them:
+    // the old 124-unit-tall zone at strength 1 fought the headline zone above
+    // it and the slot strands zigzagged between the two.
+    { x: 912, y: 738, width: 430, height: 62, influence: 44, strength: 1 }, // supporting copy
   ],
 };
 
 /* ------------------------------------------------------------------ *
- * TABLET — a squarer field. Fewer branches, shorter runs, the same
- * lateral character but a tighter frame around the type.
+ * TABLET — a squarer field, the same cradle in a tighter frame: the
+ * slot between headline and supporting copy is deeper here, so the
+ * traverse and riser have room to separate before the right column.
  * ------------------------------------------------------------------ */
 const tablet: NetworkConfig = {
   ...desktop,
@@ -84,34 +103,44 @@ const tablet: NetworkConfig = {
   stemAngle: -0.36,
   stemSteps: 5,
   primaries: [
-    { at: 0.35, angle: 0.44, tropism: 0.2, lengthScale: 0.75 },
-    { at: 0.6, angle: 0.24, tropism: -0.04, lengthScale: 1.4 },
-    { at: 0.82, angle: -0.24, tropism: -0.18, lengthScale: 1.2 },
-    { at: 1, angle: -0.18, tropism: -0.34, lengthScale: 1.35, behind: true },
+    { at: 0.35, angle: 0.7, tropism: 0.26, lengthScale: 0.9 }, // base runner, kept low so its children clear the copy
+    { at: 0.65, angle: 0.15, tropism: -0.05, lengthScale: 1.6 }, // traverse
+    { at: 0.85, angle: 0.15, tropism: -0.5, lengthScale: 1.5 }, // riser: one long diagonal, then the column
+    { at: 1, angle: -0.2, tropism: -0.36, lengthScale: 1.4, behind: true, sterile: true },
   ],
-  branchBudget: 46,
+  branchBudget: 48,
   baseSteps: 22,
   stepLength: 30,
-  density: 0.82,
+  curl: 0.14,
+  tropismStrength: 0.13,
+  density: 0.53,
+  spread: 0.62,
   childLengthRange: [0.58, 0.92],
-  maxDepth: 3,
+  maxDepth: 2,
   halftoneClusters: 2,
   margin: 50,
+  // 0.7 CSS px in a 834px frame (1080-unit field).
+  minWidth: 0.9,
   keepOut: [
-    { x: 48, y: 124, width: 430, height: 58, influence: 40, strength: 0.6 }, // eyebrow
-    { x: 48, y: 272, width: 400, height: 78, influence: 44, strength: 0.95 }, // WE ARE A
-    { x: 48, y: 358, width: 800, height: 78, influence: 44, strength: 0.95 }, // FORWARD-THINKING,
-    { x: 48, y: 444, width: 570, height: 78, influence: 44, strength: 0.95 }, // NO-NONSENSE
-    { x: 190, y: 530, width: 740, height: 78, influence: 44, strength: 0.95 }, // CREATIVE STUDIO.
-    { x: 410, y: 726, width: 620, height: 130, influence: 82, strength: 1 }, // supporting copy
+    // Measured at 834x1112. The field is letterboxed in a portrait frame, so
+    // the lockup sits above it; its zone is kept only so nothing grows into
+    // the top edge beneath it.
+    { x: 32, y: -40, width: 380, height: 52, influence: 30, strength: 0.6 }, // logo lockup + eyebrow
+    { x: 32, y: 173, width: 422, height: 70, influence: 44, strength: 0.95 }, // WE ARE A
+    { x: 112, y: 246, width: 904, height: 70, influence: 44, strength: 0.95 }, // FORWARD-THINKING,
+    { x: 32, y: 318, width: 653, height: 70, influence: 44, strength: 0.95 }, // NO-NONSENSE
+    { x: 162, y: 391, width: 782, height: 70, influence: 44, strength: 0.95 }, // CREATIVE STUDIO.
+    { x: 422, y: 860, width: 413, height: 60, influence: 40, strength: 0.6 }, // supporting copy
   ],
 };
 
 /* ------------------------------------------------------------------ *
  * MOBILE — a tall field, its own composition rather than a shrunken
- * desktop. The seed sits low, growth creeps sideways in short runs and
- * stacks upward past the type, so the screen still reads as an ecosystem
- * at a fraction of the branch count.
+ * desktop. The seed sits low; a base runner creeps along the foot, one
+ * traverse runs right beneath the supporting copy and climbs the
+ * gutter beside it, and the single behind strand crosses to the top
+ * right, so the screen still reads as one system at a fraction of the
+ * branch count.
  * ------------------------------------------------------------------ */
 const mobile: NetworkConfig = {
   ...desktop,
@@ -121,33 +150,37 @@ const mobile: NetworkConfig = {
   stemAngle: -0.42,
   stemSteps: 5,
   primaries: [
-    { at: 0.4, angle: 0.5, tropism: 0.24, lengthScale: 0.6 },
-    { at: 0.7, angle: 0.26, tropism: -0.1, lengthScale: 1.35 },
-    { at: 1, angle: -0.2, tropism: -0.42, lengthScale: 1.5, behind: true },
+    { at: 0.4, angle: 0.5, tropism: 0.2, lengthScale: 0.7 }, // base runner
+    { at: 0.7, angle: 0.15, tropism: -0.6, lengthScale: 1.6 }, // traverse, then the gutter
+    { at: 1, angle: -0.25, tropism: -0.5, lengthScale: 1.6, behind: true, sterile: true },
   ],
   maxDepth: 2,
-  branchBudget: 26,
+  branchBudget: 28,
   baseSteps: 18,
   stepLength: 26,
-  curl: 0.4,
-  density: 1.05,
-  spread: 0.9,
+  curl: 0.14,
+  tropismStrength: 0.1,
+  density: 0.84,
+  spread: 0.75,
   childLengthRange: [0.66, 0.98],
   baseWidth: 1.6,
-  nodeProbability: 0.42,
+  nodeProbability: 0.62,
   halftoneClusters: 2,
   margin: 36,
-  // Mobile type stacks into six short lines; the ragged right edge leaves a
-  // gutter the network can climb, so the composition still breathes.
+  // 0.7 CSS px in a 390px frame (760-unit field).
+  minWidth: 1.36,
   keepOut: [
-    { x: 36, y: 156, width: 330, height: 44, influence: 30, strength: 0.6 }, // eyebrow
-    { x: 36, y: 330, width: 300, height: 76, influence: 34, strength: 0.95 }, // WE ARE A
-    { x: 36, y: 412, width: 560, height: 76, influence: 34, strength: 0.95 }, // FORWARD-
-    { x: 36, y: 494, width: 470, height: 76, influence: 34, strength: 0.95 }, // THINKING,
-    { x: 36, y: 576, width: 530, height: 76, influence: 34, strength: 0.95 }, // NO-NONSENSE
-    { x: 36, y: 658, width: 430, height: 76, influence: 34, strength: 0.95 }, // CREATIVE
-    { x: 36, y: 740, width: 400, height: 76, influence: 34, strength: 0.95 }, // STUDIO.
-    { x: 36, y: 866, width: 620, height: 140, influence: 66, strength: 1 }, // supporting copy
+    // Measured at 390x844. Mobile type stacks into six short lines; the ragged
+    // right edge leaves a gutter the network can climb, and the band between
+    // the headline and the supporting copy is where the traverse runs.
+    { x: 30, y: 20, width: 536, height: 62, influence: 30, strength: 0.6 }, // logo lockup + eyebrow
+    { x: 31, y: 241, width: 413, height: 70, influence: 34, strength: 0.95 }, // WE ARE A
+    { x: 72, y: 313, width: 469, height: 70, influence: 34, strength: 0.95 }, // FORWARD-
+    { x: 72, y: 384, width: 436, height: 70, influence: 34, strength: 0.95 }, // THINKING,
+    { x: 31, y: 455, width: 641, height: 70, influence: 34, strength: 0.95 }, // NO-NONSENSE
+    { x: 92, y: 526, width: 414, height: 70, influence: 34, strength: 0.95 }, // CREATIVE
+    { x: 92, y: 598, width: 346, height: 70, influence: 34, strength: 0.95 }, // STUDIO.
+    { x: 31, y: 974, width: 614, height: 84, influence: 46, strength: 0.6 }, // supporting copy
   ],
 };
 

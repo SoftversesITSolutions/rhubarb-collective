@@ -20,6 +20,11 @@
  *      b. tropism     — restoring pull back toward the branch's target heading
  *      c. repulsion   — steering away from the typography keep-out zones
  *      d. containment — soft pressure back inside the field margins
+ *      e. avoidance   — a step that would cross, or crowd, a strand already
+ *                       grown is deflected by a small angle when that frees
+ *                       it, and otherwise allowed through. A crossing beats
+ *                       a kink or a dead end; the composition parameters
+ *                       keep such crossings rare and shallow.
  *    Step length decays with depth, so tertiary growth is visibly finer.
  * 4. While walking, a branch may spawn children. Spawn probability is zero near
  *    the base (branches do not fork immediately), peaks around mid-length, and
@@ -69,8 +74,13 @@ export interface PrimarySeed {
   lengthScale: number;
   /** 0..1 position along the germ stem this branch leaves from. */
   at: number;
-  /** When true this branch ignores keep-out zones and runs *behind* the type. */
+  /**
+   * When true this branch runs *behind* the type, feeling only
+   * `behindKeepOut` of the typography repulsion.
+   */
   behind?: boolean;
+  /** When true this branch never forks — one strand, start to tip. */
+  sterile?: boolean;
 }
 
 export interface NetworkConfig {
@@ -121,6 +131,41 @@ export interface NetworkConfig {
   keepOut: readonly KeepOut[];
   /** Field-unit inset the growth is contained within. */
   margin: number;
+  /**
+   * Crossing avoidance. A step that would cross another strand is deflected
+   * by up to ~35° when that frees it; otherwise it crosses. Never kinks,
+   * never kills a strand.
+   */
+  avoidCrossings: boolean;
+  /**
+   * Near-overlap guard, field units: a step may not end closer than this to
+   * another strand. Keep it small — it stops strands merging into one line,
+   * not from running alongside each other. Zero disables the guard.
+   */
+  clearance: number;
+  /**
+   * Floor on stroke width, in field units. Deep growth otherwise renders as
+   * sub-pixel hairlines that shimmer whenever the layer is transformed.
+   */
+  minWidth: number;
+  /**
+   * 0..1 — how much of the typography repulsion a `behind` strand still feels.
+   * 0 lets it cross the type squarely; a little lets it thread the pockets
+   * between lines instead.
+   */
+  behindKeepOut: number;
+  /**
+   * How hard a keep-out zone turns a strand's heading. High values steer
+   * sharply and overshoot, so a strand running between two zones oscillates;
+   * lower values glide. ~1.2 reads calm, 1.9 was the original.
+   */
+  repulsionGain: number;
+  /**
+   * Chance, per walk point that is not already a junction, of a small node
+   * along the strand. Drawn from a separate random stream so it never alters
+   * the geometry — it only decorates it.
+   */
+  waypointNodeProbability: number;
 }
 
 export interface Branch {
@@ -150,8 +195,11 @@ export interface NetworkNode {
   y: number;
   r: number;
   depth: number;
-  /** "junction" nodes sit where a branch forks, "tip" nodes end a branch. */
-  kind: "junction" | "tip";
+  /**
+   * "junction" nodes sit where a branch forks, "tip" nodes end a branch,
+   * "waypoint" nodes punctuate a strand between the two.
+   */
+  kind: "junction" | "tip" | "waypoint";
   ring: boolean;
   /** Hollow nodes are stroked only — keeps the node family non-uniform. */
   hollow: boolean;
@@ -322,6 +370,85 @@ interface Walk {
   headings: number[];
 }
 
+/** A segment already on the field, and the strand it belongs to. */
+interface Placed {
+  a: Point;
+  b: Point;
+  owner: string;
+}
+
+/**
+ * Everything grown so far, for the avoidance rule. Growth is breadth-first, so
+ * shallow structure is placed first and deeper growth threads between it —
+ * the primaries keep their sweep, the fine growth gives way.
+ */
+class Obstacles {
+  readonly segments: Placed[] = [];
+
+  add(points: Point[], owner: string): void {
+    for (let i = 1; i < points.length; i += 1) {
+      this.segments.push({ a: points[i - 1], b: points[i], owner });
+    }
+  }
+}
+
+/** Strict segment intersection — touching at an endpoint does not count. */
+function crosses(a: Point, b: Point, c: Point, d: Point): boolean {
+  const orient = (p: Point, q: Point, r: Point) =>
+    (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x);
+  const o1 = orient(a, b, c);
+  const o2 = orient(a, b, d);
+  const o3 = orient(c, d, a);
+  const o4 = orient(c, d, b);
+  return o1 * o2 < 0 && o3 * o4 < 0;
+}
+
+function distToSegment(p: Point, a: Point, b: Point): number {
+  const vx = b.x - a.x;
+  const vy = b.y - a.y;
+  const len2 = vx * vx + vy * vy;
+  const t = len2 === 0 ? 0 : Math.min(1, Math.max(0, ((p.x - a.x) * vx + (p.y - a.y) * vy) / len2));
+  return Math.hypot(p.x - (a.x + vx * t), p.y - (a.y + vy * t));
+}
+
+interface AvoidContext {
+  obstacles: Obstacles;
+  /** The strand being grown, for self-avoidance. */
+  own: Point[];
+  /** Its parent — exempt for the first steps, since the strand leaves from it. */
+  parentId: string | null;
+  stepIndex: number;
+}
+
+/**
+ * Would a step from `p` to `next` cross or crowd something already grown?
+ * Own segments are checked except the two adjacent to the tip; the parent is
+ * exempt for the launch steps, where contact is the whole point.
+ */
+function blocked(p: Point, next: Point, cfg: NetworkConfig, ctx: AvoidContext): boolean {
+  const gap = cfg.clearance;
+  const launching = ctx.stepIndex < 3;
+  for (const s of ctx.obstacles.segments) {
+    if (launching && s.owner === ctx.parentId) continue;
+    if (crosses(p, next, s.a, s.b)) return true;
+    if (gap > 0 && distToSegment(next, s.a, s.b) < gap) return true;
+  }
+  for (let i = 1; i < ctx.own.length - 2; i += 1) {
+    if (crosses(p, next, ctx.own[i - 1], ctx.own[i])) return true;
+    if (gap > 0 && distToSegment(next, ctx.own[i - 1], ctx.own[i]) < gap) return true;
+  }
+  return false;
+}
+
+function insideAnyZone(p: Point, zones: readonly KeepOut[]): boolean {
+  return zones.some(
+    (z) => p.x > z.x && p.x < z.x + z.width && p.y > z.y && p.y < z.y + z.height,
+  );
+}
+
+/** Deflections tried when a step is blocked, gentlest first. */
+const STEERS = [0.2, 0.4, 0.6];
+
 function walkBranch(
   rng: Rng,
   cfg: NetworkConfig,
@@ -330,7 +457,8 @@ function walkBranch(
   tropism: number,
   depth: number,
   lengthScale: number,
-  ignoreKeepOut: boolean,
+  keepOutWeight: number,
+  avoid: { obstacles: Obstacles; parentId: string | null } | null,
 ): Walk {
   const decay = 0.74 ** depth;
   const steps = Math.max(
@@ -338,7 +466,7 @@ function walkBranch(
     Math.round(cfg.baseSteps * decay * lengthScale * bell(rng, 0.65, 1.35)),
   );
   const step = cfg.stepLength * decay;
-  const zones = ignoreKeepOut ? [] : cfg.keepOut;
+  const zones = keepOutWeight > 0 ? cfg.keepOut : [];
 
   const points: Point[] = [start];
   const headings: number[] = [angle];
@@ -355,14 +483,17 @@ function walkBranch(
     // (c) typography repulsion
     const push = repulsion(p, zones);
     if (push.x !== 0 || push.y !== 0) {
-      const dx = Math.cos(a) + push.x * 1.9;
-      const dy = Math.sin(a) + push.y * 1.9;
+      const dx = Math.cos(a) + push.x * cfg.repulsionGain * keepOutWeight;
+      const dy = Math.sin(a) + push.y * cfg.repulsionGain * keepOutWeight;
       a = Math.atan2(dy, dx);
     }
 
-    // (d) soft containment — steer back toward the field before the edge is hit
+    // (d) soft containment — steer back toward the field before the edge is hit.
+    // Along the top, growth levels out in whichever direction it was already
+    // travelling; turning it back toward the right regardless (as the base
+    // rule does) produced U-turns where strands arced over the type.
     const m = cfg.margin;
-    if (p.y < m) a += angleDelta(a, 0.85) * 0.26;
+    if (p.y < m) a += angleDelta(a, Math.cos(a) < 0 ? Math.PI : 0) * 0.26;
     if (p.y > cfg.height - m) a += angleDelta(a, -0.85) * 0.26;
     // Growth that reaches the right edge climbs it rather than bouncing back,
     // which is what wraps the system up and around the typography.
@@ -370,7 +501,36 @@ function walkBranch(
     if (p.x < m) a += angleDelta(a, 0) * 0.36;
 
     const len = step * range(rng, 0.78, 1.24);
-    const next = { x: p.x + Math.cos(a) * len, y: p.y + Math.sin(a) * len };
+    let next = { x: p.x + Math.cos(a) * len, y: p.y + Math.sin(a) * len };
+
+    // (e) avoidance — a step that would cross or crowd another strand is
+    // deflected, gentlest angle first and the side turning back toward the
+    // strand's heading first. If no small deflection frees it, it crosses:
+    // a crossing beats a kink or a dead end. None of this consumes
+    // randomness, so the composition stays a pure function of the seed.
+    if (avoid && cfg.avoidCrossings) {
+      const ctx: AvoidContext = {
+        obstacles: avoid.obstacles,
+        own: points,
+        parentId: avoid.parentId,
+        stepIndex: i,
+      };
+      if (blocked(p, next, cfg, ctx)) {
+        const toward = angleDelta(a, tropism) >= 0 ? 1 : -1;
+        search: for (const steer of STEERS) {
+          for (const side of [toward, -toward]) {
+            const heading = a + steer * side;
+            const alt = { x: p.x + Math.cos(heading) * len, y: p.y + Math.sin(heading) * len };
+            // A deflection must not buy its freedom by stepping onto the type.
+            if (keepOutWeight >= 1 && insideAnyZone(alt, zones)) continue;
+            if (blocked(p, alt, cfg, ctx)) continue;
+            a = heading;
+            next = alt;
+            break search;
+          }
+        }
+      }
+    }
 
     // Hard stop rather than clamp — a truncated branch reads as natural.
     if (
@@ -406,6 +566,7 @@ interface Pending {
   tropism: number;
   lengthScale: number;
   behind: boolean;
+  sterile: boolean;
   /** Absolute (pre-normalisation) time at which this branch begins growing. */
   startTime: number;
 }
@@ -427,6 +588,7 @@ export function generateOrganicNetwork(cfg: NetworkConfig): OrganicNetwork {
   /* ---- germ stem ---- */
   // The very first filament. Everything else hangs off it, so growth reads as
   // one organism extending rather than several rays leaving a dot.
+  const obstacles = new Obstacles();
   const stemWalk = walkBranch(
     rng,
     cfg,
@@ -435,8 +597,10 @@ export function generateOrganicNetwork(cfg: NetworkConfig): OrganicNetwork {
     cfg.stemAngle,
     0,
     (cfg.stemSteps / cfg.baseSteps) * 1.35,
-    true,
+    0,
+    null,
   );
+  obstacles.add(stemWalk.points, "stem");
   const stemLength = measure(stemWalk.points);
   const stemDuration = Math.max(0.5, stemLength / cfg.stepLength) * 0.34;
 
@@ -490,12 +654,13 @@ export function generateOrganicNetwork(cfg: NetworkConfig): OrganicNetwork {
       tropism: seed.tropism,
       lengthScale: seed.lengthScale,
       behind: Boolean(seed.behind),
+      sterile: Boolean(seed.sterile),
       // A primary starts growing when the stem tip reaches its junction.
       startTime: at.t * stemDuration,
     };
   });
 
-  return grow(rng, cfg, queue, branches, nodes, rawStart, rawDuration, 1, seedPoint);
+  return grow(rng, cfg, queue, branches, nodes, rawStart, rawDuration, 1, seedPoint, obstacles);
 }
 
 /**
@@ -516,9 +681,12 @@ function grow(
   rawDuration: number[],
   createdSoFar: number,
   seedPoint: Point,
+  obstacles: Obstacles,
 ): OrganicNetwork {
   let created = createdSoFar;
   let cursor = 0;
+  // Walk points per branch, kept for the waypoint pass after growth.
+  const walks: Array<{ item: Pending; points: Point[]; duration: number; junctions: Set<number> }> = [];
 
   // Breadth-first: the system fills out generation by generation, which keeps
   // the branch budget spent on structure rather than one runaway lineage.
@@ -534,9 +702,11 @@ function grow(
       item.tropism,
       item.depth,
       item.lengthScale,
-      item.behind,
+      item.behind ? cfg.behindKeepOut : 1,
+      { obstacles, parentId: item.parentId },
     );
     if (walk.points.length < 3) continue;
+    obstacles.add(walk.points, item.id);
 
     const length = measure(walk.points);
     // Longer branches take proportionally longer to draw — constant speed
@@ -549,8 +719,13 @@ function grow(
       depth: item.depth,
       d: toPath(walk.points),
       length: Math.round(length),
-      width: round(cfg.baseWidth * 0.7 ** item.depth * bell(rng, 0.82, 1.2)),
-      opacity: round(Math.max(0.22, (0.92 - item.depth * 0.19) * bell(rng, 0.8, 1.12))),
+      // Floors keep the family within one readable range: nothing thinner
+      // than minWidth, nothing fainter than a third — the extremes were what
+      // read as noise rather than hierarchy.
+      width: round(
+        Math.max(cfg.minWidth, cfg.baseWidth * 0.7 ** item.depth * bell(rng, 0.82, 1.2)),
+      ),
+      opacity: round(Math.max(0.34, (0.92 - item.depth * 0.16) * bell(rng, 0.86, 1.1))),
       behind: item.behind,
       growthStart: 0,
       growthDuration: 0,
@@ -560,13 +735,16 @@ function grow(
     rawStart.push(item.startTime);
     rawDuration.push(duration);
     created += 1;
+    const junctions = new Set<number>();
+    walks.push({ item, points: walk.points, duration, junctions });
 
     // --- children -------------------------------------------------------
-    if (item.depth < cfg.maxDepth) {
+    if (item.depth < cfg.maxDepth && !item.sterile) {
       for (let i = 2; i < walk.points.length - 1; i += 1) {
         const t = i / (walk.points.length - 1);
         if (!chance(rng, spawnProbability(cfg, item.depth, t))) continue;
         if (queue.length >= cfg.branchBudget) break;
+        junctions.add(i);
 
         const offset = sign(rng) * range(rng, cfg.spread * 0.35, cfg.spread);
         const childAngle = walk.headings[i] + offset;
@@ -584,6 +762,7 @@ function grow(
           tropism: childTropism,
           lengthScale: item.lengthScale * range(rng, ...cfg.childLengthRange),
           behind: item.behind,
+          sterile: false,
           startTime: item.startTime + t * duration,
         });
 
@@ -623,6 +802,37 @@ function grow(
         behind: item.behind,
         appearAt: item.startTime + duration,
       });
+    }
+  }
+
+  /* ---- waypoint nodes ---- */
+  // A second stream, seeded from the same integer, so adding or retuning these
+  // never re-rolls a single strand. They punctuate long runs the way junctions
+  // punctuate forks, which is what keeps a calm strand from reading as a wire.
+  if (cfg.waypointNodeProbability > 0) {
+    const decor = createRng(cfg.seed ^ 0x5bd1e995);
+    for (const { item, points, duration, junctions } of walks) {
+      let last = -10;
+      for (let i = 3; i < points.length - 3; i += 1) {
+        if (junctions.has(i) || i - last < 4) continue;
+        if (!chance(decor, cfg.waypointNodeProbability)) continue;
+        last = i;
+        const t = i / (points.length - 1);
+        nodes.push({
+          id: `n-${item.id}-w${i}`,
+          branchId: item.id,
+          x: round(points[i].x),
+          y: round(points[i].y),
+          r: round(cfg.baseWidth * range(decor, 0.9, 1.6) * 0.85 ** item.depth),
+          depth: item.depth,
+          kind: "waypoint",
+          ring: chance(decor, cfg.ringProbability * 0.4),
+          hollow: chance(decor, 0.35),
+          opacity: round(range(decor, 0.5, 0.9)),
+          behind: item.behind,
+          appearAt: item.startTime + t * duration,
+        });
+      }
     }
   }
 

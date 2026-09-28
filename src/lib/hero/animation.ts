@@ -111,7 +111,11 @@ export function createHeroAnimation({
     const copy = [eyebrow, ...support].filter(
       (el): el is HTMLElement => el !== null,
     );
-    const origin = `${network.seedPoint.x}px ${network.seedPoint.y}px`;
+    // SVG coordinates, not a CSS transform-origin: for SVG elements GSAP reads
+    // transformOrigin relative to the element's own bounding box, which put
+    // the scale's centre well below the field and lifted every strand on the
+    // narrow tiers. svgOrigin is the seed itself, in field units.
+    const origin = `${network.seedPoint.x} ${network.seedPoint.y}`;
 
     /* ---- resting state ------------------------------------------------ *
      * The final frame of the whole narrative, and the entire experience when
@@ -120,7 +124,7 @@ export function createHeroAnimation({
       gsap.set(branches, { strokeDashoffset: 0 });
       gsap.set(descenders, { strokeDashoffset: 0 });
       gsap.set([...nodes, ...halftoneDots], { opacity: 1 });
-      gsap.set(behindLayer, { opacity: 0.4 });
+      gsap.set(behindLayer, { opacity: 0.3 });
       gsap.set([seed, seedCore], { opacity: 1 });
       gsap.set(seedRing, { opacity: 1 });
       gsap.set([...copy, ...headlineLines], { opacity: 1 });
@@ -150,7 +154,7 @@ export function createHeroAnimation({
     gsap.set(seed, { opacity: 1, transformOrigin: "50% 50%" });
     gsap.set(seedCore, { scale: 0, opacity: 0, transformOrigin: "50% 50%" });
     gsap.set(seedRing, { scale: 0.15, opacity: 0, transformOrigin: "50% 50%" });
-    gsap.set([growthLayer, ambientLayer], { transformOrigin: origin });
+    gsap.set([growthLayer, ambientLayer], { svgOrigin: origin });
     gsap.set(headlineLines, { yPercent: 108, opacity: 1 });
     gsap.set(copy, { opacity: 0, y: 14 });
     // Hidden, and deliberately *not* offset like the other copy: the opening
@@ -395,17 +399,16 @@ export function createHeroAnimation({
     // Strands running under the type step back so the headline stays dominant.
     tl.to(
       behindLayer,
-      { opacity: 0.3, duration: interaction * 0.55, ease: "sine.inOut" },
+      { opacity: 0.22, duration: interaction * 0.55, ease: "sine.inOut" },
       BEATS.interaction.start,
     );
 
-    // The system opens outward from the seed — density around the type loosens
-    // as the composition settles.
-    tl.to(
-      growthLayer,
-      { scale: 1.075, y: -network.height * 0.035, duration: interaction, ease: "sine.inOut" },
-      BEATS.interaction.start,
-    );
+    // The layer itself no longer moves during this phase. It used to scale
+    // 7.5% about the seed and lift, which dragged strands that were grown to
+    // clear the copy back across it — the generator cannot know about a
+    // transform applied after the fact. The reorganisation is carried by the
+    // strands and nodes below instead, so the settled composition is exactly
+    // the measured one.
 
     // A deterministic subset of tertiary growth recedes: the network is not a
     // static drawing that finished, it keeps rearranging itself.
@@ -440,11 +443,9 @@ export function createHeroAnimation({
 
     /* --- PHASE 10: handoff into the next section ------------------------ */
     const handoff = span(BEATS.handoff);
-    tl.to(
-      growthLayer,
-      { y: network.height * 0.06, scale: 1.16, duration: handoff, ease: "power1.in" },
-      BEATS.handoff.start,
-    );
+    // The layer does not move here either. Even a straight sink of 6% carried
+    // strands into the supporting copy on tablet; the continuation is told by
+    // the boundary band and the descenders below, which is where it belongs.
     tl.to(
       boundary,
       { opacity: 1, duration: handoff * 0.6, ease: "power2.out" },
@@ -464,8 +465,10 @@ export function createHeroAnimation({
     /* =================================================================== *
      * AMBIENT — barely-there life while the page waits
      * =================================================================== */
+    // Kept very small: it scales about the seed, so the far side of the field
+    // moves most, and strands sit within a few pixels of the copy there.
     gsap.to(ambientLayer, {
-      scale: 1.014,
+      scale: 1.006,
       duration: 17,
       ease: "sine.inOut",
       yoyo: true,

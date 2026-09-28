@@ -45,10 +45,10 @@
   overflow: visible;
 }
 
-/* Strands that run under the typography sit back from the outset — they are
-   the only ones allowed to cross the copy, so they carry the least weight. */
+/* The strand that runs under the typography sits back from the outset — it is
+   the only one allowed to cross the copy, so it carries the least weight. */
 .hero-network__behind {
-  opacity: 0.42;
+  opacity: 0.3;
 }
 
 /* --------------------------------------------------------------------------
