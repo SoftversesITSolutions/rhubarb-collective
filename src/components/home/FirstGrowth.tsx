@@ -144,16 +144,7 @@ export function FirstGrowth() {
           anchored={Boolean(model?.anchored)}
         />
 
-        {/*
-          The section's lower edge, in the hero's boundary language: the same
-          procedural halftone ramp. There are no separate strand fragments drawn
-          here any more — the Work trunk itself grows down through the band and
-          crosses it, so the handoff is the network rather than a decoration of
-          it.
-        */}
-        <div className="fg-boundary" data-fg="boundary" aria-hidden="true">
-          <span className="fg-boundary__halftone" />
-        </div>
+        {/* The lower edge is the seam bridge's, mounted after this section. */}
       </div>
     </section>
   );

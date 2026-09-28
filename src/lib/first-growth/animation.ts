@@ -77,7 +77,6 @@ export function createFirstGrowthAnimation({
     const leaders = all<SVGLineElement>(root, "[data-fg-leader]");
     const drift = one<SVGGElement>(root, "[data-fg-layer='drift']");
     const workBranch = one<SVGPathElement>(root, "[data-fg-branch][data-work]");
-    const boundary = one<HTMLElement>(root, "[data-fg='boundary']");
     const ridgePaths = all<SVGPathElement>(root, "[data-fg-ridge]");
     const ridgeNodes = all<SVGGElement>(root, "[data-fg-ridge-node]");
 
@@ -100,7 +99,7 @@ export function createFirstGrowthAnimation({
       // The field at rest: every line at its resting amplitude, no ripple.
       gsap.set([...ridgePaths, ...ridgeNodes], { opacity: 1 });
       gsap.set(
-        [marker, ...statementLines, narrative, boundary].filter(Boolean),
+        [marker, ...statementLines, narrative].filter(Boolean),
         { opacity: 1, y: 0, yPercent: 0 },
       );
       gsap.set(values, { opacity: 1, x: 0, yPercent: -50 });
@@ -162,7 +161,6 @@ export function createFirstGrowthAnimation({
       yPercent: -50,
       x: (i, el: Element) => ((el as HTMLElement).dataset.side === "left" ? 14 : -14),
     });
-    gsap.set(boundary, { opacity: 0 });
 
     /* =================================================================== *
      * NETWORK — one scrubbed pass, no pin
@@ -288,11 +286,6 @@ export function createFirstGrowthAnimation({
       );
     }
 
-    tl.to(
-      boundary,
-      { opacity: 1, duration: span(FG_BEATS.handoff) * 0.7, ease: "power2.out" },
-      FG_BEATS.handoff.start,
-    );
 
     /* =================================================================== *
      * COPY — entrance triggers, not scrubbed. Reading should never depend

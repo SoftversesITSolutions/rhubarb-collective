@@ -1,0 +1,65 @@
+/* ==========================================================================
+   SEAM BRIDGE
+   Sits between two sections at zero height, so the page's length and every
+   section's position are untouched; its band is positioned across the seam,
+   reaching a little into the section above and down to the next section's
+   marker. The sections' backgrounds are transparent (the body carries the
+   black), which is what lets the band show through their clear margins. The
+   later section paints above the band in DOM order, so its strands and its
+   marker sit on top of the ridges — which part for them anyway.
+   ========================================================================== */
+.seam {
+  position: relative;
+  height: 0;
+  pointer-events: none;
+}
+
+.seam__band {
+  position: absolute;
+  inset-inline: 0;
+  overflow: hidden;
+}
+
+.seam__ridges {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* The artwork frame: one per seam, riding the band on the right, sized by the
+   band so it never reaches the content above or below. Low opacity — it is a
+   presence in the field, not a picture on the page. */
+.seam__artwork {
+  position: absolute;
+  right: var(--gutter);
+  top: 50%;
+  height: 68%;
+  aspect-ratio: 4 / 3;
+  width: auto;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--rh-cream-24);
+  background: var(--rh-black-raised);
+  transform: translateY(-50%);
+}
+
+.seam__artwork img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.58;
+}
+
+/* A reserved frame, when no artwork has been supplied for a seam. */
+.seam__artwork--reserved {
+  border-style: dashed;
+}
+
+@media (max-width: 699px) {
+  .seam__artwork {
+    height: 56%;
+  }
+}

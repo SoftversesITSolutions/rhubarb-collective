@@ -26,7 +26,9 @@
 
 .contact {
   position: relative;
-  background: var(--rh-black);
+  /* No background of its own: the body carries the black, and the seam bridge
+     (see seamBridge.css) shows through the clear margin at the top. */
+  background: transparent;
   padding-block: clamp(5rem, 13vh, 9rem) clamp(3.5rem, 8vh, 5.5rem);
   overflow: hidden;
 }

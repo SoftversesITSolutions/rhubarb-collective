@@ -24,7 +24,9 @@
   aspect-ratio: 760 / 2200;
   /* Nothing may ever be squeezed out of the box if the aspect is short. */
   min-height: 46rem;
-  background: var(--rh-black);
+  /* Transparent for the same reason as every section below: the seam bridge at
+     the foot shows through. The body carries the black. */
+  background: transparent;
   overflow: hidden;
 }
 
@@ -217,24 +219,6 @@
    Same procedural halftone technique as the hero's lower edge, so the two
    seams speak the same language.
    -------------------------------------------------------------------------- */
-.fg-boundary {
-  position: absolute;
-  inset-inline: 0;
-  bottom: 0;
-  height: clamp(88px, 16vh, 190px);
-  z-index: 2;
-  pointer-events: none;
-}
-
-.fg-boundary__halftone {
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(var(--rh-cream) 0.7px, transparent 0.8px);
-  background-size: 9px 9px;
-  mask-image: linear-gradient(to bottom, transparent, #000);
-  -webkit-mask-image: linear-gradient(to bottom, transparent, #000);
-  opacity: 0.18;
-}
 
 .fg-boundary__strands {
   position: absolute;

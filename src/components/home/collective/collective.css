@@ -20,7 +20,9 @@
 
 .collective {
   position: relative;
-  background: var(--rh-black);
+  /* No background of its own: the body carries the black, and the seam bridge
+     (see seamBridge.css) shows through the clear margin at the top. */
+  background: transparent;
   padding-block: clamp(5rem, 14vh, 11rem) clamp(8rem, 22vh, 17rem);
   overflow: hidden;
 }

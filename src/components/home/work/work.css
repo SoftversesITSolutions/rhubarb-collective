@@ -12,7 +12,9 @@
 
 .work {
   position: relative;
-  background: var(--rh-black);
+  /* No background of its own: the body carries the black, and the seam bridge
+     (see seamBridge.css) shows through the clear margin at the top. */
+  background: transparent;
   padding-block: clamp(5rem, 14vh, 11rem) clamp(6rem, 16vh, 13rem);
   overflow: hidden;
 }
