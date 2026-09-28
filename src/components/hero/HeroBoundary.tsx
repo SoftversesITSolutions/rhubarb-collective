@@ -19,7 +19,7 @@ interface HeroBoundaryProps {
 export function HeroBoundary({ descenders }: HeroBoundaryProps) {
   return (
     <div className="hero-boundary" data-hero="boundary" aria-hidden="true">
-      <span className="hero-boundary__halftone" />
+      <span className="hero-boundary__halftone" data-hero="boundary-halftone" />
       <svg
         className="hero-boundary__strands"
         viewBox="0 0 100 100"

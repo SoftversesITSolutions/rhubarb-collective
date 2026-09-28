@@ -8,7 +8,17 @@
 
 .hero {
   position: relative;
-  background: var(--rh-black);
+  /* Above section 01, which overlaps the hero's last viewport for the dive.
+     The body carries the black; the stage is what is actually seen. */
+  z-index: 2;
+  background: transparent;
+}
+
+/* Once the dive is over the stage is transparent and sits over the top of
+   section 01, so it must not swallow that section's pointer. Until then it
+   keeps its pointer events so the headline stays selectable. */
+.hero[data-hero-dive="done"] .hero__stage {
+  pointer-events: none;
 }
 
 .hero__stage {

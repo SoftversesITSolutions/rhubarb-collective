@@ -207,6 +207,35 @@ export const BEATS = {
 } as const;
 
 /* ------------------------------------------------------------------ *
+ * The dive — the last viewport of the pin, after the hand-off beat.
+ * Client feedback (Sep 2026, note 3): leaving the hero felt like a page
+ * scrolling away; they asked to *enter* the world of nodes instead. So the
+ * scroll stops carrying the reader down and carries them in: the copy
+ * dissolves, the field comes toward them about the point where its strands
+ * leave the frame, the black lifts, and section 01 is already waiting
+ * beneath. Section 01 overlaps the hero by exactly this much and holds for
+ * exactly this long, so nothing below moves.
+ *
+ * Fractions of the dive, not of the narrative.
+ * ------------------------------------------------------------------ */
+/** Scroll the dive consumes, in viewport heights. The same on every tier. */
+export const DIVE_LENGTH = 1;
+/** How far the field comes toward the reader by the end. */
+export const DIVE_SCALE = 2.6;
+export const DIVE = {
+  /** The copy has been read: it dissolves first. */
+  copy: { start: 0, end: 0.3 },
+  /** The boundary band brightens briefly, then goes — the edge is no longer an edge. */
+  band: { start: 0.05, end: 0.5 },
+  zoom: { start: 0, end: 1 },
+  /** The strands thin out as they pass — ahead of the lift finishing, so the
+   *  two fields hand over rather than pile up. */
+  fade: { start: 0.5, end: 0.9 },
+  /** The stage's black lifts to reveal section 01 beneath. */
+  lift: { start: 0.55, end: 0.85 },
+} as const;
+
+/* ------------------------------------------------------------------ *
  * The opening: the logo intro that plays once on load, before the seed.
  * In seconds, not scroll fractions — this part is autonomous. The logo
  * used to arrive on the scrubbed timeline at 0.28–0.42; since the opening

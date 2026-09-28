@@ -7,9 +7,13 @@
  * The hero's verb is GROWTH and it earns a pinned, scrubbed narrative. This
  * section's verb is CONNECTION and it is deliberately quieter:
  *
- *   • Nothing is pinned. The section is read through, not held.
+ *   • The section is read through, not held — with one exception: it overlaps
+ *     the hero's dive (see DIVE in lib/hero/config) and holds still beneath
+ *     the stage for exactly that stretch, coming toward the reader as the
+ *     hero's black lifts. Nothing below it moves: the overlap equals the hold
+ *     plus the hero's extra pin.
  *   • One scrubbed trigger drives the network across the section's own pass
- *     through the viewport.
+ *     through the viewport, starting as it is revealed.
  *   • Copy arrives on its own entrance triggers, unscrubbed, so reading is
  *     never tied to scroll velocity.
  *   • There are no ambient loops at all.
@@ -23,7 +27,7 @@
 
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import type { Tier } from "@/lib/hero/config";
+import { DIVE, DIVE_LENGTH, type Tier } from "@/lib/hero/config";
 import type { OrganicNetwork } from "@/lib/hero/network";
 import { FG_BEATS } from "./config";
 
@@ -70,6 +74,7 @@ export function createFirstGrowthAnimation({
     const workBranch = one<SVGPathElement>(root, "[data-fg-branch][data-work]");
     const boundary = one<HTMLElement>(root, "[data-fg='boundary']");
 
+    const stage = one<HTMLElement>(root, "[data-fg='stage']");
     const marker = one<HTMLElement>(root, "[data-fg='marker']");
     const statementLines = all<HTMLElement>(root, "[data-fg='statement-line']");
     const values = all<HTMLElement>(root, "[data-fg='value']");
@@ -96,6 +101,43 @@ export function createFirstGrowthAnimation({
 
     root.dataset.fgState = "running";
 
+    /* =================================================================== *
+     * THE DIVE — overlap the hero's last viewport, hold beneath it
+     *
+     * The hero pins one stage plus its scroll length plus DIVE_LENGTH; this
+     * section starts one stage plus DIVE_LENGTH above where flow would put
+     * it, i.e. exactly at the dive's first scroll position, and is pinned
+     * for the dive with spacing — so the page below is exactly where it was.
+     * The anchor offset makes "Who we are" land after the dive, not in it.
+     * =================================================================== */
+    const vh = window.innerHeight;
+    const dive = DIVE_LENGTH * vh;
+    gsap.set(root, { marginTop: -(vh + dive), scrollMarginTop: -dive });
+    gsap.set(stage, { scale: 0.88, opacity: 0.35, transformOrigin: "50% 35%" });
+    gsap.to(stage, {
+      scale: 1,
+      opacity: 1,
+      ease: "none",
+      scrollTrigger: {
+        trigger: root,
+        start: "top top",
+        end: () => `+=${DIVE_LENGTH * window.innerHeight}`,
+        pin: true,
+        pinSpacing: true,
+        scrub: 0.85,
+        invalidateOnRefresh: true,
+        anticipatePin: 1,
+      },
+    });
+    // Layout top of this section, read while pins are reverted (refresh).
+    const rootTop = () => root.getBoundingClientRect().top + window.scrollY;
+    // Absolute scroll positions. The hold shifts everything about this section
+    // by one dive, and the reveal happens partway through it, so the arrival
+    // is timed from the lift rather than from the section's layout position.
+    const revealAt = () => rootTop() + DIVE.lift.start * DIVE_LENGTH * window.innerHeight;
+    const releaseAt = () => rootTop() + DIVE_LENGTH * window.innerHeight;
+    const footAt = () => releaseAt() + root.offsetHeight - window.innerHeight;
+
     /* ---- initial state ---- */
     gsap.set(settling, { opacity: 0 });
     gsap.set(nodes, { scale: 0, opacity: 0, transformOrigin: "50% 50%" });
@@ -118,10 +160,11 @@ export function createFirstGrowthAnimation({
       defaults: { ease: "none" },
       scrollTrigger: {
         trigger: root,
-        start: "top 85%",
-        // Completes as the section's foot reaches the foot of the viewport, so
-        // the handoff is on screen when it happens rather than already gone.
-        end: "bottom bottom",
+        // From the moment the hero's black starts to lift off this section…
+        start: revealAt,
+        // …to the section's foot reaching the foot of the viewport, so the
+        // handoff is on screen when it happens rather than already gone.
+        end: footAt,
         scrub: 1,
         invalidateOnRefresh: true,
       },
@@ -215,19 +258,38 @@ export function createFirstGrowthAnimation({
      * COPY — entrance triggers, not scrubbed. Reading should never depend
      * on how fast someone is scrolling.
      * =================================================================== */
+    // Layout offset of an element within the section, transform-free: the
+    // stage is scaled during the hold, so client rects would lie.
+    const withinRoot = (el: HTMLElement) => {
+      let y = 0;
+      let node: HTMLElement | null = el;
+      while (node && node !== root) {
+        y += node.offsetTop;
+        node = node.offsetParent as HTMLElement | null;
+      }
+      return y;
+    };
+    // Nothing shows before the hold releases: the first thing that moves
+    // after landing is the message. Anything further down the section still
+    // arrives at its own natural moment (its layout position, shifted by the
+    // hold) — whichever comes later.
+    const landing = () => releaseAt() - window.innerHeight * 0.08;
+    const natural = (el: HTMLElement) => () =>
+      Math.max(landing(), releaseAt() + withinRoot(el) - window.innerHeight * 0.82);
     const reveal = (
       targets: gsap.TweenTarget,
       vars: gsap.TweenVars,
-      trigger: Element,
+      start: () => number,
     ) => {
       gsap.to(targets, {
         ...vars,
-        scrollTrigger: { trigger, start: "top 82%", once: true },
+        // Absolute positions, so the section's own pin cannot shift them.
+        scrollTrigger: { trigger: root, start, once: true, invalidateOnRefresh: true },
       });
     };
 
     if (marker) {
-      reveal(marker, { opacity: 1, y: 0, duration: 1, ease: "power2.out" }, marker);
+      reveal(marker, { opacity: 1, y: 0, duration: 1, ease: "power2.out" }, landing);
     }
 
     if (statementLines.length) {
@@ -239,19 +301,19 @@ export function createFirstGrowthAnimation({
           ease: "expo.out",
           stagger: 0.11,
         },
-        statementLines[0],
+        landing,
       );
     }
 
     values.forEach((el) => {
-      reveal(el, { opacity: 1, x: 0, duration: 0.9, ease: "power2.out" }, el);
+      reveal(el, { opacity: 1, x: 0, duration: 0.9, ease: "power2.out" }, natural(el));
     });
 
     if (narrative) {
       reveal(
         narrative,
         { opacity: 1, y: 0, duration: 1.1, ease: "power2.out" },
-        narrative,
+        natural(narrative),
       );
     }
 

@@ -17,12 +17,24 @@
 
 .first-growth {
   position: relative;
+  /* Beneath the hero, which overlaps this section's first viewport for the
+     dive and lifts its black off it. */
+  z-index: 1;
   width: 100%;
   aspect-ratio: 760 / 2200;
   /* Nothing may ever be squeezed out of the box if the aspect is short. */
   min-height: 46rem;
   background: var(--rh-black);
   overflow: hidden;
+}
+
+/* The stage the dive scales; the section box stays put (it is pinned and
+   measured). Same box as the section, so every percentage inside it still
+   lands where the generator put it. */
+.fg-stage {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 35%;
 }
 
 /* Pre-animation state. Present in the server-rendered markup, so the first

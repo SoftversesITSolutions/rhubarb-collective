@@ -100,29 +100,37 @@ export function FirstGrowth() {
       data-fg-state="idle"
       aria-labelledby="fg-heading"
     >
-      {model && (
-        <FirstGrowthNetwork
-          network={model.network}
-          connections={model.connections}
-          annotations={model.annotations}
-          workBranchId={model.workBranchId}
-        />
-      )}
-
-      <FirstGrowthContent
-        annotations={model?.annotations ?? []}
-        anchored={Boolean(model?.anchored)}
-      />
-
       {/*
-        The section's lower edge, in the hero's boundary language: the same
-        procedural halftone ramp. There are no separate strand fragments drawn
-        here any more — the Work trunk itself grows down through the band and
-        crosses it, so the handoff is the network rather than a decoration of
-        it.
+        Everything visible sits in one stage so the dive can bring the whole
+        section toward the reader as the hero's black lifts off it. The
+        section box itself is never transformed: it is what gets pinned, and
+        what later sections measure.
       */}
-      <div className="fg-boundary" data-fg="boundary" aria-hidden="true">
-        <span className="fg-boundary__halftone" />
+      <div className="fg-stage" data-fg="stage">
+        {model && (
+          <FirstGrowthNetwork
+            network={model.network}
+            connections={model.connections}
+            annotations={model.annotations}
+            workBranchId={model.workBranchId}
+          />
+        )}
+
+        <FirstGrowthContent
+          annotations={model?.annotations ?? []}
+          anchored={Boolean(model?.anchored)}
+        />
+
+        {/*
+          The section's lower edge, in the hero's boundary language: the same
+          procedural halftone ramp. There are no separate strand fragments drawn
+          here any more — the Work trunk itself grows down through the band and
+          crosses it, so the handoff is the network rather than a decoration of
+          it.
+        */}
+        <div className="fg-boundary" data-fg="boundary" aria-hidden="true">
+          <span className="fg-boundary__halftone" />
+        </div>
       </div>
     </section>
   );

@@ -9,9 +9,10 @@
  *
  *   OPENING    — autonomous, plays once on load. The void, the mark, then
  *                the seed it lifts away from.
- *   NARRATIVE  — a single scrubbed timeline of normalised duration 1, pinned.
- *                All ten storyboard phases are positions on this one timeline,
- *                so pacing is retuned by editing BEATS in ./config.
+ *   NARRATIVE  — a single scrubbed timeline, pinned. The ten storyboard
+ *                phases are positions 0..1 on it, so pacing is retuned by
+ *                editing BEATS in ./config; the dive that follows occupies
+ *                the stretch past 1 (see DIVE there).
  *   AMBIENT    — two very slow looping tweens. Enough for the system to read as
  *                alive while it waits, not enough to compete with scroll.
  *
@@ -28,7 +29,15 @@
 
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { BEATS, LOGO_INTRO, SCROLL_LENGTH, type Tier } from "./config";
+import {
+  BEATS,
+  DIVE,
+  DIVE_LENGTH,
+  DIVE_SCALE,
+  LOGO_INTRO,
+  SCROLL_LENGTH,
+  type Tier,
+} from "./config";
 import type { OrganicNetwork } from "./network";
 
 /**
@@ -106,6 +115,7 @@ export function createHeroAnimation({
     const cue = one<HTMLElement>(root, "[data-hero='cue']");
     const cueMark = one<HTMLElement>(root, "[data-hero='cue-mark']");
     const boundary = one<HTMLElement>(root, "[data-hero='boundary']");
+    const boundaryHalftone = one<HTMLElement>(root, "[data-hero='boundary-halftone']");
 
     // The logo is not in here: the opening owns it until the hand-off.
     const copy = [eyebrow, ...support].filter(
@@ -154,7 +164,20 @@ export function createHeroAnimation({
     gsap.set(seed, { opacity: 1, transformOrigin: "50% 50%" });
     gsap.set(seedCore, { scale: 0, opacity: 0, transformOrigin: "50% 50%" });
     gsap.set(seedRing, { scale: 0.15, opacity: 0, transformOrigin: "50% 50%" });
-    gsap.set([growthLayer, ambientLayer], { svgOrigin: origin });
+    gsap.set(ambientLayer, { svgOrigin: origin });
+    // The growth layer scales during the dive, about the point where the
+    // strands leave the frame: the mean of the descender exits, on the foot.
+    // Written as an explicit SVG transform (translate · scale · translate
+    // back) rather than a GSAP transform-origin: for SVG groups GSAP resolves
+    // origins against the group's bounding box, and both transformOrigin and
+    // svgOrigin put this scale's centre far outside the field in testing.
+    const exits = network.descenders.map((d) => d.exitX);
+    const focalX = exits.length
+      ? (exits.reduce((a, b) => a + b, 0) / exits.length / 100) * network.width
+      : network.width * 0.5;
+    const zoomTransform = (s: number) =>
+      `translate(${focalX} ${network.height}) scale(${s}) translate(${-focalX} ${-network.height})`;
+    gsap.set(growthLayer, { attr: { transform: zoomTransform(1) } });
     gsap.set(headlineLines, { yPercent: 108, opacity: 1 });
     gsap.set(copy, { opacity: 0, y: 14 });
     // Hidden, and deliberately *not* offset like the other copy: the opening
@@ -275,6 +298,8 @@ export function createHeroAnimation({
     // only for so long — a slow network must not hold the hero hostage.
     const skipOpening = () => {
       if (opening.progress() < 1) opening.progress(1);
+      // The reader is already moving: the invitation to scroll is moot.
+      if (window.scrollY > 4) gsap.set(cue, { opacity: 0 });
     };
     if (openingPlayed || window.scrollY > 0) {
       skipOpening();
@@ -303,24 +328,41 @@ export function createHeroAnimation({
     /* =================================================================== *
      * PHASE 03–10 — the scrubbed narrative
      * =================================================================== */
+    // The narrative occupies SCROLL_LENGTH viewports and positions 0..1; the
+    // dive occupies DIVE_LENGTH more and positions 1..1+diveSpan. Keeping the
+    // narrative's positions untouched is what keeps its pacing untouched.
+    const diveSpan = DIVE_LENGTH / SCROLL_LENGTH[tier];
     const tl = gsap.timeline({
       defaults: { ease: "none" },
       scrollTrigger: {
         trigger: root,
         start: "top top",
-        end: () => `+=${window.innerHeight * SCROLL_LENGTH[tier]}`,
+        end: () => `+=${window.innerHeight * (SCROLL_LENGTH[tier] + DIVE_LENGTH)}`,
         pin: stage,
         pinSpacing: true,
         scrub: 0.85,
         invalidateOnRefresh: true,
         anticipatePin: 1,
+        // Past the dive the transparent stage lies over section 01's top, so it
+        // gives up its pointer; until then the headline stays selectable.
+        onUpdate: (self) => {
+          root.dataset.heroDive = self.progress >= 0.999 ? "done" : "live";
+        },
       },
     });
 
-    // Fixes the timeline's total length at exactly 1 so every position below
-    // reads as a fraction of the scroll journey.
-    tl.to({}, { duration: 1 }, 0);
-    tl.to(cue, { opacity: 0, duration: 0.05, ease: "power1.in" }, 0);
+    tl.to({}, { duration: 1 + diveSpan }, 0);
+    // fromTo, not to: a plain `to` records its start value on first render,
+    // which is before the opening has shown the cue, so it would fade 0 → 0
+    // and leave the cue standing whenever the opening finished after the
+    // scrub's first frame. This always fades from visible, only once the
+    // reader has actually moved, and brings the cue back at the very top.
+    tl.fromTo(
+      cue,
+      { opacity: 1 },
+      { opacity: 0, duration: 0.05, ease: "power1.in", immediateRender: false },
+      0.001,
+    );
 
     /* --- PHASE 03–04: organic growth, then network formation ------------ */
     // Each branch draws in at the moment its parent's tip reaches it, so the
@@ -460,6 +502,60 @@ export function createHeroAnimation({
         stagger: { amount: handoff * 0.3 },
       },
       BEATS.handoff.start + handoff * 0.1,
+    );
+
+    /* =================================================================== *
+     * THE DIVE — positions 1..1+diveSpan: into the field
+     *
+     * Section 01 overlaps this stretch and holds still beneath the stage
+     * (its own timeline does that), so when the black lifts it is already
+     * there, coming toward the reader too.
+     * =================================================================== */
+    type DiveBeat = { readonly start: number; readonly end: number };
+    const diveAt = (beat: DiveBeat) => 1 + beat.start * diveSpan;
+    const diveDur = (beat: DiveBeat) => Math.max(0.001, (beat.end - beat.start) * diveSpan);
+
+    // The copy has been read; it goes first and quickly.
+    tl.to(
+      [logo, rule, cue, ...copy, ...headlineLines],
+      { opacity: 0, duration: diveDur(DIVE.copy), ease: "power1.in" },
+      diveAt(DIVE.copy),
+    );
+
+    // The edge stops being an edge: the halftone flares, then the band goes.
+    tl.to(
+      boundaryHalftone,
+      { opacity: 0.4, duration: diveDur(DIVE.band) * 0.4, ease: "sine.out" },
+      diveAt(DIVE.band),
+    );
+    tl.to(
+      boundary,
+      { opacity: 0, duration: diveDur(DIVE.band) * 0.6, ease: "power1.in" },
+      diveAt(DIVE.band) + diveDur(DIVE.band) * 0.4,
+    );
+
+    // The field comes toward the reader, accelerating, about the point where
+    // its strands leave the frame. Strokes and nodes grow with it — nearer.
+    tl.to(
+      growthLayer,
+      {
+        attr: { transform: zoomTransform(DIVE_SCALE) },
+        duration: diveDur(DIVE.zoom),
+        ease: "power2.in",
+      },
+      diveAt(DIVE.zoom),
+    );
+    tl.to(
+      growthLayer,
+      { opacity: 0, duration: diveDur(DIVE.fade), ease: "power1.in" },
+      diveAt(DIVE.fade),
+    );
+
+    // The black lifts. What is beneath is section 01, already in place.
+    tl.to(
+      stage,
+      { backgroundColor: "rgba(5, 5, 5, 0)", duration: diveDur(DIVE.lift), ease: "power1.inOut" },
+      diveAt(DIVE.lift),
     );
 
     /* =================================================================== *
