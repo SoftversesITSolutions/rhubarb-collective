@@ -9,7 +9,7 @@
  * whichever direction you arrived from, and the section can be crossed any
  * number of times without reaching a stuck state.
  *
- *   progress 0    →  network undrawn, cards clipped shut
+ *   progress 0    →  network undrawn, cards clipped shut, prints blank
  *   progress 0.5  →  halfway
  *   progress 1    →  settled
  *
@@ -56,9 +56,13 @@ export function createBranchesAnimation({
       gsap.set(nodeMarks, { opacity: 1, scale: 1 });
       gsap.set(all(root, "[data-branch-frame]"), { clipPath: CLIP_OPEN });
       gsap.set(
-        [marker, ...all(root, "[data-branch-body]")].filter(Boolean),
+        [marker, ...all(root, "[data-branch-body]"), ...all(root, "[data-branch-print]")].filter(
+          Boolean,
+        ),
         { opacity: 1, y: 0 },
       );
+      // The print holds still; its pointer state is CSS and still applies.
+      gsap.set(all(root, "[data-branch-print-image]"), { y: 0 });
       root.dataset.branchesState = "static";
       return;
     }
@@ -138,8 +142,10 @@ export function createBranchesAnimation({
      * arriving from off-axis.
      * =================================================================== */
     cards.forEach((card) => {
-      const frame = card.querySelector("[data-branch-frame]");
+      const frame = card.querySelector<HTMLElement>("[data-branch-frame]");
       const body = card.querySelector("[data-branch-body]");
+      const print = card.querySelector("[data-branch-print]");
+      const printImage = card.querySelector("[data-branch-print-image]");
 
       const tl = gsap.timeline({
         defaults: { ease: "none" },
@@ -158,6 +164,38 @@ export function createBranchesAnimation({
         { clipPath: CLIP_OPEN, x: 0, scale: 1, duration: 0.78 },
         0,
       ).fromTo(body, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.34 }, 0.5);
+
+      // The print develops on the cream once the card is mostly open — after
+      // the plane, before the type — like a photograph coming up in the tray.
+      // Only the wrap's opacity is scrubbed; the image's own opacity is the
+      // pointer state and stays with CSS.
+      if (print) {
+        tl.fromTo(print, { opacity: 0 }, { opacity: 1, duration: 0.5 }, 0.28);
+      }
+
+      // A slow drift of the print against the scroll for as long as the card
+      // is on screen: a few pixels, scrubbed, so the card reads as an object
+      // with depth rather than a flat plane. The reach is a fraction of the
+      // card's height and is re-read on refresh, so a resize cannot expose an
+      // edge (the image is 16% taller than the card).
+      if (printImage && frame) {
+        const reach = () => Math.round(frame.offsetHeight * 0.06);
+        gsap.fromTo(
+          printImage,
+          { y: () => reach() },
+          {
+            y: () => -reach(),
+            ease: "none",
+            scrollTrigger: {
+              trigger: card,
+              start: "top bottom",
+              end: "bottom top",
+              scrub: true,
+              invalidateOnRefresh: true,
+            },
+          },
+        );
+      }
     });
 
     // The network is generated from measured geometry, so triggers must be

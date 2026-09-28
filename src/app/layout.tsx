@@ -60,7 +60,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             [data-work-branch] { stroke-dashoffset: 0 !important; }
             [data-work-node-mark] { opacity: 1 !important; }
             [data-branches-state] [data-branch-frame] { clip-path: none !important; }
-            [data-branch-body], [data-branches-marker] { opacity: 1 !important; }
+            [data-branch-body], [data-branch-print], [data-branches-marker] { opacity: 1 !important; }
             [data-branch-path] { stroke-dashoffset: 0 !important; }
             [data-branch-node] { opacity: 1 !important; }
             [data-collective-state] [data-collective-frame] { clip-path: none !important; }

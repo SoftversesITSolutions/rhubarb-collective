@@ -13,7 +13,8 @@
    1  background ..... the section itself
    2  network SVG ..... z-index 0, one field, never clipped to a card
    3  cards ........... z-index 1
-   4  card content .... z-index 2
+   4  card print ...... z-index 1 inside the frame, ink on the cream
+   5  card content .... z-index 2
    ========================================================================== */
 
 .branches {
@@ -33,6 +34,7 @@
 }
 
 .branches[data-branches-state="idle"] [data-branch-body],
+.branches[data-branches-state="idle"] [data-branch-print],
 .branches[data-branches-state="idle"] [data-branches-marker] {
   opacity: 0;
 }
@@ -148,6 +150,75 @@
   color: rgb(5 5 5 / 0.66);
 }
 
+/* --- the print ------------------------------------------------------------
+   The service's image, laid into the cream as ink (client note 7). Two
+   elements on purpose, because two systems own them:
+
+   the WRAP  multiplies with the card's cream — grey becomes ink on paper — and
+             is masked so the print is fullest in the card's open corner and
+             clears under the type. Its opacity is the scroll-scrubbed
+             "develop" and belongs to the animation.
+   the IMAGE carries the pointer state — rest → deepened — as a CSS
+             transition, and the scrubbed drift as a transform. Neither
+             property is shared with the wrap, so scroll and hover never fight
+             over the same style.
+
+   Blend and mask must sit on the SAME element: a mask makes its element an
+   isolated group, and a blend one level below it would then multiply against
+   nothing. Absolutely positioned and pointer-transparent, the print takes no
+   layout, so the frame's box — what the network is grown against — is
+   unchanged.
+   -------------------------------------------------------------------------- */
+.branch-card__print {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  /* Fullest in the top-right, clearing toward the bottom-left where the type
+     sits. The stops were chosen by measurement, not eye: the darkest pixel
+     under each glyph line box, on every tier, keeps the detail line above
+     4.5:1 at rest and the title above 3:1 (large text) under the pointer. */
+  -webkit-mask-image: linear-gradient(
+    225deg,
+    #000 16%,
+    rgb(0 0 0 / 0.34) 48%,
+    rgb(0 0 0 / 0.08) 76%
+  );
+  mask-image: linear-gradient(225deg, #000 16%, rgb(0 0 0 / 0.34) 48%, rgb(0 0 0 / 0.08) 76%);
+}
+
+.branch-card__print-image {
+  --print-rest: 0.56;
+  --print-deep: 0.7;
+  position: absolute;
+  /* Taller than the card so the scrubbed drift never shows an edge. */
+  inset: -8% 0;
+  width: 100%;
+  height: 116%;
+  object-fit: cover;
+  opacity: var(--print-rest);
+  /* Grayscale first, so multiply lays down ink rather than a colour cast; the
+     contrast lift keeps the mid-tones from turning to fog at low opacity. */
+  filter: grayscale(1) contrast(1.15);
+  transition:
+    opacity 640ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    filter 640ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  will-change: transform;
+}
+
+/* Under the pointer the print deepens toward the photograph. Pointer-only:
+   a touch device has no hover state to leave, so it would stick. */
+@media (hover: hover) {
+  .branch-card:hover .branch-card__print-image,
+  .branch-card:focus-within .branch-card__print-image {
+    opacity: var(--print-deep);
+    filter: grayscale(0.55) contrast(1.05);
+  }
+}
+
 /* ==========================================================================
    MOBILE — the journey survives at column width: each station sits a step
    further right than the last (with the same single pull-back at 03), and the
@@ -249,7 +320,8 @@
    REDUCED MOTION
    ========================================================================== */
 @media (prefers-reduced-motion: reduce) {
-  .branch-card__frame {
+  .branch-card__frame,
+  .branch-card__print-image {
     will-change: auto;
   }
 }
