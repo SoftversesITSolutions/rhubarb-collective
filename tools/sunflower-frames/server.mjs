@@ -1,0 +1,4 @@
+import { createServer } from "node:http"; import { readFile } from "node:fs/promises"; import { extname, join, normalize } from "node:path";
+const root = process.argv[2]; const port = Number(process.argv[3] || 8123);
+const mime = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".gltf": "model/gltf+json", ".bin": "application/octet-stream", ".jpeg": "image/jpeg", ".jpg": "image/jpeg", ".png": "image/png", ".webp": "image/webp", ".json": "application/json" };
+createServer(async (req, res) => { try { const p = join(root, normalize(decodeURIComponent(req.url.split("?")[0]))); const data = await readFile(p); res.writeHead(200, { "content-type": mime[extname(p)] || "application/octet-stream", "access-control-allow-origin": "*" }); res.end(data); } catch { res.writeHead(404); res.end("nf"); } }).listen(port, () => console.log("serving", root, "on", port));

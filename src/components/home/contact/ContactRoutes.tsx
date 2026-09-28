@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { OrganicNetwork } from "@/lib/hero/network";
 import { useViewport } from "@/lib/hero/useViewport";
 import {
+  BLOOM,
   CONTACT_COLOPHON,
   CONTACT_COPY,
   CONTACT_ROUTES,
@@ -18,6 +19,7 @@ import {
   type ContactAnchoring,
 } from "@/lib/contact/network";
 import { createContactAnimation } from "@/lib/contact/animation";
+import { ContactBloom } from "./ContactBloom";
 import { ContactNetwork } from "./ContactNetwork";
 import { ContactRoute } from "./ContactRoute";
 import "./contact.css";
@@ -99,6 +101,26 @@ export function ContactRoutes({ variant = "section" }: ContactRoutesProps = {}) 
       connect: CONTACT_ROUTES[i]?.node ?? false,
       ...layoutRect(el, root),
     }));
+
+    // The bloom is a destination too (client note 8): the network steers into
+    // the space around it and one strand may reach it. What it reaches is the
+    // square inscribed in the flower's disc, not the figure's box, so the
+    // strand ends under the petals — the same attachment-without-a-leader
+    // rule every card and route on the page follows. The figure rotates and
+    // scales mid-scroll, so what is measured is its slot: layout, never paint.
+    const bloom = root.querySelector<HTMLElement>("[data-contact-bloom-slot]");
+    if (bloom) {
+      const box = layoutRect(bloom, root);
+      const inset = box.width * (0.5 - (BLOOM.fill / 2) * Math.SQRT1_2);
+      items.push({
+        id: "bloom",
+        connect: true,
+        x: box.x + inset,
+        y: box.y + inset,
+        width: box.width - inset * 2,
+        height: box.height - inset * 2,
+      });
+    }
 
     const copy: Rect[] = [];
     root
@@ -225,6 +247,12 @@ export function ContactRoutes({ variant = "section" }: ContactRoutesProps = {}) 
           <p className="contact__invitation" data-contact-invitation="">
             {CONTACT_COPY.invitation}
           </p>
+
+          {/* The brand's sunflower, turning to face the reader as the frame
+              settles. Last in the opening so it reads after the words, and
+              placed by contact.css: the open right of the opening on wide
+              tiers, its own slot under the invitation on narrow ones. */}
+          <ContactBloom />
         </div>
 
         {/* Layer 2 — the routes out. */}
@@ -256,6 +284,25 @@ export function ContactRoutes({ variant = "section" }: ContactRoutesProps = {}) 
           <span className="contact__gstin-label">{CONTACT_COLOPHON.gstinLabel}</span>
           <span className="contact__gstin-value">{CONTACT_COLOPHON.gstin}</span>
         </p>
+
+        {/* The sunflower model's attribution — a condition of its licence, so
+            it is rendered wherever the bloom is and nowhere it is not. */}
+        {variant === "section" && (
+          <p className="contact__credit" data-contact-colophon="">
+            <span>{BLOOM.credit.label}: </span>
+            <a className="contact__credit-link" href={BLOOM.credit.modelHref} rel="noopener">
+              “{BLOOM.credit.title}”
+            </a>
+            <span> by </span>
+            <a className="contact__credit-link" href={BLOOM.credit.authorHref} rel="noopener">
+              {BLOOM.credit.author}
+            </a>
+            <span>, </span>
+            <a className="contact__credit-link" href={BLOOM.credit.licenceHref} rel="noopener license">
+              {BLOOM.credit.licence}
+            </a>
+          </p>
+        )}
       </div>
     </footer>
   );

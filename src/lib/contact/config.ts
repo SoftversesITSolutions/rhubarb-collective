@@ -307,3 +307,66 @@ export const MAX_INLETS: Record<"desktop" | "tablet" | "mobile", number> = {
   tablet: 2,
   mobile: 1,
 };
+
+/* ------------------------------------------------------------------ *
+ * THE BLOOM — client note 8 (Sep 2026)
+ * ------------------------------------------------------------------ */
+
+/**
+ * "In this section we should use the 3D visual of the sunflower that we use
+ * as a brand element. With some animation; rotate it, swirl it through the
+ * scroll-down."
+ *
+ * The bundle holds no 3D sunflower — only a flat cutout photograph — so the
+ * model is "Sunflower" by Polygonal Miniatures on Sketchfab, a photoscan of a
+ * real flower head under CC BY 4.0, chosen by Akhil on 28 Sep 2026.
+ * Attribution is a condition of that licence, so the credit below is rendered
+ * wherever the bloom is.
+ *
+ * The turn is rendered ONCE, offline (`tools/sunflower-frames`), into a fixed
+ * run of frames: from the back of the head, through edge-on, to face-on. No 3D
+ * runtime ships with the site, and a frame index scrubbed against scroll is
+ * exactly reversible, which is the standard every reveal on the page meets.
+ */
+export const BLOOM = {
+  /** Frames in the run; the last is face-on and doubles as the still. */
+  frames: 41,
+  src: (i: number) => `/assets/brand/sunflower/turn-${String(i).padStart(2, "0")}.webp`,
+  /** Frame edge, px. Square, transparent. */
+  size: 1024,
+  alt: "A sunflower head, seen turning from behind to face the reader.",
+  /**
+   * Fraction of the frame's edge the flower spans. The network treats the disc
+   * inscribed in that span as the destination, so a strand that reaches it
+   * ends under the petals rather than beside them.
+   */
+  fill: 0.9,
+  credit: {
+    label: "Sunflower model",
+    title: "Sunflower",
+    modelHref: "https://sketchfab.com/3d-models/sunflower-569a71ccf4d94c1585c9573521fb998f",
+    author: "Polygonal Miniatures",
+    authorHref: "https://sketchfab.com/Polygonal_Miniatures",
+    licence: "CC BY 4.0",
+    licenceHref: "https://creativecommons.org/licenses/by/4.0/",
+  },
+} as const;
+
+/**
+ * How the bloom moves, as fractions of the section's scroll window and
+ * degrees. The turn (frame index) and the swirl (in-plane rotation) are two
+ * different axes: the frames carry the out-of-plane turn that only the model
+ * can give, and the swirl is a plain CSS rotation of the whole figure, which
+ * costs nothing and reverses for free.
+ */
+export const BLOOM_MOTION = {
+  /** The turn reaches face-on here and holds, so the face is settled before the routes are read. */
+  turnEnd: 0.62,
+  /** In-plane rotation at the start of the window, degrees, easing to 0 by `swirlEnd`. */
+  swirl: -75,
+  swirlEnd: 0.8,
+  /** Scale at the start of the window, easing to 1 by `swirlEnd`. */
+  scaleFrom: 0.84,
+  /** The figure fades up over the first stretch of the window. */
+  fadeEnd: 0.16,
+} as const;

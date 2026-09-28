@@ -20,6 +20,16 @@
  *   0.45 – 0.80   the routes emerge, in reading order
  *   0.72 – 0.95   the company details settle at the foot
  *
+ * THE BLOOM (client note 8) has a window of its own: from its slot entering
+ * at the foot of the viewport until the slot's lower edge reaches the upper
+ * half. It fades up, turns from the back of its head to face-on by 0.62 of
+ * that window and holds, while the whole figure swirls in from a rotation and
+ * a slight under-scale. Timing it from the slot rather than the section is
+ * what makes the whole turn visible on every tier — on the narrow ones the
+ * flower sits well below the section's top. The turn is a frame index and the
+ * swirl is a transform — both pure functions of scroll position, so it
+ * reverses like everything else.
+ *
  * The network runs on its own scrubbed timeline over a slightly wider window,
  * because growth has to be arriving before there is anything for a route to be
  * near. The anchor strand into a route is timed off its own node, so the
@@ -31,6 +41,8 @@
 
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { createBloomPlayer, type BloomPlayer } from "./bloom";
+import { BLOOM_MOTION } from "./config";
 
 export interface ContactAnimationOptions {
   root: HTMLElement;
@@ -54,7 +66,11 @@ export function createContactAnimation({
 }: ContactAnimationOptions): () => void {
   gsap.registerPlugin(ScrollTrigger);
 
+  let bloomPlayer: BloomPlayer | null = null;
+
   const ctx = gsap.context(() => {
+    const bloom = one<HTMLElement>(root, "[data-contact-bloom]");
+    const bloomSlot = one<HTMLElement>(root, "[data-contact-bloom-slot]");
     const marker = one<HTMLElement>(root, "[data-contact-marker]");
     const statementLines = all<HTMLElement>(root, "[data-contact-line]");
     const invitation = one<HTMLElement>(root, "[data-contact-invitation]");
@@ -81,6 +97,8 @@ export function createContactAnimation({
         ),
         { opacity: 1, y: 0 },
       );
+      // The still: face-on, unrotated, and no player — the frames never load.
+      if (bloom) gsap.set(bloom, { opacity: 1, rotate: 0, scale: 1 });
       root.dataset.contactState = "static";
       return;
     }
@@ -152,6 +170,51 @@ export function createContactAnimation({
           Math.min(0.94, Math.max(0, at * 0.8 - 0.02)),
         );
       });
+    }
+
+    /* =================================================================== *
+     * THE BLOOM — the turn and the swirl, over the slot's own window. The
+     * slot is the trigger because the figure inside it is transformed
+     * mid-scroll, and a window measured from a moving box would drift.
+     * =================================================================== */
+    if (bloom && bloomSlot) {
+      bloomPlayer = createBloomPlayer(root);
+      const turn = { t: 0 };
+      const bloomTl = gsap.timeline({
+        defaults: { ease: "none" },
+        scrollTrigger: {
+          trigger: bloomSlot,
+          start: "top bottom",
+          end: "bottom 45%",
+          scrub: 0.6,
+          invalidateOnRefresh: true,
+        },
+      });
+      bloomTl.to({}, { duration: 1 }, 0);
+
+      // The turn: back of the head → face-on, easing out so the last degrees
+      // settle rather than snap, then held for the rest of the window.
+      bloomTl.to(
+        turn,
+        {
+          t: 1,
+          duration: BLOOM_MOTION.turnEnd,
+          ease: "power2.out",
+          onUpdate: () => bloomPlayer?.draw(turn.t),
+        },
+        0,
+      );
+      bloomPlayer?.draw(0);
+
+      // The swirl: the whole figure rotates in and grows to size while it
+      // fades up. Transform only — the frames carry the other axis.
+      bloomTl.fromTo(
+        bloom,
+        { rotate: BLOOM_MOTION.swirl, scale: BLOOM_MOTION.scaleFrom },
+        { rotate: 0, scale: 1, duration: BLOOM_MOTION.swirlEnd, ease: "power2.out" },
+        0,
+      );
+      bloomTl.fromTo(bloom, { opacity: 0 }, { opacity: 1, duration: BLOOM_MOTION.fadeEnd }, 0);
     }
 
     /* =================================================================== *
@@ -231,5 +294,8 @@ export function createContactAnimation({
     ScrollTrigger.refresh();
   }, root);
 
-  return () => ctx.revert();
+  return () => {
+    bloomPlayer?.destroy();
+    ctx.revert();
+  };
 }

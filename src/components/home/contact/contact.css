@@ -20,7 +20,7 @@
    LAYERS
    1  background ........ the section itself
    2  network SVG ....... z-index 0, one field, never clipped to a route
-   3  routes ............ z-index 1
+   3  routes, bloom ..... z-index 1
    4  section type ...... z-index 2
    ========================================================================== */
 
@@ -50,6 +50,10 @@
 
 .contact[data-contact-state="idle"] [data-contact-rule] {
   transform: scaleX(0);
+}
+
+.contact[data-contact-state="idle"] [data-contact-bloom] {
+  opacity: 0;
 }
 
 .contact__network {
@@ -119,6 +123,54 @@
   line-height: 1.4;
   letter-spacing: 0.02em;
   color: var(--rh-cream-64);
+}
+
+/* --------------------------------------------------------------------------
+   The bloom — client note 8.
+
+   A square figure holding the pre-rendered turn (see lib/contact/bloom). Its
+   size is the one number the whole treatment hangs off: the frames scale to
+   it, the canvas is fitted to it, and the network reads the disc inscribed in
+   it as a destination. It sits ABOVE the network so a strand that reaches it
+   vanishes under the petals, and it is pointer-transparent because it is a
+   picture, not a control.
+
+   Narrow tiers give it a slot of its own under the invitation, right-aligned
+   so the column keeps its left rail; the wide tier lifts it into the empty
+   right of the opening (see the desktop block).
+   -------------------------------------------------------------------------- */
+.contact__bloom-slot {
+  --bloom: 56vw;
+  position: relative;
+  z-index: 1;
+  width: var(--bloom);
+  aspect-ratio: 1;
+  margin: clamp(2.5rem, 7vh, 4.5rem) 0 0 auto;
+  pointer-events: none;
+}
+
+.contact__bloom {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  margin: 0;
+  transform-origin: 50% 50%;
+  will-change: transform, opacity;
+}
+
+.contact__bloom-face,
+.contact__bloom-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* The still gives way to the canvas only once a frame has been drawn. Opacity
+   rather than display, so the image and its alt text stay in the tree. */
+.contact__bloom[data-bloom-ready="1"] .contact__bloom-face {
+  opacity: 0;
 }
 
 /* --------------------------------------------------------------------------
@@ -256,6 +308,31 @@
   color: var(--rh-cream-24);
 }
 
+/* The model's attribution: a licence condition, set at the GSTIN's weight —
+   present, legible, and the quietest thing on the page. */
+.contact__credit {
+  margin-block-start: clamp(1rem, 2.5vh, 1.5rem);
+  font-family: var(--font-body);
+  font-size: clamp(0.62rem, 0.75vw, 0.72rem);
+  line-height: 1.5;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--rh-cream-24);
+}
+
+.contact__credit-link {
+  color: var(--rh-cream-42);
+  text-decoration: none;
+  border-block-end: 1px solid var(--rh-cream-12);
+  transition: border-color 0.35s var(--ease-organic);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .contact__credit-link:hover {
+    border-block-end-color: var(--rh-cream-64);
+  }
+}
+
 /* ==========================================================================
    MOBILE — a single editorial column, read top to bottom:
    statement → invitation → email → business → phone → location → company.
@@ -341,6 +418,14 @@
     flex-direction: column;
     margin-block-start: 0;
   }
+
+  .contact__credit {
+    grid-column: 1 / -1;
+  }
+
+  .contact__bloom-slot {
+    --bloom: clamp(200px, 30vw, 300px);
+  }
 }
 
 /* ==========================================================================
@@ -356,6 +441,23 @@
 
   .contact__invitation {
     font-size: clamp(1.05rem, 1.5vw, 1.4rem);
+  }
+
+  /* The bloom takes the open right of the opening, hung a little below the
+     marker so it never meets the seam band above. The opening reserves the
+     bloom's height, so the routes below keep clear of it at any viewport
+     height; the statement's longest line ends well short of it at every width
+     from 1100px up (measured: 848px of 1440, 648px of 1100). */
+  .contact__opening {
+    min-height: calc(var(--bloom) + clamp(2rem, 4vh, 3rem));
+  }
+
+  .contact__bloom-slot {
+    --bloom: clamp(280px, 27.5vw, 400px);
+    position: absolute;
+    inset-block-start: clamp(2rem, 4vh, 3rem);
+    inset-inline-end: 0;
+    margin: 0;
   }
 
   .contact__field {
@@ -398,7 +500,8 @@
    REDUCED MOTION — nothing moves, everything is present and in normal flow.
    ========================================================================== */
 @media (prefers-reduced-motion: reduce) {
-  .contact-route__rule {
+  .contact-route__rule,
+  .contact__bloom {
     will-change: auto;
   }
 

@@ -1,0 +1,42 @@
+<!doctype html><meta charset="utf-8">
+<style>html,body{margin:0;background:transparent}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+const size = 1024;
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setSize(size, size); renderer.setClearColor(0x000000, 0); renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(30, 1, 0.01, 100);
+scene.add(new THREE.AmbientLight(0xffffff, 1));
+const gltf = await new GLTFLoader().loadAsync('/model/scene.gltf');
+const root = gltf.scene;
+const box = new THREE.Box3().setFromObject(root); const c = box.getCenter(new THREE.Vector3()); const s = box.getSize(new THREE.Vector3());
+root.position.sub(c);
+const pivot = new THREE.Group(); pivot.add(root); scene.add(pivot);
+const radius = s.length() / 2;
+const mats = []; root.traverse(o => { if (o.isMesh) mats.push({ name: o.material.name, type: o.material.type, map: !!o.material.map, side: o.material.side }); });
+window.modelInfo = { size: s.toArray(), center: c.toArray(), radius, mats };
+// optional model pre-rotation so the face looks at +Z (set once orientation is known)
+window.setModelRotation = (x, y, z) => { pivot.rotation.set(THREE.MathUtils.degToRad(x), THREE.MathUtils.degToRad(y), THREE.MathUtils.degToRad(z)); };
+window.renderView = (yaw, pitch, roll = 0, fov = 30, fit = 1.0, fmt = 'image/png', q = 0.9) => {
+  camera.fov = fov; camera.updateProjectionMatrix();
+  const dist = (radius * fit) / Math.sin(THREE.MathUtils.degToRad(fov / 2));
+  const y = THREE.MathUtils.degToRad(yaw), p = THREE.MathUtils.degToRad(pitch);
+  camera.position.set(dist * Math.sin(y) * Math.cos(p), dist * Math.sin(p), dist * Math.cos(y) * Math.cos(p));
+  camera.up.set(0, 1, 0); camera.lookAt(0, 0, 0); camera.rotateZ(THREE.MathUtils.degToRad(roll));
+  renderer.render(scene, camera);
+  return renderer.domElement.toDataURL(fmt, q);
+};
+window.contactSheet = async (items, cell = 512) => {
+  const cols = 3, rows = Math.ceil(items.length / cols);
+  const cv = document.createElement('canvas'); cv.width = cols * cell; cv.height = rows * cell; const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#050505'; ctx.fillRect(0, 0, cv.width, cv.height);
+  for (let i = 0; i < items.length; i++) { const im = new Image(); im.src = items[i].url; await im.decode(); const x = (i % cols) * cell, y = Math.floor(i / cols) * cell; ctx.drawImage(im, x, y, cell, cell); ctx.fillStyle = '#fff8bb'; ctx.font = '22px sans-serif'; ctx.fillText(items[i].label, x + 12, y + 30); }
+  return cv.toDataURL('image/png');
+};
+window.__setSize = (n) => renderer.setSize(n, n);
+window.ready = true;
+</script>

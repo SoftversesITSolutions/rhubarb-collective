@@ -90,6 +90,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             [data-contact-marker], [data-contact-invitation],
             [data-contact-meta], [data-contact-colophon] { opacity: 1 !important; }
             [data-contact-rule] { transform: none !important; }
+            [data-contact-bloom] { opacity: 1 !important; transform: none !important; }
             [data-contact-path], [data-contact-anchor] { stroke-dashoffset: 0 !important; }
             [data-contact-node], [data-contact-junction] { opacity: 1 !important; }
             [data-about-state] [data-about-reveal] {

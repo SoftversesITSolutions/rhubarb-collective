@@ -42,3 +42,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# staged copy of the sunflower model used by tools/sunflower-frames
+/tools/sunflower-frames/.stage
