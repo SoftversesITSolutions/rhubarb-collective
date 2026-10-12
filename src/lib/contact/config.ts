@@ -353,20 +353,26 @@ export const BLOOM = {
 } as const;
 
 /**
- * How the bloom moves, as fractions of the section's scroll window and
- * degrees. The turn (frame index) and the swirl (in-plane rotation) are two
- * different axes: the frames carry the out-of-plane turn that only the model
- * can give, and the swirl is a plain CSS rotation of the whole figure, which
- * costs nothing and reverses for free.
+ * How the bloom moves. One scroll window: it opens as the flower's origin box
+ * enters the viewport and closes when its resting slot reaches the middle of
+ * the screen, so every part of the motion happens while the flower is in view
+ * and it is settled before it can scroll away (client round 2, priority 8 —
+ * the first version eased out so hard that the turn was over while the flower
+ * was still a sliver at the foot of the screen).
+ *
+ * Three axes ride that window together. The frames carry the out-of-plane
+ * turn that only the model can give; the swirl is a plain rotation of the
+ * figure; and the travel carries it from origin to slot along a curve — across
+ * first, then down — which is what keeps it clear of the type on the way.
  */
 export const BLOOM_MOTION = {
-  /** The turn reaches face-on here and holds, so the face is settled before the routes are read. */
-  turnEnd: 0.62,
-  /** In-plane rotation at the start of the window, degrees, easing to 0 by `swirlEnd`. */
-  swirl: -75,
-  swirlEnd: 0.8,
-  /** Scale at the start of the window, easing to 1 by `swirlEnd`. */
-  scaleFrom: 0.84,
-  /** The figure fades up over the first stretch of the window. */
-  fadeEnd: 0.16,
+  /** In-plane rotation at the start of the window, degrees. */
+  swirl: -140,
+  /** The figure fades up over this first stretch of the window. */
+  fadeEnd: 0.1,
+  /** Eases of the travel. Different on each axis, which is what bends the path. */
+  // Swept against the measured type at 1100–1920 wide (Oct 2026): across
+  // quickly, down steadily is the pair that never touches a word.
+  easeX: "power2.out",
+  easeY: "none",
 } as const;

@@ -36,7 +36,7 @@ export function FirstGrowthContent({ annotations, anchored }: FirstGrowthContent
       <p className="fg-marker" data-fg="marker" data-fg-reveal="">
         <span className="fg-marker__index">01</span>
         <span className="fg-marker__rule" aria-hidden="true" />
-        <span className="fg-marker__label">Who we are</span>
+        <span className="fg-marker__label eyebrow-box">Who we are</span>
       </p>
 
       <h2 className="fg-statement" id="fg-heading">

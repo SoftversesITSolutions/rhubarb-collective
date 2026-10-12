@@ -173,7 +173,7 @@ export function CollectiveSection() {
         <p className="collective__marker" data-collective-marker="">
           <span className="collective__index">{COLLECTIVE_COPY.index}</span>
           <span className="collective__rule" aria-hidden="true" />
-          <span className="collective__label">{COLLECTIVE_COPY.marker}</span>
+          <span className="collective__label eyebrow-box">{COLLECTIVE_COPY.marker}</span>
         </p>
 
         <h2

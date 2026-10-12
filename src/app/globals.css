@@ -142,3 +142,29 @@ figure {
   white-space: nowrap;
   border: 0;
 }
+
+/* --------------------------------------------------------------------------
+   Section eyebrow — the label beside each section's index ("WHO WE ARE",
+   "SELECTED WORK", …) set in a cream box with black type (client round 2).
+   One rule for every section, so they cannot drift apart.
+
+   The element selectors are there for specificity: each section's own
+   stylesheet colours its label with a single class and loads after this one.
+   The negative block margin gives back exactly what the padding, the looser
+   line-height and the mobile size floor add, so no marker — and so no section, and no network
+   measured from one — changes height by a pixel.
+   -------------------------------------------------------------------------- */
+span.eyebrow-box,
+h2.eyebrow-box {
+  display: inline-block;
+  padding: 0.6em 0.58em 0.55em 0.8em; /* the right side already carries the tracking */
+  /* Box height is 2.35em; the marker's line was one eyebrow step tall. */
+  margin-block: calc((var(--step-eyebrow) - 2.35em) / 2);
+  background: var(--rh-cream);
+  color: var(--rh-black);
+  font-size: max(var(--step-eyebrow), 0.66rem);
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+}

@@ -80,6 +80,8 @@ export const CONTACT_COPY_SELECTOR = [
   ".contact__company",
   ".contact__address",
   ".contact__gstin",
+  ".contact__logo",
+  ".footer-subscribe",
 ].join(",");
 
 /* ------------------------------------------------------------------ *

@@ -12,12 +12,17 @@ import { BLOOM } from "@/lib/contact/config";
  * to show. The figure itself is what the section's timeline rotates and scales
  * — the swirl — so the frames never have to carry that axis.
  *
- * The slot around it is the figure's layout box and never moves: it is what
- * the network measures as a destination and what the scroll window is timed
- * from, so neither is ever a function of the transform they drive.
+ * The slot around it is the figure's layout box and never moves: it is where
+ * the flower comes to rest, what the network measures as a destination and
+ * what the scroll window closes on, so none of them is ever a function of the
+ * transform they drive. The origin is an empty box marking where the flower
+ * sets out from; the figure travels from one to the other with the scroll
+ * (see BLOOM_MOTION), and contact.css places both per tier.
  */
 export function ContactBloom() {
   return (
+    <>
+    <div className="contact__bloom-origin" data-contact-bloom-origin="" aria-hidden="true" />
     <div className="contact__bloom-slot" data-contact-bloom-slot="">
     <figure className="contact__bloom" data-contact-bloom="">
       <Image
@@ -33,5 +38,6 @@ export function ContactBloom() {
       <canvas className="contact__bloom-canvas" data-bloom-canvas="" aria-hidden="true" />
     </figure>
     </div>
+    </>
   );
 }

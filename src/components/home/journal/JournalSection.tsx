@@ -175,7 +175,7 @@ export function JournalSection() {
         <p className="journal__marker" data-journal-marker="">
           <span className="journal__index">{JOURNAL_COPY.index}</span>
           <span className="journal__rule" aria-hidden="true" />
-          <span className="journal__label">{JOURNAL_COPY.marker}</span>
+          <span className="journal__label eyebrow-box">{JOURNAL_COPY.marker}</span>
         </p>
 
         <h2 className="journal__heading" id="journal-heading" data-journal-lede="">

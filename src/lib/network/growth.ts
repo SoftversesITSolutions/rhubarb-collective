@@ -34,6 +34,8 @@ const SAMPLES = 10;
  * distance it covers. Below 1 so lateral runs keep up with the line.
  */
 const LATERAL_PACE = 0.5;
+/** The latest timeline position any strand may finish at. */
+const FINISH = 0.985;
 
 export interface Schedule {
   /** Timeline position (0..1) at which each sample along the strand is reached. */
@@ -72,10 +74,11 @@ function scheduleOf(
     times.push(i === 0 ? at : Math.max(times[i - 1] + minStep, at));
   }
   // A strand that would run past the end of the pass is squeezed to finish on it.
+  // (a little short of it: a scrubbed timeline only approaches its very end).
   const over = times[SAMPLES];
-  if (over > 1) {
-    const start = Math.min(times[0], 0.98);
-    const scale = (1 - start) / (over - start);
+  if (over > FINISH) {
+    const start = Math.min(times[0], FINISH - 0.02);
+    const scale = (FINISH - start) / (over - start);
     for (let i = 0; i <= SAMPLES; i++) times[i] = start + (times[i] - start) * scale;
   }
   return { times, points };

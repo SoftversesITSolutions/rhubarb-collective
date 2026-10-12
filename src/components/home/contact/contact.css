@@ -139,14 +139,30 @@
    so the column keeps its left rail; the wide tier lifts it into the empty
    right of the opening (see the desktop block).
    -------------------------------------------------------------------------- */
-.contact__bloom-slot {
+.contact__opening {
   --bloom: 56vw;
+}
+
+.contact__bloom-slot {
   position: relative;
   z-index: 1;
   width: var(--bloom);
   aspect-ratio: 1;
   margin: clamp(2.5rem, 7vh, 4.5rem) 0 0 auto;
   pointer-events: none;
+}
+
+/* Where the flower sets out from: an empty box, never painted. On the narrow
+   tiers it sits up and to the right of the slot, partly past the edge, so the
+   flower swings in and down into place. */
+.contact__bloom-origin {
+  position: absolute;
+  inset-block-end: calc(var(--bloom) * 0.5);
+  inset-inline-end: calc(var(--bloom) * -0.3);
+  width: calc(var(--bloom) * 0.7);
+  aspect-ratio: 1;
+  pointer-events: none;
+  visibility: hidden;
 }
 
 .contact__bloom {
@@ -272,6 +288,139 @@
   margin-block-start: clamp(5rem, 15vh, 9rem);
   padding-block-start: clamp(1.5rem, 4vh, 2.5rem);
   border-block-start: 1px solid var(--rh-cream-12);
+}
+
+/* The masthead: the logo and the subscription form, above the registered
+   entity. Stacked on narrow tiers, logo left and form right from 700px. */
+.contact__masthead {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.75rem, 5vh, 2.5rem);
+  margin-block-end: clamp(2.5rem, 7vh, 4rem);
+}
+
+.contact__logo {
+  display: block;
+  width: clamp(56px, 6vw, 84px);
+  height: auto;
+}
+
+.footer-subscribe {
+  width: 100%;
+  max-width: 30rem;
+}
+
+.footer-subscribe__label {
+  display: block;
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  line-height: 1.4;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--rh-cream-64);
+}
+
+.footer-subscribe__row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.75rem;
+  margin-block-start: 0.85rem;
+  border-block-end: 1px solid var(--rh-cream-42);
+  transition: border-color 0.35s var(--ease-organic);
+}
+
+.footer-subscribe__row:focus-within {
+  border-color: var(--rh-cream);
+}
+
+.footer-subscribe__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.7rem 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--rh-cream);
+  font-family: var(--font-body);
+  /* 16px floor: anything smaller makes iOS zoom the page on focus. */
+  font-size: max(1rem, 0.95vw);
+  line-height: 1.3;
+}
+
+.footer-subscribe__input::placeholder {
+  color: var(--rh-cream-24);
+}
+
+/* The row's hairline is the field's edge, so the ring sits on the row. */
+.footer-subscribe__input:focus-visible {
+  outline: none;
+}
+
+.footer-subscribe__row:has(.footer-subscribe__input:focus-visible) {
+  outline: 1px solid var(--rh-cream);
+  outline-offset: 4px;
+}
+
+.footer-subscribe__submit {
+  flex: 0 0 auto;
+  align-self: center;
+  min-height: 2.5rem;
+  padding: 0.55rem 1rem 0.5rem;
+  border: 1px solid var(--rh-cream);
+  border-radius: 0;
+  background: var(--rh-cream);
+  color: var(--rh-black);
+  font-family: var(--font-body);
+  font-size: var(--step-micro);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+  margin-block-end: 0.45rem;
+  transition:
+    background-color 0.35s var(--ease-organic),
+    color 0.35s var(--ease-organic);
+}
+
+.footer-subscribe__submit:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .footer-subscribe__submit:not(:disabled):hover {
+    background: transparent;
+    color: var(--rh-cream);
+  }
+}
+
+.footer-subscribe__status {
+  min-height: 1.5em;
+  margin-block-start: 0.7rem;
+  font-family: var(--font-body);
+  font-size: clamp(0.72rem, 0.9vw, 0.84rem);
+  line-height: 1.5;
+  color: var(--rh-cream-64);
+}
+
+.footer-subscribe__status[data-status="sent"] {
+  color: var(--rh-cream);
+}
+
+.footer-subscribe__fallback {
+  color: var(--rh-cream);
+  text-decoration: none;
+  border-block-end: 1px solid var(--rh-cream-42);
+}
+
+@media (min-width: 700px) {
+  .contact__masthead {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
 }
 
 .contact__company {
@@ -423,7 +572,7 @@
     grid-column: 1 / -1;
   }
 
-  .contact__bloom-slot {
+  .contact__opening {
     --bloom: clamp(200px, 30vw, 300px);
   }
 }
@@ -443,20 +592,27 @@
     font-size: clamp(1.05rem, 1.5vw, 1.4rem);
   }
 
-  /* The bloom takes the open right of the opening, hung a little below the
-     marker so it never meets the seam band above. The opening reserves the
-     bloom's height, so the routes below keep clear of it at any viewport
-     height; the statement's longest line ends well short of it at every width
-     from 1100px up (measured: 848px of 1440, 648px of 1100). */
+  /* The bloom sets out from the open right of the opening, hung a little
+     below the marker so it never meets the seam band above, and comes to rest
+     in the channel between the routes: left of the phone and location column,
+     right of where the two addresses end, level with the middle of the field.
+     Measured clear at 1100, 1440 and 1920 wide. `--bloom-rest-y` is the
+     field's centre, set by ContactRoutes; the fallback is a fair guess for
+     the first paint. */
   .contact__opening {
-    min-height: calc(var(--bloom) + clamp(2rem, 4vh, 3rem));
+    --bloom: clamp(210px, 21vw, 360px);
+  }
+
+  .contact__bloom-origin {
+    inset-block: clamp(2rem, 4vh, 3rem) auto;
+    inset-inline-end: 0;
+    width: calc(var(--bloom) * 0.62);
   }
 
   .contact__bloom-slot {
-    --bloom: clamp(280px, 27.5vw, 400px);
     position: absolute;
-    inset-block-start: clamp(2rem, 4vh, 3rem);
-    inset-inline-end: 0;
+    inset-block-start: calc(var(--bloom-rest-y, 36rem) - var(--bloom) / 2);
+    inset-inline-start: calc(53.3vw - var(--gutter) - var(--bloom) / 2);
     margin: 0;
   }
 

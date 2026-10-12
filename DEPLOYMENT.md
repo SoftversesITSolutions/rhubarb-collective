@@ -25,6 +25,8 @@ successful send) and offers a pre-filled `mailto:` fallback instead.
 | --- | --- |
 | `RHUBARB_ENQUIRY_ENDPOINT` | HTTPS URL that receives contact-form enquiries as a JSON POST (mail function, webhook, CRM inbound URL). See `.env.example` and `src/app/api/enquiry/route.ts`. |
 | `RHUBARB_ENQUIRY_TOKEN` | Optional. Sent as `Authorization: Bearer …` to that endpoint when set. |
+| `RHUBARB_SUBSCRIBE_ENDPOINT` | HTTPS URL that receives footer subscription addresses as a JSON POST. Unset, the footer form states that subscriptions are not open. See `src/app/api/subscribe/route.ts`. |
+| `RHUBARB_SUBSCRIBE_TOKEN` | Optional. Sent as `Authorization: Bearer …` to that endpoint when set. |
 
 Set them in Vercel under Project → Settings → Environment Variables. Never
 commit real values; `.env*` is gitignored (`.env.example` is the template).

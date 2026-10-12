@@ -41,6 +41,7 @@
 
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { layoutRect } from "@/lib/network/continuity";
 import { growNetwork } from "@/lib/network/growth";
 import { createBloomPlayer, type BloomPlayer } from "./bloom";
 import { BLOOM_MOTION } from "./config";
@@ -72,6 +73,7 @@ export function createContactAnimation({
   const ctx = gsap.context(() => {
     const bloom = one<HTMLElement>(root, "[data-contact-bloom]");
     const bloomSlot = one<HTMLElement>(root, "[data-contact-bloom-slot]");
+    const bloomOrigin = one<HTMLElement>(root, "[data-contact-bloom-origin]");
     const marker = one<HTMLElement>(root, "[data-contact-marker]");
     const statementLines = all<HTMLElement>(root, "[data-contact-line]");
     const invitation = one<HTMLElement>(root, "[data-contact-invitation]");
@@ -99,7 +101,7 @@ export function createContactAnimation({
         { opacity: 1, y: 0 },
       );
       // The still: face-on, unrotated, and no player — the frames never load.
-      if (bloom) gsap.set(bloom, { opacity: 1, rotate: 0, scale: 1 });
+      if (bloom) gsap.set(bloom, { opacity: 1, rotate: 0, scale: 1, x: 0, y: 0 });
       root.dataset.contactState = "static";
       return;
     }
@@ -125,45 +127,67 @@ export function createContactAnimation({
     }
 
     /* =================================================================== *
-     * THE BLOOM — the turn and the swirl, over the slot's own window. The
-     * slot is the trigger because the figure inside it is transformed
-     * mid-scroll, and a window measured from a moving box would drift.
+     * THE BLOOM — the turn, the swirl and the travel, over one window that
+     * opens as the flower's origin enters the screen and closes with its slot
+     * at mid-screen. Both boxes are plain layout — the figure is the only
+     * thing transformed — so the window never drifts with what it drives.
      * =================================================================== */
     if (bloom && bloomSlot) {
       bloomPlayer = createBloomPlayer(root);
+      const origin = bloomOrigin ?? bloomSlot;
+      // From the slot's centre to the origin's, and their size ratio.
+      const travel = () => {
+        const from = layoutRect(origin, root);
+        const to = layoutRect(bloomSlot, root);
+        return {
+          x: from.x + from.width / 2 - (to.x + to.width / 2),
+          y: from.y + from.height / 2 - (to.y + to.height / 2),
+          scale: to.width ? from.width / to.width : 1,
+        };
+      };
+
       const turn = { t: 0 };
       const bloomTl = gsap.timeline({
         defaults: { ease: "none" },
         scrollTrigger: {
-          trigger: bloomSlot,
+          trigger: origin,
           start: "top bottom",
-          end: "bottom 45%",
+          endTrigger: bloomSlot,
+          // Clamped: on a tall screen the page can end before the slot reaches
+          // mid-screen, and the flower must still arrive.
+          end: "clamp(center 50%)",
           scrub: 0.6,
           invalidateOnRefresh: true,
         },
       });
-      bloomTl.to({}, { duration: 1 }, 0);
 
-      // The turn: back of the head → face-on, easing out so the last degrees
-      // settle rather than snap, then held for the rest of the window.
+      // The turn: back of the head → face-on, across the whole window.
       bloomTl.to(
         turn,
-        {
-          t: 1,
-          duration: BLOOM_MOTION.turnEnd,
-          ease: "power2.out",
-          onUpdate: () => bloomPlayer?.draw(turn.t),
-        },
+        { t: 1, duration: 1, ease: "sine.inOut", onUpdate: () => bloomPlayer?.draw(turn.t) },
         0,
       );
       bloomPlayer?.draw(0);
 
-      // The swirl: the whole figure rotates in and grows to size while it
-      // fades up. Transform only — the frames carry the other axis.
+      // The travel, one axis per tween so the path curves.
       bloomTl.fromTo(
         bloom,
-        { rotate: BLOOM_MOTION.swirl, scale: BLOOM_MOTION.scaleFrom },
-        { rotate: 0, scale: 1, duration: BLOOM_MOTION.swirlEnd, ease: "power2.out" },
+        { x: () => travel().x },
+        { x: 0, duration: 1, ease: BLOOM_MOTION.easeX },
+        0,
+      );
+      bloomTl.fromTo(
+        bloom,
+        { y: () => travel().y },
+        { y: 0, duration: 1, ease: BLOOM_MOTION.easeY },
+        0,
+      );
+      // The swirl: it unwinds and grows to size the whole way down, settling
+      // gently rather than stopping.
+      bloomTl.fromTo(
+        bloom,
+        { rotate: BLOOM_MOTION.swirl, scale: () => travel().scale },
+        { rotate: 0, scale: 1, duration: 1, ease: "sine.out" },
         0,
       );
       bloomTl.fromTo(bloom, { opacity: 0 }, { opacity: 1, duration: BLOOM_MOTION.fadeEnd }, 0);

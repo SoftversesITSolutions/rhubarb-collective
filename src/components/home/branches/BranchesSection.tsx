@@ -120,7 +120,7 @@ export function BranchesSection() {
       <header className="branches__marker" data-branches-marker="">
         <span className="branches__index">03</span>
         <span className="branches__rule" aria-hidden="true" />
-        <h2 className="branches__title" id="branches-heading">
+        <h2 className="branches__title eyebrow-box" id="branches-heading">
           The branches
         </h2>
       </header>

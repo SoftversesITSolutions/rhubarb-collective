@@ -19,7 +19,10 @@ import {
   type ContactAnchoring,
 } from "@/lib/contact/network";
 import { createContactAnimation } from "@/lib/contact/animation";
+import Image from "next/image";
+import { HERO_LOGO } from "@/components/hero/HeroLogo";
 import { ContactBloom } from "./ContactBloom";
+import { FooterSubscribe } from "./FooterSubscribe";
 import { ContactNetwork } from "./ContactNetwork";
 import { ContactRoute } from "./ContactRoute";
 import "./contact.css";
@@ -108,6 +111,14 @@ export function ContactRoutes({ variant = "section" }: ContactRoutesProps = {}) 
     // strand ends under the petals — the same attachment-without-a-leader
     // rule every card and route on the page follows. The figure rotates and
     // scales mid-scroll, so what is measured is its slot: layout, never paint.
+    // On the wide tier the flower rests in the open channel between the
+    // routes, level with the middle of the field. The slot lives in the
+    // opening, so the field's centre is handed to the stylesheet from here.
+    const opening = root.querySelector<HTMLElement>(".contact__opening");
+    if (opening) {
+      const rest = field.offsetTop + field.offsetHeight / 2 - opening.offsetTop;
+      root.style.setProperty("--bloom-rest-y", `${Math.round(rest)}px`);
+    }
     const bloom = root.querySelector<HTMLElement>("[data-contact-bloom-slot]");
     if (bloom) {
       const box = layoutRect(bloom, root);
@@ -226,7 +237,7 @@ export function ContactRoutes({ variant = "section" }: ContactRoutesProps = {}) 
           <p className="contact__marker" data-contact-marker="">
             <span className="contact__index">{CONTACT_COPY.index}</span>
             <span className="contact__rule" aria-hidden="true" />
-            <span className="contact__label">{CONTACT_COPY.marker}</span>
+            <span className="contact__label eyebrow-box">{CONTACT_COPY.marker}</span>
           </p>
 
           {/* The client's closing statement, and the largest type on the page
@@ -266,8 +277,21 @@ export function ContactRoutes({ variant = "section" }: ContactRoutesProps = {}) 
 
       {/* Layer 3 — the registered entity. Supporting information at the foot of
           the ecosystem: the quietest type in the section, and the GSTIN quieter
-          again. No sitemap, no newsletter, no social row, no cookie banner. */}
+          again. Above it, the masthead: the logo and the subscription form
+          (client round 2). No sitemap, no social row, no cookie banner. */}
       <div className="contact__colophon">
+        <div className="contact__masthead" data-contact-colophon="">
+          <Image
+            className="contact__logo"
+            src={HERO_LOGO.src}
+            width={HERO_LOGO.width}
+            height={HERO_LOGO.height}
+            alt="Rhubarb Collective"
+            sizes="96px"
+          />
+          <FooterSubscribe />
+        </div>
+
         <p className="contact__company" data-contact-colophon="">
           {CONTACT_COLOPHON.company}
         </p>

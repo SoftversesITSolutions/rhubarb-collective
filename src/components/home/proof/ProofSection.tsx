@@ -162,7 +162,7 @@ export function ProofSection() {
         <p className="proof__marker" data-proof-marker="">
           <span className="proof__index">{PROOF_COPY.index}</span>
           <span className="proof__rule" aria-hidden="true" />
-          <span className="proof__label">{PROOF_COPY.marker}</span>
+          <span className="proof__label eyebrow-box">{PROOF_COPY.marker}</span>
         </p>
 
         <h2 className="proof__heading" id="proof-heading" data-proof-lede="">

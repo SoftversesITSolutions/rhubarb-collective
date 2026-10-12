@@ -114,7 +114,7 @@ export function WorkSection() {
       <header className="work__marker" data-work-marker="">
         <span className="work__index">02</span>
         <span className="work__rule" aria-hidden="true" />
-        <h2 className="work__title" id="work-heading">
+        <h2 className="work__title eyebrow-box" id="work-heading">
           Selected work
         </h2>
       </header>
