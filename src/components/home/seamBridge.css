@@ -53,6 +53,13 @@
   opacity: 0.58;
 }
 
+/* A cut-out specimen: whole, with a little air, at full strength. */
+.seam__artwork[data-specimen-still] img {
+  object-fit: contain;
+  padding: 6%;
+  opacity: 1;
+}
+
 /* A reserved frame, when no artwork has been supplied for a seam. */
 .seam__artwork--reserved {
   border-style: dashed;

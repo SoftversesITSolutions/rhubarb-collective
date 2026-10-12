@@ -9,6 +9,8 @@ import { ContactRoutes } from "@/components/home/contact/ContactRoutes";
 import { SeamBridge } from "@/components/home/SeamBridge";
 import { GlobalMenu } from "@/components/navigation/GlobalMenu";
 import { NetworkTouch } from "@/components/home/NetworkTouch";
+import { SpecimenField } from "@/components/home/SpecimenField";
+import { SPECIMEN_CREDITS } from "@/lib/specimens/config";
 
 export default function Home() {
   return (
@@ -23,6 +25,9 @@ export default function Home() {
 
       {/* Wakes the network's nodes beside whatever is pointed at or tapped. */}
       <NetworkTouch />
+
+      {/* Plants the 3D flowers and mushrooms into the sections' open space. */}
+      <SpecimenField />
 
       {/*
         Between every pair of sections sits a seam bridge (lib/seam/bridge):
@@ -53,7 +58,7 @@ export default function Home() {
         document. There is no second footer component underneath it.
       */}
       <SeamBridge id="journal-contact" />
-      <ContactRoutes />
+      <ContactRoutes credits={SPECIMEN_CREDITS} />
     </>
   );
 }

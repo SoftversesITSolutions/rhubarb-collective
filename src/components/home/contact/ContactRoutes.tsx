@@ -21,6 +21,7 @@ import {
 import { createContactAnimation } from "@/lib/contact/animation";
 import Image from "next/image";
 import { HERO_LOGO } from "@/components/hero/HeroLogo";
+import { SPECIMEN_LICENCE, type Specimen } from "@/lib/specimens/config";
 import { ContactBloom } from "./ContactBloom";
 import { FooterSubscribe } from "./FooterSubscribe";
 import { ContactNetwork } from "./ContactNetwork";
@@ -51,6 +52,12 @@ export type ContactVariant = "section" | "colophon";
 
 interface ContactRoutesProps {
   variant?: ContactVariant;
+  /**
+   * Credits for third-party models shown elsewhere on the same page (the
+   * homepage's specimens). A licence condition, so the page that shows them
+   * passes them here to be printed with the sunflower's.
+   */
+  credits?: readonly Specimen[];
 }
 
 /**
@@ -78,7 +85,7 @@ interface ContactRoutesProps {
  * Every reveal is scrubbed against scroll position, so the way up is the exact
  * inverse of the way down.
  */
-export function ContactRoutes({ variant = "section" }: ContactRoutesProps = {}) {
+export function ContactRoutes({ variant = "section", credits }: ContactRoutesProps = {}) {
   const rootRef = useRef<HTMLElement>(null);
   const fieldRef = useRef<HTMLDivElement>(null);
   const { tier, reducedMotion } = useViewport();
@@ -324,6 +331,29 @@ export function ContactRoutes({ variant = "section" }: ContactRoutesProps = {}) 
             <span>, </span>
             <a className="contact__credit-link" href={BLOOM.credit.licenceHref} rel="noopener license">
               {BLOOM.credit.licence}
+            </a>
+          </p>
+        )}
+
+        {credits && credits.length > 0 && (
+          <p className="contact__credit" data-contact-colophon="">
+            <span>3D models: </span>
+            {credits.map((specimen, i) => (
+              <span key={specimen.id}>
+                {i > 0 && "; "}
+                <a className="contact__credit-link" href={specimen.credit.href} rel="noopener">
+                  “{specimen.credit.title}”
+                </a>
+                <span> by {specimen.credit.author}</span>
+              </span>
+            ))}
+            <span>. All </span>
+            <a
+              className="contact__credit-link"
+              href={SPECIMEN_LICENCE.href}
+              rel="noopener license"
+            >
+              {SPECIMEN_LICENCE.label}
             </a>
           </p>
         )}

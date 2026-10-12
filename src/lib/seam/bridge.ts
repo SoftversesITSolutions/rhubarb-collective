@@ -29,6 +29,11 @@ export interface SeamArtwork {
   alt: string;
   width: number;
   height: number;
+  /**
+   * A cut-out object rather than a picture: shown whole inside the frame and
+   * at full strength, instead of cropped to fill it and knocked back.
+   */
+  specimen?: boolean;
 }
 
 export interface SeamConfig {
@@ -37,7 +42,12 @@ export interface SeamConfig {
   lower: string;
   /** Selector of that section's marker line, resolved inside it. */
   marker: string;
-  /** Rhubarb's own brand artwork riding the band, or null for a reserved frame. */
+  /**
+   * The artwork that rode the band. NOT RENDERED since Oct 2026: the client
+   * found a picture at the right of every section's opening awkward and asked
+   * for it gone (see SeamBridge). The entries are kept so the frames can come
+   * back, or move, without re-sourcing them.
+   */
   artwork: SeamArtwork | null;
 }
 
@@ -107,11 +117,17 @@ export const SEAMS: readonly SeamConfig[] = [
     id: "journal-contact",
     lower: ".contact",
     marker: "[data-contact-marker]",
-    // Reserved. The bundle holds no sixth artwork that is not already used
-    // above (the polaroid mockup is the brand board again) or spoken for
-    // (the sunflower belongs to the contact section, note 8), so this frame
-    // waits for the client's own piece rather than repeating one.
-    artwork: null,
+    // The bundle holds no sixth artwork that is not already used above or
+    // spoken for, so this frame was reserved until the client sent the 3D
+    // specimens (round 2): it carries one of them as a still — a model that
+    // is credited in the footer with the rest (lib/specimens/config).
+    artwork: {
+      src: "/assets/brand/specimens/amanita/t-12.webp",
+      alt: "A slender mushroom with a flat orange cap.",
+      width: 560,
+      height: 560,
+      specimen: true,
+    },
   },
 ];
 
@@ -238,7 +254,8 @@ export function bridgeField(input: BridgeInput): RidgeField {
     noiseAmplitude: 4,
     noiseWavelength: 380,
     width: input.stroke,
-    opacity: 0.55,
+    // Under half its first strength (it was 0.55), with section 01's field.
+    opacity: 0.26,
     fadeRadius: 34,
     typePad: 14,
     blur: 12,

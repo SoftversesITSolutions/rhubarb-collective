@@ -1,0 +1,28 @@
+/* ==========================================================================
+   SPECIMENS — the 3D flowers and mushrooms in the open space of the homepage
+   (client round 2). Planted and positioned by SpecimenField; this file only
+   says what one is: a square, above the network, never in the way.
+   ========================================================================== */
+.specimen {
+  position: absolute;
+  z-index: 1;
+  aspect-ratio: 1;
+  pointer-events: none;
+}
+
+.specimen[hidden] {
+  display: none;
+}
+
+.specimen__figure {
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.specimen__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}

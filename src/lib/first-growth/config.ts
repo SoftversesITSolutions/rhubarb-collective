@@ -388,7 +388,9 @@ export const RIDGE_OPTIONS: Record<Tier, Omit<RidgeOptions, "crests">> = {
     noiseWavelength: 420,
     // 0.9 CSS px at 1440 (1600-unit field).
     width: 1,
-    opacity: 0.6,
+    // Under half its first strength (it was 0.6): the client asked for the
+    // wave field at 45–50% of what it was (Oct 2026).
+    opacity: 0.28,
     fadeRadius: 26,
     typePad: 18,
     blur: 14,
@@ -407,7 +409,9 @@ export const RIDGE_OPTIONS: Record<Tier, Omit<RidgeOptions, "crests">> = {
     noiseAmplitude: 5,
     noiseWavelength: 360,
     width: 1.2,
-    opacity: 0.6,
+    // Under half its first strength (it was 0.6): the client asked for the
+    // wave field at 45–50% of what it was (Oct 2026).
+    opacity: 0.28,
     fadeRadius: 24,
     typePad: 16,
     blur: 12,
@@ -426,7 +430,9 @@ export const RIDGE_OPTIONS: Record<Tier, Omit<RidgeOptions, "crests">> = {
     noiseAmplitude: 5,
     noiseWavelength: 300,
     width: 1.45,
-    opacity: 0.45,
+    // Under half its first strength (it was 0.45): the client asked for the
+    // wave field at 45–50% of what it was (Oct 2026).
+    opacity: 0.21,
     fadeRadius: 20,
     typePad: 14,
     blur: 10,

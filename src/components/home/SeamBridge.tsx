@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -274,21 +273,12 @@ export function SeamBridge({ id }: SeamBridgeProps) {
     <div ref={rootRef} className="seam" data-seam={seam.id} aria-hidden="true">
       <div className="seam__band" data-seam-band="">
         <svg className="seam__ridges" data-seam-ridges="" focusable="false" />
-        {seam.artwork ? (
-          <figure className="seam__artwork" data-seam-artwork="">
-            <Image
-              src={seam.artwork.src}
-              alt={seam.artwork.alt}
-              width={seam.artwork.width}
-              height={seam.artwork.height}
-              // The frame is sized from the band (68% of its height, 4:3), which
-              // works out near these widths on each tier.
-              sizes="(max-width: 699px) 55vw, (max-width: 1099px) 42vw, 24vw"
-            />
-          </figure>
-        ) : (
-          <figure className="seam__artwork seam__artwork--reserved" data-seam-artwork="" />
-        )}
+        {/*
+          No artwork frame: the client asked for the picture at the right of
+          each section's opening to go (Oct 2026). The band is the ridges and
+          the marker's crest only; everything below that looks for
+          `[data-seam-artwork]` simply finds nothing.
+        */}
       </div>
     </div>
   );
