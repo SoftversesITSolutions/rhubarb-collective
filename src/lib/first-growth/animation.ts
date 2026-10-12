@@ -12,16 +12,16 @@
  *     the stage for exactly that stretch, coming toward the reader as the
  *     hero's black lifts. Nothing below it moves: the overlap equals the hold
  *     plus the hero's extra pin.
- *   • One scrubbed trigger drives the network across the section's own pass
- *     through the viewport, starting as it is revealed.
+ *   • One scrubbed trigger drives the network across the section's own pass,
+ *     timed from the page's shared growth line (lib/network/growth): the
+ *     first screen grows as it is revealed, the rest as the scroll reaches it.
  *   • Copy arrives on its own entrance triggers, unscrubbed, so reading is
  *     never tied to scroll velocity.
- *   • There are no ambient loops at all.
+ *   • At rest the primaries carry the page's shared slow pulse (lib/network/life).
  *
  * Motion is split by role, which is what keeps this from being the hero again:
- *   arriving strands  — stroke draw, because they genuinely continue from above
- *   the rest          — resolve in place, because they are already there
- *   the ridgelines    — resolve line by line as the spine reaches them, then a
+ *   the strands       — stroke draw, tips riding the growth line
+ *   the ridgelines    — resolve line by line as the line reaches them, then a
  *                       swell travels down the stack with scroll (the pulsar's
  *                       ripple), scrubbed and reversible
  *   the Work strand   — takes over at the end as the route onward
@@ -33,6 +33,14 @@ import { DIVE, DIVE_LENGTH, type Tier } from "@/lib/hero/config";
 import type { OrganicNetwork } from "@/lib/hero/network";
 import { FG_BEATS } from "./config";
 import { ridgePath, swell, type RidgeField } from "./ridgelines";
+import {
+  GROWTH_LINE,
+  centreOf,
+  drawStrand,
+  timeNear,
+  type Schedule,
+} from "@/lib/network/growth";
+import { enliven } from "@/lib/network/life";
 
 export interface FirstGrowthAnimationOptions {
   root: HTMLElement;
@@ -43,10 +51,6 @@ export interface FirstGrowthAnimationOptions {
 }
 
 type Beat = { readonly start: number; readonly end: number };
-
-function onBeat(value: number, beat: Beat): number {
-  return beat.start + value * (beat.end - beat.start);
-}
 
 function span(beat: Beat): number {
   return beat.end - beat.start;
@@ -70,8 +74,6 @@ export function createFirstGrowthAnimation({
 
   const ctx = gsap.context(() => {
     const branches = all<SVGPathElement>(root, "[data-fg-branch]");
-    const arriving = branches.filter((el) => el.dataset.depth === "0");
-    const settling = branches.filter((el) => el.dataset.depth !== "0");
     const nodes = all<SVGGElement>(root, "[data-fg-node]");
     const connections = all<SVGPathElement>(root, "[data-fg-connection]");
     const leaders = all<SVGLineElement>(root, "[data-fg-leader]");
@@ -144,10 +146,26 @@ export function createFirstGrowthAnimation({
     // is timed from the lift rather than from the section's layout position.
     const revealAt = () => rootTop() + DIVE.lift.start * DIVE_LENGTH * window.innerHeight;
     const releaseAt = () => rootTop() + DIVE_LENGTH * window.innerHeight;
-    const footAt = () => releaseAt() + root.offsetHeight - window.innerHeight;
+    const lineAtFoot = () =>
+      releaseAt() + root.offsetHeight - GROWTH_LINE * window.innerHeight;
+
+    // Timeline position at which the growth line reaches a depth of the field.
+    // During the hold the section is still, so the first screen down to the
+    // line grows across the lift; past it, time is scroll.
+    const perPx = root.offsetHeight / network.height;
+    const linePx = GROWTH_LINE * vh;
+    const revealPx = DIVE.lift.start * dive;
+    const passPx = Math.max(1, dive + root.offsetHeight - linePx - revealPx);
+    const landed = (dive - revealPx) / passPx;
+    const depthTime = (y: number) => {
+      const px = y * perPx;
+      return px <= linePx
+        ? 0.02 + (px / linePx) * (landed - 0.02)
+        : (dive + px - linePx - revealPx) / passPx;
+    };
+    const perUnit = perPx / passPx;
 
     /* ---- initial state ---- */
-    gsap.set(settling, { opacity: 0 });
     gsap.set(nodes, { scale: 0, opacity: 0, transformOrigin: "50% 50%" });
     gsap.set(ridgePaths, { opacity: 0 });
     gsap.set(ridgeNodes, { scale: 0, opacity: 0, transformOrigin: "50% 50%" });
@@ -171,45 +189,49 @@ export function createFirstGrowthAnimation({
         trigger: root,
         // From the moment the hero's black starts to lift off this section…
         start: revealAt,
-        // …to the section's foot reaching the foot of the viewport, so the
-        // handoff is on screen when it happens rather than already gone.
-        end: footAt,
+        // …to the section's foot reaching the growth line, where the next
+        // section's inlets take the strands on.
+        end: lineAtFoot,
         scrub: 1,
         invalidateOnRefresh: true,
       },
     });
     tl.to({}, { duration: 1 }, 0);
 
-    /* --- strands arriving from the hero ------------------------------- */
-    // The trunks are literally the hero's descenders continuing, so they draw.
-    // Their first run carries the eye across the seam.
-    arriving.forEach((el) => {
-      const start = onBeat(Number(el.dataset.start), FG_BEATS.arrival);
-      const duration = Math.max(0.02, Number(el.dataset.duration) * span(FG_BEATS.arrival));
-      tl.to(el, { strokeDashoffset: 0, duration, ease: "power1.out" }, start);
+    /* --- growth along the line ---------------------------------------- */
+    // Every strand draws as the page's growth line (lib/network/growth)
+    // reaches it. What the landing shows — the first screen down to the line —
+    // grows while the hero's black lifts; everything deeper waits for the
+    // scroll to carry the line to it, so nothing is drawn ahead of the reader.
+    const schedules = new Map<SVGPathElement, Schedule>();
+    branches.forEach((el) => {
+      const schedule = drawStrand(tl, el, depthTime, perUnit);
+      if (schedule) schedules.set(el, schedule);
     });
-
-    // Everything downstream resolves in place instead of re-performing growth.
-    settling.forEach((el) => {
-      const start = onBeat(Number(el.dataset.start), FG_BEATS.arrival);
-      tl.to(el, { opacity: 1, duration: 0.09, ease: "power1.out" }, start);
-    });
+    enliven(root, branches);
 
     nodes.forEach((el) => {
-      const at = onBeat(Number(el.dataset.at), FG_BEATS.arrival);
-      tl.to(el, { scale: 1, opacity: 1, duration: 0.05, ease: "power2.out" }, at);
+      const centre = centreOf(el);
+      const path = el.parentElement?.querySelector<SVGPathElement>("[data-fg-branch]");
+      const schedule = path ? schedules.get(path) : undefined;
+      const at =
+        schedule && centre
+          ? timeNear(schedule, centre.x, centre.y)
+          : depthTime(centre?.y ?? 0);
+      tl.to(el, { scale: 1, opacity: 1, duration: 0.04, ease: "power2.out" }, Math.min(0.97, at));
     });
 
     /* --- the ridgelines ------------------------------------------------ */
     // Each line resolves as the spine's arrival reaches its depth, top to
     // bottom; the crest nodes land with their line.
     ridgePaths.forEach((el) => {
-      const at = onBeat(Number(el.dataset.at), FG_BEATS.arrival);
-      tl.to(el, { opacity: 1, duration: 0.07, ease: "power1.out" }, at);
+      const ridge = ridges?.ridges[Number(el.dataset.index)];
+      const at = Math.min(0.96, depthTime(ridge?.baseY ?? 0));
+      tl.to(el, { opacity: 1, duration: 0.05, ease: "power1.out" }, at);
     });
     ridgeNodes.forEach((el) => {
-      const at = onBeat(Number(el.dataset.at), FG_BEATS.arrival) + 0.03;
-      tl.to(el, { scale: 1, opacity: 1, duration: 0.05, ease: "power2.out" }, at);
+      const at = Math.min(0.96, depthTime(centreOf(el)?.y ?? 0) + 0.015);
+      tl.to(el, { scale: 1, opacity: 1, duration: 0.04, ease: "power2.out" }, at);
     });
 
     // The ripple: one swell travels down the stack across the whole pass. It
@@ -234,9 +256,19 @@ export function createFirstGrowthAnimation({
     // The chord draws between two nodes, and as it lands both of its ends gain
     // weight. That pairing is the whole point — a link is only meaningful
     // because of what it joins.
+    // A chord waits for the line to pass its lower end, so both of the nodes
+    // it joins are already there.
+    const lowerEnd = (el: SVGGraphicsElement) => {
+      try {
+        const box = el.getBBox();
+        return box.y + box.height;
+      } catch {
+        return 0;
+      }
+    };
     connections.forEach((el) => {
-      const at = onBeat(Number(el.dataset.at), FG_BEATS.connect);
-      const duration = span(FG_BEATS.connect) * 0.16;
+      const duration = 0.05;
+      const at = Math.min(0.92, depthTime(lowerEnd(el)));
       tl.to(el, { strokeDashoffset: 0, duration, ease: "power2.inOut" }, at);
 
       const ends = [el.dataset.from, el.dataset.to]
@@ -252,12 +284,8 @@ export function createFirstGrowthAnimation({
     });
 
     leaders.forEach((el) => {
-      const at = onBeat(Number(el.dataset.at) * 0.8 + 0.15, FG_BEATS.connect);
-      tl.to(
-        el,
-        { strokeDashoffset: 0, duration: span(FG_BEATS.connect) * 0.12, ease: "power2.out" },
-        at,
-      );
+      const at = Math.min(0.94, depthTime(lowerEnd(el)) + 0.01);
+      tl.to(el, { strokeDashoffset: 0, duration: 0.04, ease: "power2.out" }, at);
     });
 
     // A very small settle on the whole field — enough to feel alive under

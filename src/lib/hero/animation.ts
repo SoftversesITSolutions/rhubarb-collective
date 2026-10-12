@@ -29,6 +29,7 @@
 
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { enliven } from "@/lib/network/life";
 import {
   BEATS,
   DIVE,
@@ -372,6 +373,8 @@ export function createHeroAnimation({
       const duration = Math.max(0.01, Number(el.dataset.duration) * span(BEATS.growth));
       tl.to(el, { strokeDashoffset: 0, duration, ease: "power1.out" }, start);
     });
+    // The same resting pulse the rest of the page carries (lib/network/life).
+    enliven(root, branches);
 
     nodes.forEach((el) => {
       const at = onBeat(Number(el.dataset.at), BEATS.growth);

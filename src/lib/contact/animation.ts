@@ -41,6 +41,7 @@
 
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { growNetwork } from "@/lib/network/growth";
 import { createBloomPlayer, type BloomPlayer } from "./bloom";
 import { BLOOM_MOTION } from "./config";
 
@@ -107,8 +108,8 @@ export function createContactAnimation({
 
     /* =================================================================== *
      * THE NETWORK — the last continuation. Genuine path growth: each strand
-     * draws along its own length in the generator's own order, so growth
-     * propagates outward from the Section 7 inlets rather than the whole SVG
+     * draws along its own length as the page's growth line reaches it, so
+     * growth runs on from the Section 7 inlets rather than the whole SVG
      * fading up.
      * =================================================================== */
     if (paths.length) {
@@ -118,58 +119,9 @@ export function createContactAnimation({
         transformOrigin: "50% 50%",
       });
 
-      const netTl = gsap.timeline({
-        defaults: { ease: "none" },
-        scrollTrigger: {
-          trigger: root,
-          start: "top bottom",
-          // This is the last section on the page, so the window has to close on
-          // the document's own end rather than on a following element.
-          end: "bottom bottom",
-          scrub: 1,
-          invalidateOnRefresh: true,
-        },
-      });
-      netTl.to({}, { duration: 1 }, 0);
-
-      paths.forEach((path) => {
-        const start = Number(path.dataset.start) || 0;
-        const duration = Math.max(0.02, Number(path.dataset.duration) || 0.05);
-        netTl.to(path, { strokeDashoffset: 0, duration, ease: "power1.out" }, start * 0.8);
-      });
-
-      nodeMarks.forEach((node) => {
-        const group = node.closest("[data-contact-group]");
-        const path = group?.querySelector<SVGPathElement>("[data-contact-path]");
-        const at =
-          (Number(path?.dataset.start) || 0) + (Number(path?.dataset.duration) || 0);
-        netTl.to(
-          node,
-          { opacity: 1, scale: 1, duration: 0.04, ease: "power2.out" },
-          Math.min(0.96, at * 0.8),
-        );
-      });
-
-      // The reach into a route, timed off the node it leaves from.
-      anchors.forEach((anchor) => {
-        const at = Number(anchor.dataset.at) || 0;
-        netTl.to(
-          anchor,
-          { strokeDashoffset: 0, duration: 0.05, ease: "power1.out" },
-          Math.min(0.95, at * 0.8),
-        );
-      });
-
-      // The meeting points. Marked a beat before the strand leaves them, so the
-      // junction reads as the thing the growth resolved into.
-      junctions.forEach((junction) => {
-        const at = Number(junction.dataset.at) || 0;
-        netTl.to(
-          junction,
-          { opacity: 1, scale: 1, duration: 0.05, ease: "power2.out" },
-          Math.min(0.94, Math.max(0, at * 0.8 - 0.02)),
-        );
-      });
+      // Drawn along the page's shared growth line (lib/network/growth), so the
+      // tips are on screen while they grow and the seam above hands over in step.
+      growNetwork({ root, strands: paths, reaches: anchors, marks: nodeMarks, junctions, last: true });
     }
 
     /* =================================================================== *

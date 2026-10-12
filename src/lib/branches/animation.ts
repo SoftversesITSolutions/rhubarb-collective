@@ -14,12 +14,14 @@
  *   progress 1    →  settled
  *
  * Ordering is expressed through trigger windows rather than one long stagger:
- * the network's window opens first, so branches arrive ahead of the cards they
- * reach, and that ordering reverses for free on the way back up.
+ * the cards resolve as they enter and the network grows through them on the
+ * page's shared growth line (lib/network/growth); all of it reverses for free
+ * on the way back up.
  */
 
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { growNetwork } from "@/lib/network/growth";
 
 export interface BranchesAnimationOptions {
   root: HTMLElement;
@@ -75,42 +77,9 @@ export function createBranchesAnimation({
     if (branches.length) {
       gsap.set(nodeMarks, { opacity: 0, scale: 0, transformOrigin: "50% 50%" });
 
-      const netTl = gsap.timeline({
-        defaults: { ease: "none" },
-        scrollTrigger: {
-          trigger: root,
-          start: "top bottom",
-          end: "bottom 88%",
-          scrub: 1,
-          invalidateOnRefresh: true,
-        },
-      });
-      netTl.to({}, { duration: 1 }, 0);
-
-      // Each strand keeps the generator's own ordering, so growth propagates
-      // outward from the Section 3 inlets rather than appearing at once — and
-      // unwinds in that same order on the way back up.
-      branches.forEach((branch) => {
-        const start = Number(branch.dataset.start) || 0;
-        const duration = Math.max(0.02, Number(branch.dataset.duration) || 0.05);
-        netTl.to(
-          branch,
-          { strokeDashoffset: 0, duration, ease: "power1.out" },
-          start * 0.84,
-        );
-      });
-
-      nodeMarks.forEach((node) => {
-        const group = node.closest("[data-branch-group]");
-        const path = group?.querySelector<SVGPathElement>("[data-branch-path]");
-        const at =
-          (Number(path?.dataset.start) || 0) + (Number(path?.dataset.duration) || 0);
-        netTl.to(
-          node,
-          { opacity: 1, scale: 1, duration: 0.04, ease: "power2.out" },
-          Math.min(0.96, at * 0.84),
-        );
-      });
+      // Drawn along the page's shared growth line (lib/network/growth), so the
+      // tips are on screen while they grow and the seam above hands over in step.
+      growNetwork({ root, strands: branches, marks: nodeMarks });
     }
 
     /* ---- section marker ---- */

@@ -14,15 +14,17 @@
  *   progress 1    →  settled
  *
  * The hierarchy is preserved by giving each element its own trigger window
- * rather than by staggering one timeline — the network's window opens before the
- * first piece's, so growth arrives ahead of the work, and that ordering reverses
- * on the way back up for free.
+ * rather than by staggering one timeline — the pieces resolve as they enter and
+ * the network grows through them on the page's shared growth line
+ * (lib/network/growth), and all of it reverses on the way back up for free.
  *
- * Nothing loops, nothing is pinned, nothing floats.
+ * Nothing is pinned and nothing floats; the only loop is the network's shared
+ * resting pulse (lib/network/life).
  */
 
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { growNetwork } from "@/lib/network/growth";
 
 export interface WorkAnimationOptions {
   root: HTMLElement;
@@ -73,48 +75,16 @@ export function createWorkAnimation({
     /* =================================================================== *
      * THE NETWORK — grows in as the section arrives, retreats as it leaves
      *
-     * One scrubbed timeline over the section's own pass. Each branch keeps the
-     * generator's ordering, so growth propagates outward from the Section 2
-     * inlets rather than appearing at once — and unwinds in the same order.
+     * One scrubbed timeline over the section's own pass. Each branch draws as
+     * the page's growth line reaches it, so growth runs on from the Section 2
+     * inlets in view of the reader — and unwinds the same way.
      * =================================================================== */
     if (branches.length) {
       gsap.set(nodeMarks, { opacity: 0, scale: 0, transformOrigin: "50% 50%" });
 
-      const netTl = gsap.timeline({
-        defaults: { ease: "none" },
-        scrollTrigger: {
-          trigger: root,
-          start: "top bottom",
-          // Completes before the foot, so the field is established while the
-          // work is being read rather than still drawing underneath it.
-          end: "bottom 90%",
-          scrub: 1,
-          invalidateOnRefresh: true,
-        },
-      });
-      netTl.to({}, { duration: 1 }, 0);
-
-      branches.forEach((branch) => {
-        const start = Number(branch.dataset.start) || 0;
-        const duration = Math.max(0.02, Number(branch.dataset.duration) || 0.05);
-        netTl.to(
-          branch,
-          { strokeDashoffset: 0, duration, ease: "power1.out" },
-          start * 0.86,
-        );
-      });
-
-      nodeMarks.forEach((node) => {
-        const group = node.closest("[data-work-branch-group]");
-        const path = group?.querySelector<SVGPathElement>("[data-work-branch]");
-        const at =
-          (Number(path?.dataset.start) || 0) + (Number(path?.dataset.duration) || 0);
-        netTl.to(
-          node,
-          { opacity: 1, scale: 1, duration: 0.04, ease: "power2.out" },
-          Math.min(0.96, at * 0.86),
-        );
-      });
+      // Drawn along the page's shared growth line (lib/network/growth), so the
+      // tips are on screen while they grow and the seam above hands over in step.
+      growNetwork({ root, strands: branches, marks: nodeMarks });
     }
 
     /* ---- section marker ---- */

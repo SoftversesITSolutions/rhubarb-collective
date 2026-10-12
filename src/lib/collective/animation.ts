@@ -14,13 +14,14 @@
  *   progress 1    →  the collective settled
  *
  * Ordering is expressed through trigger windows rather than one long stagger:
- * the network's window opens first, so a branch arrives ahead of the person it
- * reaches, and the anchor strand into a frame is timed off its own node. That
- * ordering reverses for free on the way back up.
+ * people resolve as they enter and the network grows through them on the page's
+ * shared growth line (lib/network/growth), each anchor strand into a frame
+ * drawing as the line passes it. All of it reverses for free on the way back up.
  */
 
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { growNetwork } from "@/lib/network/growth";
 
 export interface CollectiveAnimationOptions {
   root: HTMLElement;
@@ -74,53 +75,9 @@ export function createCollectiveAnimation({
     if (strands.length) {
       gsap.set(nodeMarks, { opacity: 0, scale: 0, transformOrigin: "50% 50%" });
 
-      const netTl = gsap.timeline({
-        defaults: { ease: "none" },
-        scrollTrigger: {
-          trigger: root,
-          start: "top bottom",
-          end: "bottom 88%",
-          scrub: 1,
-          invalidateOnRefresh: true,
-        },
-      });
-      netTl.to({}, { duration: 1 }, 0);
-
-      // Each strand keeps the generator's own ordering, so growth propagates
-      // outward from the Section 4 inlets rather than appearing at once — and
-      // unwinds in that same order on the way back up.
-      strands.forEach((strand) => {
-        const start = Number(strand.dataset.start) || 0;
-        const duration = Math.max(0.02, Number(strand.dataset.duration) || 0.05);
-        netTl.to(
-          strand,
-          { strokeDashoffset: 0, duration, ease: "power1.out" },
-          start * 0.82,
-        );
-      });
-
-      nodeMarks.forEach((node) => {
-        const group = node.closest("[data-collective-group]");
-        const path = group?.querySelector<SVGPathElement>("[data-collective-path]");
-        const at =
-          (Number(path?.dataset.start) || 0) + (Number(path?.dataset.duration) || 0);
-        netTl.to(
-          node,
-          { opacity: 1, scale: 1, duration: 0.04, ease: "power2.out" },
-          Math.min(0.96, at * 0.82),
-        );
-      });
-
-      // The reach into a portrait, timed off the node it leaves from — so the
-      // junction always exists before anything grows out of it.
-      anchors.forEach((anchor) => {
-        const at = Number(anchor.dataset.at) || 0;
-        netTl.to(
-          anchor,
-          { strokeDashoffset: 0, duration: 0.05, ease: "power1.out" },
-          Math.min(0.95, at * 0.82),
-        );
-      });
+      // Drawn along the page's shared growth line (lib/network/growth), so the
+      // tips are on screen while they grow and the seam above hands over in step.
+      growNetwork({ root, strands, reaches: anchors, marks: nodeMarks });
     }
 
     /* ---- section marker and the client's opening copy ---- */

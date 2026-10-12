@@ -19,11 +19,15 @@ export const NETWORK_SEED = 48291;
 
 export type Tier = "desktop" | "tablet" | "mobile";
 
-/** Scroll distance the pinned hero consumes, as a multiple of viewport height. */
+/**
+ * Scroll distance the pinned hero consumes, as a multiple of viewport height.
+ * Shortened in Oct 2026 (it was 3.2 / 2.9 / 2.5): the client was scrolling four
+ * or five times before any words appeared.
+ */
 export const SCROLL_LENGTH: Record<Tier, number> = {
-  desktop: 3.2,
-  tablet: 2.9,
-  mobile: 2.5,
+  desktop: 2.2,
+  tablet: 2.0,
+  mobile: 1.8,
 };
 
 /* ------------------------------------------------------------------ *
@@ -196,12 +200,15 @@ export const NETWORK_CONFIG: Record<Tier, NetworkConfig> = {
  * ------------------------------------------------------------------ */
 export const BEATS = {
   /** Window the procedural growth is spread across. */
-  growth: { start: 0.02, end: 0.54 },
-  eyebrow: { start: 0.36, end: 0.47 },
-  headline: { start: 0.44, end: 0.72 },
-  support: { start: 0.66, end: 0.78 },
+  growth: { start: 0.01, end: 0.5 },
+  // The words follow the first branches by a scroll, not after the growth:
+  // the network erupts on the first scroll and the headline is arriving by
+  // the second or third (about a third of a viewport in).
+  eyebrow: { start: 0.09, end: 0.19 },
+  headline: { start: 0.15, end: 0.45 },
+  support: { start: 0.38, end: 0.52 },
   /** Network reorganising itself around the established typography. */
-  interaction: { start: 0.54, end: 0.88 },
+  interaction: { start: 0.52, end: 0.88 },
   /** Network reaching past the hero into the next section. */
   handoff: { start: 0.84, end: 1 },
 } as const;
