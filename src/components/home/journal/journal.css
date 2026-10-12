@@ -259,6 +259,11 @@
    takes the size the title would, at a fraction of its weight — so the field
    reads as architecture waiting for content rather than as content.
    ------------------------------------------------------------------------- */
+/* The place marker sits under the placeholder picture, not on it. */
+.journal-item[data-state="waiting"] .journal-item__place {
+  margin-block-end: 0.9rem;
+}
+
 .journal-item__state {
   margin: 0;
   font-family: var(--font-display);
@@ -270,13 +275,14 @@
 }
 
 /* --------------------------------------------------------------------------
-   HOVER — desktop, pointer devices, published pieces only.
+   HOVER — desktop, pointer devices. The picture answers on any position; the
+   metadata only where a piece is published.
    A very small crop movement and a step up in the metadata. Nothing follows the
    cursor, nothing is magnetic, nothing scales the block as an object, and
    nothing here is required to read or reach the content.
    -------------------------------------------------------------------------- */
 @media (hover: hover) and (pointer: fine) {
-  .journal-item[data-state="published"]:hover .journal-item__image img {
+  .journal-item:hover .journal-item__image img {
     transform: scale(1.03);
   }
 
@@ -523,7 +529,7 @@
     transition: none;
   }
 
-  .journal-item[data-state="published"]:hover .journal-item__image img {
+  .journal-item:hover .journal-item__image img {
     transform: none;
   }
 }

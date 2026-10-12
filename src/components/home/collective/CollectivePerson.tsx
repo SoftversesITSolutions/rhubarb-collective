@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { SHOW_PLACEHOLDERS } from "@/lib/placeholders";
 import type { Person } from "@/lib/collective/config";
 
 interface CollectivePersonProps {
@@ -49,7 +50,25 @@ export function CollectivePerson({ person }: CollectivePersonProps) {
         ) : (
           /* Unexposed plate. Decorative only — the person's identity is in the
              caption below, never in this element. */
-          <span className="collective-person__plate" aria-hidden="true" />
+          <span className="collective-person__plate" aria-hidden="true">
+            {SHOW_PLACEHOLDERS && (
+              // A stand-in portrait (lib/placeholders): a plain figure and the
+              // person's initial, so the frame reads as a picture to come and
+              // never as somebody's actual likeness.
+              <>
+                <svg
+                  className="collective-person__stand-in"
+                  viewBox="0 0 100 100"
+                  preserveAspectRatio="xMidYMax slice"
+                  focusable="false"
+                >
+                  <circle cx="50" cy="40" r="15" />
+                  <path d="M16 100c2-22 16-34 34-34s32 12 34 34z" />
+                </svg>
+                <span className="collective-person__initial">{person.name.charAt(0)}</span>
+              </>
+            )}
+          </span>
         )}
       </div>
 

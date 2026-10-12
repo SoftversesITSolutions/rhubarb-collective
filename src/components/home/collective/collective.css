@@ -162,6 +162,34 @@
   border: 1px solid var(--rh-cream-12);
 }
 
+/* The stand-in portrait shown while no photograph exists (lib/placeholders):
+   a plain figure in the brand cream on a soft fall of light, with the
+   person's initial set large in the corner. */
+.collective-person__plate:has(.collective-person__stand-in) {
+  overflow: hidden;
+  background:
+    radial-gradient(120% 90% at 50% 18%, var(--rh-cream-12), transparent 70%),
+    var(--rh-cream-06);
+}
+
+.collective-person__stand-in {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: var(--rh-cream-12);
+}
+
+.collective-person__initial {
+  position: absolute;
+  inset-inline-start: 0.4em;
+  inset-block-end: 0.12em;
+  font-family: var(--font-display);
+  font-size: clamp(2.2rem, 6vw, 5rem);
+  line-height: 1;
+  color: var(--rh-cream-42);
+}
+
 /* --- name and role -------------------------------------------------------- */
 .collective-person__meta {
   position: relative;

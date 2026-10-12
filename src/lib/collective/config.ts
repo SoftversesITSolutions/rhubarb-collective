@@ -32,6 +32,8 @@ export interface PortraitAsset {
   alt: string;
 }
 
+import { PLACEHOLDER_PERSON, SHOW_PLACEHOLDERS } from "@/lib/placeholders";
+
 /**
  * Placement token. The composition is art-directed per person rather than
  * generated; these names map to the rules in collective.css. There is
@@ -81,7 +83,7 @@ export interface Person {
   networkNode: boolean;
 }
 
-export const PEOPLE: Person[] = [
+const SUPPLIED_PEOPLE: Person[] = [
   {
     id: "jasleen",
     name: "Jasleen Kaur",
@@ -169,6 +171,18 @@ export const PEOPLE: Person[] = [
     networkNode: true,
   },
 ];
+
+/**
+ * The people as rendered. Where the client has supplied nothing yet — a role
+ * and biography for five of the eight — a placeholder stands in while
+ * `SHOW_PLACEHOLDERS` is on (lib/placeholders), worded so it cannot be read
+ * as fact. Anything the client has supplied is always used as it is.
+ */
+export const PEOPLE: Person[] = SUPPLIED_PEOPLE.map((person) =>
+  SHOW_PLACEHOLDERS && !person.role && !person.bio
+    ? { ...person, role: PLACEHOLDER_PERSON.role, bio: PLACEHOLDER_PERSON.bio }
+    : person,
+);
 
 /**
  * The section's words, isolated from every renderer so they can be replaced

@@ -36,6 +36,11 @@
  */
 
 /** A supplied client mark. Never reconstructed — see the file header. */
+import {
+  PLACEHOLDER_ATTRIBUTION,
+  PLACEHOLDER_QUOTES,
+  SHOW_PLACEHOLDERS,
+} from "@/lib/placeholders";
 export interface LogoAsset {
   /** Path under `public/`. */
   src: string;
@@ -104,7 +109,7 @@ export interface ProofItem {
   node: boolean;
 }
 
-export const PROOF_ITEMS: ProofItem[] = [
+const VERIFIED_PROOF_ITEMS: ProofItem[] = [
   {
     id: "embassy",
     client: "Italian Embassy Cultural Centre",
@@ -191,6 +196,23 @@ export const PROOF_ITEMS: ProofItem[] = [
     node: false,
   },
 ];
+
+/**
+ * The relationships as rendered. No client statement has been supplied for
+ * any of them, so while `SHOW_PLACEHOLDERS` is on (lib/placeholders) each
+ * carries a stand-in testimonial that says it is one — never invented praise
+ * under a real client's name. A real quote always takes its place.
+ */
+export const PROOF_ITEMS: ProofItem[] = VERIFIED_PROOF_ITEMS.map((item, i) =>
+  SHOW_PLACEHOLDERS && !item.quote
+    ? {
+        ...item,
+        quote: PLACEHOLDER_QUOTES[i % PLACEHOLDER_QUOTES.length],
+        person: PLACEHOLDER_ATTRIBUTION.person,
+        role: PLACEHOLDER_ATTRIBUTION.role,
+      }
+    : item,
+);
 
 /**
  * The section's words, isolated from every renderer so they can be replaced

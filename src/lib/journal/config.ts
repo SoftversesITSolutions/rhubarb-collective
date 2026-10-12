@@ -48,6 +48,12 @@
  * *potential* future content areas, which is exactly how they are rendered —
  * see `JOURNAL_COPY.forthcoming`.
  */
+import {
+  PLACEHOLDER_JOURNAL,
+  PLACEHOLDER_JOURNAL_DATE,
+  SHOW_PLACEHOLDERS,
+} from "@/lib/placeholders";
+
 export type JournalCategory =
   | "Journal"
   | "Music"
@@ -143,6 +149,18 @@ export interface JournalPosition {
   node: boolean;
   /** The published piece. Null until one actually exists. */
   entry: JournalEntry | null;
+  /**
+   * The picture a WAITING position shows until a piece with its own image
+   * takes the place (client round 2, Oct 2026: the homepage's journal cards
+   * are to carry an image, with a placeholder where none exists yet).
+   *
+   * It is Rhubarb's own brand artwork from the client bundle — never stock,
+   * never a case-study image — and it is a property of the position, not an
+   * entry: nothing here adds an article, so `JOURNAL_ENTRIES` stays empty and
+   * /insights keeps saying so. A published piece replaces it outright, with
+   * its own image or with none.
+   */
+  placeholder: JournalImageAsset;
 }
 
 /**
@@ -179,12 +197,88 @@ export const JOURNAL_ENTRIES: JournalEntry[] = [];
  * as before — this section renders identically today and fills itself the day a
  * piece is published.
  */
-export const JOURNAL_POSITIONS: JournalPosition[] = [
-  { id: "j1", slot: "feature", size: "feature", node: true, entry: JOURNAL_ENTRIES[0] ?? null },
-  { id: "j2", slot: "counter", size: "major", node: true, entry: JOURNAL_ENTRIES[1] ?? null },
-  { id: "j3", slot: "aside", size: "minor", node: false, entry: JOURNAL_ENTRIES[2] ?? null },
-  { id: "j4", slot: "drift", size: "minor", node: false, entry: JOURNAL_ENTRIES[3] ?? null },
+const JOURNAL_PLACES: JournalPosition[] = [
+  {
+    id: "j1",
+    slot: "feature",
+    size: "feature",
+    node: true,
+    entry: JOURNAL_ENTRIES[0] ?? null,
+    placeholder: {
+      src: "/assets/brand/moodboard.webp",
+      alt: "Rhubarb Collective brand board: prints, posters and a business card taped to an ochre wall.",
+      width: 1400,
+      height: 1050,
+      ratio: [4, 3],
+    },
+  },
+  {
+    id: "j2",
+    slot: "counter",
+    size: "major",
+    node: true,
+    entry: JOURNAL_ENTRIES[1] ?? null,
+    placeholder: {
+      src: "/assets/brand/collage-machina-flora.jpg",
+      alt: "Rhubarb Collective collage: stacked television sets sprouting flowers, an eye on one screen, titled Machina Flora.",
+      width: 1218,
+      height: 1600,
+      ratio: [4, 5],
+    },
+  },
+  {
+    id: "j3",
+    slot: "aside",
+    size: "minor",
+    node: false,
+    entry: JOURNAL_ENTRIES[2] ?? null,
+    placeholder: {
+      src: "/assets/brand/collage-machine-mind.jpg",
+      alt: "Rhubarb Collective collage: a sculpted head above hands at a laptop, circuit boards and server racks scattered around them.",
+      width: 1225,
+      height: 1600,
+      ratio: [1, 1],
+    },
+  },
+  {
+    id: "j4",
+    slot: "drift",
+    size: "minor",
+    node: false,
+    entry: JOURNAL_ENTRIES[3] ?? null,
+    placeholder: {
+      src: "/assets/brand/socials-halftone.webp",
+      alt: "Rhubarb Collective social posters in the brand's halftone treatment.",
+      width: 864,
+      height: 1080,
+      ratio: [4, 3],
+    },
+  },
 ];
+
+/**
+ * The positions as rendered. A place with no published piece shows a stand-in
+ * piece while `SHOW_PLACEHOLDERS` is on (lib/placeholders): a title and
+ * excerpt that say they are placeholders, one of the client's own strands,
+ * and the position's placeholder picture. It exists only here, on the
+ * homepage — `JOURNAL_ENTRIES` is untouched, so /insights still reports that
+ * nothing has been published. A real entry always takes the place.
+ */
+export const JOURNAL_POSITIONS: JournalPosition[] = JOURNAL_PLACES.map((position, i) => {
+  if (position.entry || !SHOW_PLACEHOLDERS) return position;
+  const stand = PLACEHOLDER_JOURNAL[i % PLACEHOLDER_JOURNAL.length];
+  return {
+    ...position,
+    entry: {
+      title: stand.title,
+      category: JOURNAL_STRANDS[i % JOURNAL_STRANDS.length],
+      date: PLACEHOLDER_JOURNAL_DATE,
+      excerpt: stand.excerpt,
+      image: position.placeholder,
+      href: null,
+    },
+  };
+});
 
 /**
  * The section's words, isolated from every renderer so they can be replaced
