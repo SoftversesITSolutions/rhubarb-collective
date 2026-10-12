@@ -168,3 +168,42 @@ h2.eyebrow-box {
   letter-spacing: var(--track-eyebrow);
   text-transform: uppercase;
 }
+
+/* --------------------------------------------------------------------------
+   Branch ↔ content — nodes beside a piece of content that is pointed at,
+   focused or tapped (set by components/home/NetworkTouch). The node swells
+   and the strand it sits on brightens. The circles are styled rather than
+   the node group, because the scroll-driven growth owns the group's
+   transform and opacity.
+   -------------------------------------------------------------------------- */
+svg :is([data-work-node-mark], [data-branch-node], [data-collective-node], [data-proof-node], [data-journal-node], [data-contact-node], [data-fg-node]) circle {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition:
+    transform 0.7s var(--ease-organic),
+    fill-opacity 0.7s ease,
+    stroke-opacity 0.7s ease;
+}
+
+svg [data-lit] circle {
+  transform: scale(1.9);
+  fill-opacity: 1;
+  stroke-opacity: 1;
+}
+
+/* Only strands that share a group with a node, and never the one strand
+   whose opacity the scroll itself drives (section 01's route to Work). */
+svg g:has(> g circle) > path:not([data-work], [data-life]) {
+  transition: stroke-opacity 0.7s ease;
+}
+
+svg g:has(> [data-lit]) > path:not([data-work], [data-life]) {
+  stroke-opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  svg :is([data-work-node-mark], [data-branch-node], [data-collective-node], [data-proof-node], [data-journal-node], [data-contact-node], [data-fg-node]) circle,
+  svg g:has(> g circle) > path {
+    transition: none;
+  }
+}

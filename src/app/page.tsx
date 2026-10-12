@@ -8,6 +8,7 @@ import { JournalSection } from "@/components/home/journal/JournalSection";
 import { ContactRoutes } from "@/components/home/contact/ContactRoutes";
 import { SeamBridge } from "@/components/home/SeamBridge";
 import { GlobalMenu } from "@/components/navigation/GlobalMenu";
+import { NetworkTouch } from "@/components/home/NetworkTouch";
 
 export default function Home() {
   return (
@@ -19,6 +20,9 @@ export default function Home() {
         `overflow: hidden`.
       */}
       <GlobalMenu />
+
+      {/* Wakes the network's nodes beside whatever is pointed at or tapped. */}
+      <NetworkTouch />
 
       {/*
         Between every pair of sections sits a seam bridge (lib/seam/bridge):

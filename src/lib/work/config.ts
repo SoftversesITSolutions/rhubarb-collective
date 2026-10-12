@@ -35,7 +35,22 @@ export interface WorkItem {
   slot: "feature-right" | "left-wide" | "right-tall" | "centre-wide" | "right-mid" | "left-mid";
   /** Items flagged here get a connective strand from the network. */
   threaded?: boolean;
+  /**
+   * The highlighted entry (client round 2): full measure, a fluid entrance and
+   * a link to its case study. Only a piece with a built case study may carry
+   * it — the link is the point.
+   */
+  featured?: { href: string };
 }
+
+/**
+ * Interface words for the highlighted entry. This build's, not the client's:
+ * they label a link and make no claim about the project.
+ */
+export const WORK_FEATURE_COPY = {
+  tag: "Featured",
+  cta: "View case study",
+} as const;
 
 export const WORK_ITEMS: WorkItem[] = [
   {
@@ -85,6 +100,8 @@ export const WORK_ITEMS: WorkItem[] = [
     sourcePage: 17,
     slot: "centre-wide",
     threaded: true,
+    // The one piece with a case study built for it (/work/ritam).
+    featured: { href: "/work/ritam" },
   },
   {
     id: "sitar",

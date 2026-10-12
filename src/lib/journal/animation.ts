@@ -128,10 +128,16 @@ export function createJournalAnimation({
     lede.forEach((line, i) => {
       gsap.fromTo(
         line,
-        { opacity: 0, y: 18 },
+        // The heading wipes open from its top edge as it rises; the lines
+        // under it simply rise. Insets are negative when open so tall display
+        // glyphs are never cropped at rest.
+        line.tagName === "H2"
+          ? { opacity: 0.001, y: 18, clipPath: "inset(-12% -4% 112% -4%)" }
+          : { opacity: 0, y: 18 },
         {
           opacity: 1,
           y: 0,
+          ...(line.tagName === "H2" ? { clipPath: "inset(-12% -4% -18% -4%)" } : {}),
           ease: "none",
           scrollTrigger: {
             trigger: line,

@@ -42,8 +42,11 @@ export function WorkSection() {
     const rootRect = root.getBoundingClientRect();
     if (rootRect.width < 1 || rootRect.height < 1) return;
 
+    // The highlighted piece spans the whole measure, so as a keep-out it would
+    // dam every strand into the gap above it. It is left out: strands pass
+    // beneath it (the work always paints over the network) and carry on below.
     const images = Array.from(
-      field.querySelectorAll<HTMLElement>("[data-work-frame]"),
+      field.querySelectorAll<HTMLElement>("[data-work-item]:not([data-featured]) [data-work-frame]"),
     ).map((frame) => {
       const rect = frame.getBoundingClientRect();
       return {
@@ -111,6 +114,31 @@ export function WorkSection() {
       */}
       {network && <WorkNetwork network={network} />}
 
+      {/*
+        The hover wave (client round 2): one displacement filter shared by every
+        piece, driven by lib/work/animation. Zero-sized, so it takes no space.
+      */}
+      <svg className="work__filters" width="0" height="0" aria-hidden="true" focusable="false">
+        <filter id="work-wave" x="-4%" y="-4%" width="108%" height="108%">
+          <feTurbulence
+            data-work-wave-noise=""
+            type="fractalNoise"
+            baseFrequency="0.006 0.011"
+            numOctaves="1"
+            seed="7"
+            result="noise"
+          />
+          <feDisplacementMap
+            data-work-wave=""
+            in="SourceGraphic"
+            in2="noise"
+            scale="0"
+            xChannelSelector="R"
+            yChannelSelector="G"
+          />
+        </filter>
+      </svg>
+
       <header className="work__marker" data-work-marker="">
         <span className="work__index">02</span>
         <span className="work__rule" aria-hidden="true" />
@@ -122,7 +150,13 @@ export function WorkSection() {
       {/* Layer 2 — the work. Layer 3 — its captions. */}
       <div className="work__field" ref={fieldRef}>
         {WORK_ITEMS.map((item, i) => (
-          <WorkItem key={item.id} item={item} priority={i === 0} />
+          <WorkItem
+            key={item.id}
+            item={item}
+            index={i + 1}
+            total={WORK_ITEMS.length}
+            priority={i === 0}
+          />
         ))}
       </div>
 

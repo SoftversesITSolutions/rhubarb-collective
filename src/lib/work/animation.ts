@@ -26,6 +26,24 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { growNetwork } from "@/lib/network/growth";
 
+/**
+ * The highlighted piece's opening front: everything above a wave-shaped edge
+ * is shown. `p` 0 is fully closed, 1 fully open, and the wave's swell dies
+ * away as it arrives so the picture settles into a clean rectangle.
+ */
+function waveClip(p: number): string {
+  const swell = 9;
+  const points = ["0% 0%", "100% 0%"];
+  for (let x = 100; x >= 0; x -= 5) {
+    const y =
+      p * (100 + 2 * swell) -
+      swell +
+      swell * (1 - p * 0.5) * Math.sin((x / 100) * Math.PI * 2.5 + p * 5);
+    points.push(`${x}% ${y.toFixed(2)}%`);
+  }
+  return `polygon(${points.join(", ")})`;
+}
+
 export interface WorkAnimationOptions {
   root: HTMLElement;
   reducedMotion: boolean;
@@ -47,6 +65,8 @@ export function createWorkAnimation({
   reducedMotion,
 }: WorkAnimationOptions): () => void {
   gsap.registerPlugin(ScrollTrigger);
+  // Pointer listeners are not GSAP's to revert, so they hang off one signal.
+  const listeners = new AbortController();
 
   const ctx = gsap.context(() => {
     const marker = one<HTMLElement>(root, "[data-work-marker]");
@@ -61,6 +81,7 @@ export function createWorkAnimation({
       gsap.set(branches, { strokeDashoffset: 0 });
       gsap.set(nodeMarks, { opacity: 1, scale: 1 });
       gsap.set(all(root, "[data-work-frame]"), { clipPath: CLIP_OPEN });
+      gsap.set(all(root, "[data-work-tag]"), { opacity: 1, y: 0 });
       gsap.set(all(root, "[data-work-image]"), { scale: 1 });
       gsap.set(
         [marker, ...all(root, "[data-work-meta]"), ...disciplines].filter(Boolean),
@@ -116,30 +137,147 @@ export function createWorkAnimation({
      * retreats, picture drifts back out, clip closes.
      * =================================================================== */
     items.forEach((item) => {
-      const frame = item.querySelector("[data-work-frame]");
+      const frame = item.querySelector<HTMLElement>("[data-work-frame]");
       const image = item.querySelector("[data-work-image]");
       const meta = item.querySelector("[data-work-meta]");
+      const tag = item.querySelector("[data-work-tag]");
+      const featured = item.dataset.featured !== undefined;
 
       const tl = gsap.timeline({
         defaults: { ease: "none" },
         scrollTrigger: {
           trigger: item,
           start: "top 88%",
-          end: "top 42%",
+          // The highlighted piece is given more scroll to arrive in.
+          end: featured ? "top 26%" : "top 42%",
           scrub: 0.8,
           invalidateOnRefresh: true,
         },
       });
 
-      tl.fromTo(
-        frame,
-        { clipPath: CLIP_CLOSED },
-        { clipPath: CLIP_OPEN, duration: 0.72 },
-        0,
-      )
-        .fromTo(image, { scale: 1.06 }, { scale: 1, duration: 1 }, 0)
-        .fromTo(meta, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.32 }, 0.55);
+      if (featured && frame) {
+        // The fluid entrance: the same top-down opening as every other piece,
+        // but along a wave-edged front that flattens out as it lands.
+        const front = { p: 0 };
+        gsap.set(frame, { clipPath: waveClip(0) });
+        tl.to(
+          front,
+          {
+            p: 1,
+            duration: 0.8,
+            onUpdate: () => {
+              frame.style.clipPath = waveClip(front.p);
+            },
+          },
+          0,
+        );
+        if (tag) tl.fromTo(tag, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.2 }, 0);
+      } else {
+        tl.fromTo(
+          frame,
+          { clipPath: CLIP_CLOSED },
+          { clipPath: CLIP_OPEN, duration: 0.72 },
+          0,
+        );
+      }
+
+      tl.fromTo(image, { scale: 1.06 }, { scale: 1, duration: 1 }, 0).fromTo(
+        meta,
+        { opacity: 0, y: 12 },
+        { opacity: 1, y: 0, duration: 0.32 },
+        0.55,
+      );
     });
+
+    /* =================================================================== *
+     * THE WAVE — a restrained ripple through a picture under the pointer
+     *
+     * One displacement filter is shared by every piece (see WorkSection). It
+     * is attached to an image only while that image is being touched, and its
+     * strength eases up and back down, so nothing is filtered at rest. A touch
+     * screen has no hover to hold, so a tap sends one ripple through instead.
+     * =================================================================== */
+    const wave = one<SVGElement>(root, "[data-work-wave]");
+    const noise = one<SVGElement>(root, "[data-work-wave-noise]");
+    if (wave && noise) {
+      let held: HTMLElement | null = null;
+      const drift = gsap.to(noise, {
+        attr: { baseFrequency: "0.01 0.007" },
+        duration: 6,
+        ease: "sine.inOut",
+        repeat: -1,
+        yoyo: true,
+        paused: true,
+      });
+      // The picture swells slightly while the wave runs, which is also what
+      // keeps the displaced edges inside the frame. `scale`, not `transform`:
+      // the scroll reveal owns the transform.
+      const SWELL = "1.06";
+      const release = (image: HTMLElement) => {
+        image.style.filter = "";
+        if (held === image) held = null;
+        if (!held) drift.pause();
+      };
+      const hold = (image: HTMLElement) => {
+        if (held && held !== image) {
+          held.style.filter = "";
+          held.style.scale = "";
+        }
+        held = image;
+        image.style.filter = "url(#work-wave)";
+        image.style.scale = SWELL;
+        drift.play();
+        gsap.to(wave, { attr: { scale: 13 }, duration: 0.9, ease: "sine.out", overwrite: true });
+      };
+      const drop = (image: HTMLElement) => {
+        if (held !== image) return;
+        image.style.scale = "";
+        gsap.to(wave, {
+          attr: { scale: 0 },
+          duration: 0.8,
+          ease: "sine.inOut",
+          overwrite: true,
+          onComplete: () => release(image),
+        });
+      };
+      const ripple = (image: HTMLElement) => {
+        if (held && held !== image) held.style.filter = "";
+        held = image;
+        image.style.filter = "url(#work-wave)";
+        image.style.scale = SWELL;
+        drift.play();
+        gsap
+          .timeline({ onComplete: () => release(image) })
+          .to(wave, { attr: { scale: 11 }, duration: 0.45, ease: "sine.out", overwrite: true })
+          .add(() => {
+            image.style.scale = "";
+          })
+          .to(wave, { attr: { scale: 0 }, duration: 0.95, ease: "sine.inOut" });
+      };
+
+      items.forEach((item) => {
+        const image = item.querySelector<HTMLElement>("[data-work-image]");
+        if (!image) return;
+        const options = { signal: listeners.signal };
+        item.addEventListener(
+          "pointerenter",
+          (event) => (event.pointerType === "mouse" ? hold(image) : undefined),
+          options,
+        );
+        item.addEventListener(
+          "pointerleave",
+          (event) => (event.pointerType === "mouse" ? drop(image) : undefined),
+          options,
+        );
+        item.addEventListener(
+          "pointerdown",
+          (event) => (event.pointerType !== "mouse" ? ripple(image) : undefined),
+          { ...options, passive: true },
+        );
+        item.addEventListener("focusin", () => hold(image), options);
+        item.addEventListener("focusout", () => drop(image), options);
+      });
+    }
 
     /* ---- the close ---- */
     if (outlet && disciplines.length) {
@@ -167,5 +305,8 @@ export function createWorkAnimation({
     ScrollTrigger.refresh();
   }, root);
 
-  return () => ctx.revert();
+  return () => {
+    listeners.abort();
+    ctx.revert();
+  };
 }
