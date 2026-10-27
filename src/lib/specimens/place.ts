@@ -87,10 +87,15 @@ export function findRoom(
   prefer: { x: number; y: number },
   min: number,
   max: number,
+  above?: string,
 ): Box | null {
   const origin = section.getBoundingClientRect();
   const width = origin.width;
-  const height = origin.height;
+  // With `above`, only the part of the section before the first element it
+  // matches is searched — the opening of the team section, say, and never
+  // the space between the people in it.
+  const limit = above ? section.querySelector(above)?.getBoundingClientRect() : undefined;
+  const height = limit ? Math.max(0, limit.top - origin.top) : origin.height;
   if (width < min || height < min) return null;
 
   const cols = Math.ceil(width / CELL);

@@ -3,17 +3,32 @@ import type { Branch, NetworkNode, OrganicNetwork } from "@/lib/hero/network";
 
 interface BranchesNetworkProps {
   network: OrganicNetwork;
+  /** Width of the stage the track slides behind, CSS px. */
+  view: number;
+}
+
+/** What a strand is to the animation, from the generator's id convention. */
+function roleOf(id: string): "entry" | "trunk" | "stem" | "descent" {
+  if (id.startsWith("card-")) return "stem";
+  if (id.startsWith("e")) return "entry";
+  if (id.startsWith("d")) return "descent";
+  return "trunk";
 }
 
 /**
  * The branching, as addressable SVG.
  *
- * One field across the whole section, never clipped to a card, always beneath
- * them. The viewBox is the section's measured pixel size, so one user unit is
- * one pixel: curvature, stroke weight and node roundness all survive intact and
+ * One field along the whole track, never clipped to a card, always beneath
+ * them. It is sized in pixels to the field — the track's length, and the
+ * intro plus the stage in height, reaching up out of the stage so Selected
+ * Work's strands arrive through the intro — so one user unit is one pixel:
+ * curvature, stroke weight and node roundness all survive intact and
  * stroke-dash lengths come straight from the generator.
+ *
+ * `data-view-width` tells the seam bridge above what its entries are
+ * fractions of: the screen they fall into, not the whole track.
  */
-function BranchesNetworkView({ network }: BranchesNetworkProps) {
+function BranchesNetworkView({ network, view }: BranchesNetworkProps) {
   const { width, height, branches, nodes } = network;
 
   const nodesByBranch = useMemo(() => {
@@ -52,29 +67,41 @@ function BranchesNetworkView({ network }: BranchesNetworkProps) {
     </g>
   );
 
-  const renderBranch = (branch: Branch) => (
-    <g key={branch.id} data-branch-group={branch.id}>
-      <path
-        data-branch-path=""
-        data-depth={branch.depth}
-        data-start={branch.growthStart}
-        data-duration={branch.growthDuration}
-        d={branch.d}
-        fill="none"
-        stroke="var(--rh-cream)"
-        strokeWidth={branch.width}
-        strokeOpacity={branch.opacity * 0.78}
-        strokeLinecap="round"
-        style={{ strokeDasharray: branch.length, strokeDashoffset: branch.length }}
-      />
-      {nodesByBranch.get(branch.id)?.map(renderNode)}
-    </g>
-  );
+  const renderBranch = (branch: Branch) => {
+    const role = roleOf(branch.id);
+    // A stem ends under its card on purpose — attached, not loose — so it
+    // carries `data-anchor`, like every other strand that reaches content.
+    const stem = role === "stem";
+    return (
+      <g key={branch.id} data-branch-group={branch.id}>
+        <path
+          data-branch-path=""
+          data-role={role}
+          data-card={stem ? branch.id.slice("card-".length) : undefined}
+          data-anchor={stem ? "" : undefined}
+          data-depth={branch.depth}
+          data-start={branch.growthStart}
+          data-duration={branch.growthDuration}
+          d={branch.d}
+          fill="none"
+          stroke="var(--rh-cream)"
+          strokeWidth={branch.width}
+          strokeOpacity={branch.opacity * 0.78}
+          strokeLinecap="round"
+          style={{ strokeDasharray: branch.length, strokeDashoffset: branch.length }}
+        />
+        {nodesByBranch.get(branch.id)?.map(renderNode)}
+      </g>
+    );
+  };
 
   return (
     <svg
       className="branches__network"
       viewBox={`0 0 ${width} ${height}`}
+      width={width}
+      height={height}
+      data-view-width={view}
       preserveAspectRatio="xMidYMid meet"
       aria-hidden="true"
       focusable="false"

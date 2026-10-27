@@ -240,6 +240,13 @@ export interface Descender {
    * the seam instead of seeing a new line attached to it.
    */
   exitLean: -1 | 1;
+  /**
+   * The hero strand this one continues: its tip, in field units, and its
+   * heading there. The band is a separate, stretched SVG, so `HeroBoundary`
+   * maps this point onto the screen and starts the strand on it (round 3);
+   * `d` alone began at the band's top edge, up to ~140px from any strand.
+   */
+  from: { x: number; y: number; angle: number };
 }
 
 export interface OrganicNetwork {
@@ -323,6 +330,14 @@ export function repulsion(p: Point, zones: readonly KeepOut[]): Point {
     fy += vy * falloff * z.strength;
   }
   return { x: fx, y: fy };
+}
+
+/** The heading at the end of a `toPath` path, from its last control point. */
+function tipHeadingOf(d: string): number {
+  const last = d.lastIndexOf("C");
+  const n = d.slice(last + 1).split(/[\s,]+/).map(Number);
+  if (last < 0 || n.length < 6) return Math.PI / 2;
+  return Math.atan2(n[5] - n[3], n[4] - n[2]);
 }
 
 /**
@@ -909,6 +924,7 @@ function grow(
         length: Math.round(Math.hypot(end - x, 100) * 1.35),
         exitX: end,
         exitLean: swing >= 0 ? 1 : -1,
+        from: { x: b.tip.x, y: b.tip.y, angle: tipHeadingOf(b.d) },
       };
     });
 

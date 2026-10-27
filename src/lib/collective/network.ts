@@ -31,13 +31,17 @@ import {
   type Point,
 } from "@/lib/hero/network";
 import { generateCascade, type CascadeInlet } from "@/lib/first-growth/cascade";
-import { layoutRect, readExits, type Rect } from "@/lib/network/continuity";
-import { generateBranchNetwork, readWorkExits } from "@/lib/branches/network";
+import { calmed } from "@/lib/network/calm";
+import { closeSeam, type Rect } from "@/lib/network/continuity";
+import { COLLECTIVE_EXITS } from "@/lib/network/seams";
+import {
+  generateBranchNetwork,
+  measureBranchField,
+  readTurnExits,
+} from "@/lib/branches/network";
 import {
   COLLECTIVE_DESCENT,
   COLLECTIVE_SHAPE,
-  MAX_INLETS,
-  MIN_INLETS,
   PORTRAIT_INFLUENCE_CAP,
 } from "./config";
 
@@ -95,48 +99,30 @@ export function readBranchExits(tier: Tier): CascadeInlet[] | null {
   const branches = document.querySelector<HTMLElement>(".branches");
   if (!branches) return null;
 
-  const rect = branches.getBoundingClientRect();
-  if (rect.width < 1 || rect.height < 1) return null;
+  // MEASURED EXACTLY THE WAY SECTION 4 MEASURES ITSELF — the same function,
+  // through pure layout. Two readers measuring two different ways once put
+  // this field's inlets 14–78px away from Section 4's real strands (Sep
+  // 2026); one shared measurement makes the regrown network byte-identical
+  // to the rendered one.
+  const input = measureBranchField(branches, tier);
+  if (!input) return null;
 
-  const width = Math.round(rect.width);
-  const height = Math.round(rect.height);
-  const key = `${tier}|${width}x${height}`;
+  const key = JSON.stringify([
+    tier,
+    input.width,
+    input.height,
+    input.view,
+    input.cards,
+    input.inlets.map((inlet) => [inlet.x, inlet.angle]),
+  ]);
   const cached = exitCache.get(key);
   if (cached) return cached;
 
-  // MEASURED EXACTLY THE WAY SECTION 4 MEASURES ITSELF — same selector,
-  // same `layoutRect`.
-  //
-  // This used to read `[data-branch-card]` with `getBoundingClientRect()` while
-  // Section 4 grew itself from `[data-branch-frame]` with the same call. The
-  // card was chosen because the frame carries a transform mid-reveal, but that
-  // only swapped one mismatch for another: two different elements, so the
-  // network regrown here was never quite the network on the screen, and the
-  // inlets handed to this field landed 0.01–0.054 of the width away from
-  // Section 4's real trunk tips at every tier — up to 78 CSS px of visible
-  // misalignment at 1440, which is precisely the "new branches from nowhere"
-  // seam. Both sides now read the same element through pure layout, so the
-  // regrown network is byte-identical to the rendered one.
-  const cards = Array.from(
-    branches.querySelectorAll<HTMLElement>("[data-branch-frame]"),
-  ).map((frame) => layoutRect(frame, branches));
-
-  // Section 4's own inlets, which in turn come from Section 3's real exits.
-  const inlets = readWorkExits(tier);
-  if (!inlets) return null;
-
-  const network = generateBranchNetwork({ tier, width, height, cards, inlets });
-
-  // Section 4's trunks, deepest first — preferring those that crossed its foot,
-  // falling back to the next-deepest real ones. The rule itself lives in
-  // `lib/network/continuity`, which every seam on the page now shares; this
-  // section's own copy of it was correct, but four of the six had drifted and
-  // two were broken outright, so there is one implementation rather than six.
-  const kept = readExits(network, {
-    min: MIN_INLETS,
-    max: MAX_INLETS[tier],
-    spacing: 0.09,
-  });
+  // Section 4's descents, as fractions of the LAST screen of its track —
+  // the one the stage shows when the pin lets go and this section begins.
+  // The rule itself lives in `lib/network/continuity`, which every seam on
+  // the page shares.
+  const kept = readTurnExits(generateBranchNetwork(input), input);
 
   if (!kept.length) return null;
 
@@ -166,7 +152,17 @@ export interface CollectiveFieldInput {
   inlets: CascadeInlet[];
 }
 
+/**
+ * The section's network with its seam closed: every strand crossing the foot
+ * that the next section does not continue ends above the boundary instead of
+ * being cut by it (`closeSeam`, round 3). The section's own component and the
+ * next section's exit reader both come through here, so they agree exactly.
+ */
 export function generateCollectiveNetwork(input: CollectiveFieldInput): OrganicNetwork {
+  return closeSeam(growCollectiveNetwork(input), COLLECTIVE_EXITS(input.tier));
+}
+
+function growCollectiveNetwork(input: CollectiveFieldInput): OrganicNetwork {
   const shape = COLLECTIVE_SHAPE[input.tier];
 
   // How far one lateral run falls, and therefore how many a trunk needs to
@@ -212,7 +208,7 @@ export function generateCollectiveNetwork(input: CollectiveFieldInput): OrganicN
     keepOut.push({ ...block, influence: 72, strength: 0.5 });
   }
 
-  return generateCascade({
+  return generateCascade(calmed({
     seed: NETWORK_SEED + 251,
     width: input.width,
     height: input.height,
@@ -236,7 +232,8 @@ export function generateCollectiveNetwork(input: CollectiveFieldInput): OrganicN
     baseWidth: shape.baseWidth,
     keepOut,
     margin: 26,
-  });
+    finishInMargin: true,
+  }, "strong"));
 }
 
 /* ------------------------------------------------------------------ *

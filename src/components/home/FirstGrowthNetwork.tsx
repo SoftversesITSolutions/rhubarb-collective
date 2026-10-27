@@ -2,7 +2,7 @@ import { memo, useMemo } from "react";
 import type { Branch, NetworkNode, OrganicNetwork } from "@/lib/hero/network";
 import type { Connection } from "@/lib/first-growth/connections";
 import type { Annotation } from "@/lib/first-growth/annotations";
-import { RIDGE_REST, ridgePath, type RidgeField } from "@/lib/first-growth/ridgelines";
+import { RIDGE_REST, ridgePath, ridgeYAt, type RidgeField } from "@/lib/first-growth/ridgelines";
 
 interface FirstGrowthNetworkProps {
   network: OrganicNetwork;
@@ -188,25 +188,34 @@ function FirstGrowthNetworkView({
                 strokeLinejoin="round"
               />
             ))}
-            {/* One node per value, on the apex of its crest. */}
-            {ridges.crestNodes.map((node) => (
+            {/* One node per value, on its crest — at the line's resting
+                height; the ripple keeps it there (lib/first-growth/animation). */}
+            {ridges.crestNodes.map((node) => {
+              const ridge = ridges.ridges[node.ridge];
+              const cy = ridge ? ridgeYAt(ridge, node.x, RIDGE_REST) : node.y;
+              return (
               <g
                 key={node.id}
                 data-fg-ridge-node=""
-                data-at={ridges.ridges[node.ridge]?.at ?? 0}
+                data-value={node.id.replace("crest-", "")}
+                data-ridge={node.ridge}
+                data-x={node.x}
+                data-y={node.y}
+                data-at={ridge?.at ?? 0}
               >
                 <circle
                   cx={node.x}
-                  cy={node.y}
+                  cy={cy}
                   r={node.r * 3}
                   fill="none"
                   stroke="var(--rh-cream)"
                   strokeWidth={0.6}
                   strokeOpacity={0.28}
                 />
-                <circle cx={node.x} cy={node.y} r={node.r} fill="var(--rh-cream)" />
+                <circle cx={node.x} cy={cy} r={node.r} fill="var(--rh-cream)" />
               </g>
-            ))}
+              );
+            })}
           </g>
         )}
 

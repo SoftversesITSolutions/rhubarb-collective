@@ -49,7 +49,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         */}
         <noscript>
           <style>{`
-            [data-hero-state] [data-reveal] { opacity: 1 !important; }
+            [data-hero-state] [data-reveal],
+            [data-hero-state] [data-hero="rule"],
+            [data-hero-state] [data-hero="cue"] { opacity: 1 !important; }
             [data-hero="intro"] { display: none !important; }
             [data-fg-state] [data-fg-reveal] { opacity: 1 !important; }
             [data-branch], [data-fg-branch], [data-fg-connection],
@@ -63,6 +65,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             [data-branch-body], [data-branch-print], [data-branches-marker] { opacity: 1 !important; }
             [data-branch-path] { stroke-dashoffset: 0 !important; }
             [data-branch-node] { opacity: 1 !important; }
+            [data-branches-stage] { overflow-x: auto !important; }
             [data-collective-state] [data-collective-frame] { clip-path: none !important; }
             [data-collective-meta], [data-collective-marker],
             [data-collective-lede] { opacity: 1 !important; }

@@ -1,8 +1,11 @@
 import Image from "next/image";
+import type { CSSProperties } from "react";
 import type { Service } from "@/lib/branches/config";
 
 interface BranchCardProps {
   service: Service;
+  /** Position along the branch. Even cards hang below it, odd ones above. */
+  order: number;
 }
 
 /**
@@ -20,11 +23,16 @@ interface BranchCardProps {
  * against — is exactly what it was without it. It follows the body in the
  * DOM so assistive tech reads the discipline before the picture.
  */
-export function BranchCard({ service }: BranchCardProps) {
+export function BranchCard({ service, order }: BranchCardProps) {
   const { print } = service;
 
   return (
-    <article className="branch-card" data-branch-card="" data-slot={service.slot}>
+    <article
+      className="branch-card"
+      data-branch-card=""
+      data-row={order % 2 === 0 ? "below" : "above"}
+      style={{ "--i": order } as CSSProperties}
+    >
       <div className="branch-card__frame" data-branch-frame="">
         <div className="branch-card__body" data-branch-body="">
           <span className="branch-card__index">{service.index}</span>
@@ -40,7 +48,7 @@ export function BranchCard({ service }: BranchCardProps) {
             width={print.width}
             height={print.height}
             loading="lazy"
-            sizes="(min-width: 1100px) 32vw, (min-width: 700px) 48vw, 80vw"
+            sizes="(min-width: 1100px) 25vw, (min-width: 700px) 38vw, 74vw"
             style={{ objectPosition: print.focal }}
           />
         </div>

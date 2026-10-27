@@ -38,11 +38,8 @@ export interface Service {
   detail: string;
   print: ServicePrint;
   /**
-   * Art-directed placement. These map to the grid rules in branches.css —
-   * six hand-chosen positions on a descending left-to-right staircase, because
-   * this section is the page's change of direction: the organism stops falling
-   * and travels ACROSS the composition, and the cards are the stations it
-   * passes through on the way.
+   * The service's position letter. The services page lays its entries out by
+   * it; on the homepage the cards simply alternate along the branch in order.
    */
   slot: "a" | "b" | "c" | "d" | "e" | "f";
 }
@@ -149,52 +146,81 @@ export const SERVICES: Service[] = [
 ];
 
 /**
- * Shape of the lateral journey per tier.
+ * Shape of the sideways journey per tier (client round 3, Oct 2026).
  *
- * Unlike the cascade sections above and below it, this section's macro path is
- * ART-DIRECTED, not emergent: one trunk, six connections, a resolution into
- * three descents. The seeded randomness only supplies micro-curvature, so
- * these numbers describe standoffs and texture, not probabilities.
+ * The macro path is ART-DIRECTED, not emergent: one branch along the track,
+ * a stem per card, a turn back down at the far end. The seeded randomness
+ * only supplies micro-curvature, so these numbers describe standoffs and
+ * texture, not probabilities. Lengths are CSS px; `exits`, `turn`, `early`
+ * and `column` are fractions of the stage's width.
  */
-export interface LateralShape {
-  /** Horizontal standoff the trunk keeps from a card's edge, px. */
-  clearance: number;
-  /** Vertical standoff above/below a card, px. */
-  drop: number;
+export interface BranchShape {
+  /** How far an entry runs on along the branch after it lands, px. */
+  bend: number;
+  /** Least room between a falling entry and the first card above the branch, px. */
+  clear: number;
+  /** How far the branch leans toward each card at its stem, as a share of the gap. */
+  lean: number;
+  /** Most room between two plain points along the branch, px. */
+  span: number;
   /** Waypoint jitter amplitude, px. */
   jitter: number;
-  /** Perpendicular noise added when a span is refined, px. */
+  /** Perpendicular noise added when a span is refined, px. Small on purpose:
+      the client asked for smoother, calmer lines (round 3). */
   wobble: number;
-  /** Stroke width of the main trunk. Heavier than the cascades on purpose —
-      this is the page's one LEVEL-1 path made visible. */
+  /** Stroke width of the branch — the page's one level-1 path made visible. */
   trunkWidth: number;
-  /** Micro offshoots thrown into negative space. Extremely sparing. */
-  twigCount: number;
+  /** Where the descents cross the foot in the last screen, first from the turn. */
+  exits: number[];
+  /** Where the branch turns down, in the last screen. */
+  turn: number;
+  /** Where the third descent leaves the branch, in the last screen. */
+  early: number;
+  /**
+   * Where on the screen the branch's growing tip rides while the track
+   * slides: everything left of this line has grown, nothing right of it has.
+   */
+  column: number;
 }
 
-export const LATERAL_SHAPE: Record<"desktop" | "tablet" | "mobile", LateralShape> = {
+export const BRANCH_SHAPE: Record<"desktop" | "tablet" | "mobile", BranchShape> = {
   desktop: {
-    clearance: 46,
-    drop: 34,
-    jitter: 20,
-    wobble: 15,
+    bend: 70,
+    clear: 46,
+    lean: 0.3,
+    span: 150,
+    jitter: 14,
+    wobble: 7,
     trunkWidth: 1.5,
-    twigCount: 3,
+    exits: [0.76, 0.58, 0.4],
+    turn: 0.62,
+    early: 0.34,
+    column: 0.72,
   },
   tablet: {
-    clearance: 36,
-    drop: 28,
-    jitter: 16,
-    wobble: 13,
+    bend: 56,
+    clear: 36,
+    lean: 0.3,
+    span: 130,
+    jitter: 12,
+    wobble: 6,
     trunkWidth: 1.45,
-    twigCount: 2,
+    exits: [0.76, 0.58, 0.4],
+    turn: 0.62,
+    early: 0.34,
+    column: 0.74,
   },
   mobile: {
-    clearance: 18,
-    drop: 18,
-    jitter: 9,
-    wobble: 8,
+    bend: 36,
+    clear: 18,
+    lean: 0.3,
+    span: 100,
+    jitter: 8,
+    wobble: 4,
     trunkWidth: 1.5,
-    twigCount: 1,
+    exits: [0.74, 0.56, 0.38],
+    turn: 0.6,
+    early: 0.34,
+    column: 0.8,
   },
 };

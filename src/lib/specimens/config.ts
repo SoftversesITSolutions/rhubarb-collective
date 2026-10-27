@@ -1,17 +1,19 @@
 /**
- * SPECIMENS — the 3D flowers and mushrooms in the homepage's open space
+ * SPECIMENS — the 3D plants in the homepage's open space
  * =====================================================================
  *
  * Client round 2, priority 5: "In the void space or free space of certain
  * sections we can add some 3D flower images" — the client then sent Sketchfab
  * links to the models they wanted, "some small, some bigger".
  *
- * Seven of those thirteen are here. Each is pre-rendered ONCE, offline
+ * Round 2 used seven of those thirteen; round 3 removed all but the
+ * sunflower and added five the client chose (see SPECIMEN_PLACEMENTS). Each
+ * is pre-rendered ONCE, offline
  * (`tools/model-frames`), into a short run of transparent frames that the
  * page scrubs against scroll: no 3D runtime ships, and a frame index is
- * exactly reversible. The other six are not used: two have downloads disabled
- * by their author, two are paid store models, one exports without its
- * textures and one read as dull beside the rest.
+ * exactly reversible. Six of round 2's thirteen were never used: two have
+ * downloads disabled by their author, two are paid store models, one exports
+ * without its textures and one read as dull beside the rest.
  *
  * Every model is CC BY 4.0, so every one carries a credit, rendered in the
  * homepage footer from the list below. Do not add a model here without its
@@ -47,42 +49,6 @@ export const SPECIMEN_LICENCE = {
 const model = (uid: string) => `https://sketchfab.com/3d-models/${uid}`;
 
 export const SPECIMENS = {
-  "fly-agaric": {
-    id: "fly-agaric",
-    alt: "A red-capped mushroom with pale spots.",
-    credit: {
-      title: "Fly Agaric Mushroom",
-      author: "Timothy Hsu",
-      href: model("d6c3876f091b4de49a38553a177bab0f"),
-    },
-  },
-  amanita: {
-    id: "amanita",
-    alt: "A slender mushroom with a flat orange cap.",
-    credit: {
-      title: "Amanita muscaria mushroom",
-      author: "JevinJones",
-      href: model("fc4ad155dc954025886425388f714135"),
-    },
-  },
-  "mushroom-cluster": {
-    id: "mushroom-cluster",
-    alt: "A cluster of brown bell-capped mushrooms.",
-    credit: {
-      title: "Realistic Mushroom - 01",
-      author: "SanForge Studio",
-      href: model("aededce1ec0f48f8b0f50cc1762a3f86"),
-    },
-  },
-  bolete: {
-    id: "bolete",
-    alt: "A stout brown mushroom leaning to one side.",
-    credit: {
-      title: "Mushroom",
-      author: "Evan",
-      href: model("ade09b61de8b4a7d9e850b710d3eb151"),
-    },
-  },
   "sunflower-stem": {
     id: "sunflower-stem",
     alt: "A sunflower on its stem, with leaves.",
@@ -92,22 +58,50 @@ export const SPECIMENS = {
       href: model("c82da276c90646a58dec849e43635f63"),
     },
   },
-  "spider-lily": {
-    id: "spider-lily",
-    alt: "A red spider lily on a single stem.",
+  // Round 3 (Oct 2026): the client's picks from the licence-checked shortlist.
+  lilies: {
+    id: "lilies",
+    alt: "A spray of pink-and-white lilies.",
     credit: {
-      title: "Flowers",
-      author: "Hippocrocaduck",
-      href: model("e9e8b1ca9d3640f8be00b760e1fad170"),
+      title: "Lilies",
+      author: "sligocreatures",
+      href: model("45755df496804cb7a36f6f32305b57a7"),
     },
   },
-  "orange-flowers": {
-    id: "orange-flowers",
-    alt: "Orange flowers rising out of a tuft of grass.",
+  fern: {
+    id: "fern",
+    alt: "A low, spreading green fern.",
     credit: {
-      title: "flower",
-      author: "tojamerlin",
-      href: model("0fa50cf622f44f2ba59eff6c11cb8fbd"),
+      title: "3D Fern - 01",
+      author: "SanForge Studio",
+      href: model("165f3870237f488885faf406d9deddc0"),
+    },
+  },
+  orchid: {
+    id: "orchid",
+    alt: "A stem of pale violet orchid flowers.",
+    credit: {
+      title: "Orchid flower",
+      author: "Lassi Kaukonen",
+      href: model("75d19624c0d04b65975e011a04ae77a0"),
+    },
+  },
+  rose: {
+    id: "rose",
+    alt: "A single red rose on its stem.",
+    credit: {
+      title: "Rose",
+      author: "Heliona",
+      href: model("6281bf3703584323bb4d8326f1f1b59d"),
+    },
+  },
+  "pink-lotus": {
+    id: "pink-lotus",
+    alt: "Two pink lotus flowers above their round leaves.",
+    credit: {
+      title: "GA Free_301_Pink Lotus Twin Bloom",
+      author: "Galaxy Abundant",
+      href: model("54cf6843761f49069e40bbd127ffb29f"),
     },
   },
 } as const satisfies Record<string, Specimen>;
@@ -126,20 +120,43 @@ export interface SpecimenPlacement {
   /** Size range, px. Below `min` it is not shown at all. */
   min: number;
   max: number;
+  /** Only the part of the section before the first element this matches. */
+  above?: string;
 }
 
 /**
  * Some large, some small, as the client asked. Order matters within a
  * section: earlier placements choose their space first.
+ *
+ * Client round 3 (Oct 2026): every mushroom is gone ("not blending with the
+ * design"), and so are the round-2 flowers — the red lily and the yellow-
+ * orange tuft between the team photographs; nothing is placed between the
+ * photographs now. The sunflowers stay: the stem sunflower fills the open
+ * space to the left of the service cards (note 9) on The Turn's sliding
+ * track, so it travels with them. The others are the client's picks from a
+ * licence-checked shortlist, each larger than what it replaced (note 7).
  */
 export const SPECIMEN_PLACEMENTS: SpecimenPlacement[] = [
-  { specimen: "fly-agaric", section: "#work", prefer: { x: 0.12, y: 0.1 }, min: 110, max: 400 },
-  { specimen: "amanita", section: "#work", prefer: { x: 0.12, y: 0.72 }, min: 110, max: 280 },
-  { specimen: "mushroom-cluster", section: "#services", prefer: { x: 0.8, y: 0.2 }, min: 110, max: 420 },
-  { specimen: "spider-lily", section: ".collective", prefer: { x: 0.82, y: 0.12 }, min: 110, max: 240 },
-  { specimen: "orange-flowers", section: ".collective", prefer: { x: 0.4, y: 0.76 }, min: 110, max: 230 },
-  { specimen: "sunflower-stem", section: ".proof", prefer: { x: 0.68, y: 0.2 }, min: 120, max: 460 },
-  { specimen: "bolete", section: "#insights", prefer: { x: 0.12, y: 0.78 }, min: 110, max: 320 },
+  { specimen: "lilies", section: "#work", prefer: { x: 0.12, y: 0.1 }, min: 120, max: 460 },
+  { specimen: "fern", section: "#work", prefer: { x: 0.12, y: 0.72 }, min: 120, max: 440 },
+  {
+    specimen: "sunflower-stem",
+    section: "[data-branches-track]",
+    prefer: { x: 0, y: 0.5 },
+    min: 140,
+    max: 560,
+  },
+  // In the opening only: the client asked for nothing between the people.
+  {
+    specimen: "orchid",
+    section: ".collective",
+    prefer: { x: 0.82, y: 0.12 },
+    min: 120,
+    max: 320,
+    above: "[data-collective-person]",
+  },
+  { specimen: "rose", section: ".proof", prefer: { x: 0.68, y: 0.2 }, min: 120, max: 520 },
+  { specimen: "pink-lotus", section: "#insights", prefer: { x: 0.12, y: 0.78 }, min: 120, max: 400 },
 ];
 
 /** The models actually placed, once each, for the footer's credit line. */

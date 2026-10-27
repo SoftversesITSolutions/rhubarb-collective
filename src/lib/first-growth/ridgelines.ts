@@ -271,6 +271,22 @@ export function ridgePath(ridge: Ridge, scale: number): string {
   return toPath(pts);
 }
 
+/**
+ * Where a ridge actually is at `x` with its lift scaled by `scale` — the
+ * height a value's node must sit at to be ON its line (round 3). The node
+ * used to be fixed at the crest's full-height apex, but the line is only
+ * there at scale 1 and with no no-cross clamp; at rest and through most of
+ * the ripple it hovered 4–35px off its line.
+ */
+export function ridgeYAt(ridge: Ridge, x: number, scale: number): number {
+  const { xs, lift } = ridge;
+  let k = 0;
+  while (k < xs.length - 2 && xs[k + 1] < x) k += 1;
+  const span = xs[k + 1] - xs[k] || 1;
+  const t = Math.min(1, Math.max(0, (x - xs[k]) / span));
+  return ridge.baseY - (lift[k] + (lift[k + 1] - lift[k]) * t) * scale;
+}
+
 /** Resting amplitude, used before the scrub and under reduced motion. */
 export const RIDGE_REST = 0.8;
 

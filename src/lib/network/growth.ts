@@ -35,7 +35,7 @@ const SAMPLES = 10;
  */
 const LATERAL_PACE = 0.5;
 /** The latest timeline position any strand may finish at. */
-const FINISH = 0.985;
+export const FINISH = 0.985;
 
 export interface Schedule {
   /** Timeline position (0..1) at which each sample along the strand is reached. */
@@ -43,6 +43,13 @@ export interface Schedule {
   /** The sampled points, in the SVG's user units. */
   points: { x: number; y: number }[];
 }
+
+/**
+ * A point's timeline position. Most sections only need its depth; one that
+ * moves sideways (The Turn) also reads where along the field it lies, and
+ * which strand it is on.
+ */
+export type TimeOf = (y: number, x: number, path: SVGPathElement) => number;
 
 /**
  * When the line reaches each point of a strand. `timeOf` maps a depth in the
@@ -53,7 +60,7 @@ export interface Schedule {
  */
 function scheduleOf(
   path: SVGPathElement,
-  timeOf: (y: number) => number,
+  timeOf: TimeOf,
   perUnit: number,
 ): Schedule | null {
   let length = 0;
@@ -70,7 +77,7 @@ function scheduleOf(
   for (let i = 0; i <= SAMPLES; i++) {
     const p = path.getPointAtLength((length * i) / SAMPLES);
     points.push({ x: p.x, y: p.y });
-    const at = Math.min(1, Math.max(0, timeOf(p.y)));
+    const at = Math.min(1, Math.max(0, timeOf(p.y, p.x, path)));
     times.push(i === 0 ? at : Math.max(times[i - 1] + minStep, at));
   }
   // A strand that would run past the end of the pass is squeezed to finish on it.
@@ -107,7 +114,7 @@ function easeOf({ times }: Schedule): (p: number) => number {
 export function drawStrand(
   tl: gsap.core.Timeline,
   path: SVGPathElement,
-  timeOf: (y: number) => number,
+  timeOf: TimeOf,
   perUnit: number,
 ): Schedule | null {
   const schedule = scheduleOf(path, timeOf, perUnit);
@@ -126,6 +133,236 @@ export function drawStrand(
     times[0],
   );
   return schedule;
+}
+
+/**
+ * Every strand sampled ONCE, about every 2 units (from its path data — see
+ * `samplePath`), and filed in a coarse grid,
+ * so "which strand passes through this point" is a lookup, not a walk along
+ * every other path. The first version walked every path per strand with
+ * `getPointAtLength` and froze the main thread for 4–5s at load, which held
+ * the hero's logo wipe back from ~1s to 5–8s.
+ */
+interface StrandIndex {
+  cell: number;
+  grid: Map<string, { schedule: Schedule; x: number; y: number; along: number; fraction: number }[]>;
+  lengths: Map<Schedule, number>;
+}
+
+const indexCache = new WeakMap<Map<SVGPathElement, Schedule>, StrandIndex>();
+
+/**
+ * Points every ~`step` units along a path, computed from its own path data.
+ * Every network on the page writes paths as one M then cubic C segments, and
+ * evaluating those directly is orders of magnitude cheaper than
+ * `getPointAtLength`, which re-walks the path on each call — sampling with it
+ * cost 1.7s at load. Anything else falls back to the DOM.
+ */
+function samplePath(path: SVGPathElement, step: number): { x: number; y: number; along: number }[] {
+  const d = path.getAttribute("d") ?? "";
+  if (/^\s*M[\d\s.,eE+-]*(C[\d\s.,eE+-]*)*$/.test(d)) {
+    const parts = d.match(/[MC][^MC]*/g) ?? [];
+    const out: { x: number; y: number; along: number }[] = [];
+    let x = 0;
+    let y = 0;
+    let along = 0;
+    for (const part of parts) {
+      const n = part.slice(1).trim().split(/[\s,]+/).map(Number);
+      if (part[0] === "M") {
+        [x, y] = n;
+        out.push({ x, y, along: 0 });
+        continue;
+      }
+      for (let k = 0; k + 5 < n.length; k += 6) {
+        const [x1, y1, x2, y2, x3, y3] = n.slice(k, k + 6);
+        const hull = Math.hypot(x1 - x, y1 - y) + Math.hypot(x2 - x1, y2 - y1) + Math.hypot(x3 - x2, y3 - y2);
+        const steps = Math.max(2, Math.ceil(hull / step));
+        let px = x;
+        let py = y;
+        for (let i = 1; i <= steps; i++) {
+          const t = i / steps;
+          const u = 1 - t;
+          const qx = u * u * u * x + 3 * u * u * t * x1 + 3 * u * t * t * x2 + t * t * t * x3;
+          const qy = u * u * u * y + 3 * u * u * t * y1 + 3 * u * t * t * y2 + t * t * t * y3;
+          along += Math.hypot(qx - px, qy - py);
+          out.push({ x: qx, y: qy, along });
+          px = qx;
+          py = qy;
+        }
+        x = x3;
+        y = y3;
+      }
+    }
+    if (out.length > 1) return out;
+  }
+  let length = 0;
+  try {
+    length = path.getTotalLength();
+  } catch {
+    return [];
+  }
+  const steps = Math.max(8, Math.ceil(length / step));
+  return Array.from({ length: steps + 1 }, (_, i) => {
+    const q = path.getPointAtLength((length * i) / steps);
+    return { x: q.x, y: q.y, along: (length * i) / steps };
+  });
+}
+
+function indexOf(schedules: Map<SVGPathElement, Schedule>): StrandIndex {
+  const cached = indexCache.get(schedules);
+  if (cached) return cached;
+  const cell = 16;
+  const grid: StrandIndex["grid"] = new Map();
+  const lengths = new Map<Schedule, number>();
+  schedules.forEach((schedule, path) => {
+    const samples = samplePath(path, 2);
+    const length = samples[samples.length - 1]?.along ?? 0;
+    if (!length) return;
+    lengths.set(schedule, length);
+    for (const q of samples) {
+      const key = `${Math.floor(q.x / cell)},${Math.floor(q.y / cell)}`;
+      let bucket = grid.get(key);
+      if (!bucket) grid.set(key, (bucket = []));
+      bucket.push({ schedule, x: q.x, y: q.y, along: q.along, fraction: q.along / length });
+    }
+  });
+  const index = { cell, grid, lengths };
+  indexCache.set(schedules, index);
+  return index;
+}
+
+/** Every sample of every strand within `r` of a point. */
+function samplesNear(index: StrandIndex, x: number, y: number, r: number) {
+  const out: { schedule: Schedule; d: number; along: number; fraction: number }[] = [];
+  const { cell, grid } = index;
+  const reach = Math.ceil(r / cell);
+  const gx = Math.floor(x / cell);
+  const gy = Math.floor(y / cell);
+  for (let dx = -reach; dx <= reach; dx++) {
+    for (let dy = -reach; dy <= reach; dy++) {
+      const bucket = grid.get(`${gx + dx},${gy + dy}`);
+      if (!bucket) continue;
+      for (const s of bucket) {
+        const d = Math.hypot(s.x - x, s.y - y);
+        if (d <= r) out.push({ schedule: s.schedule, d, along: s.along, fraction: s.fraction });
+      }
+    }
+  }
+  return out;
+}
+
+/** When the line reaches a strand's point at `fraction` of its length. */
+function timeAt({ times }: Schedule, fraction: number): number {
+  const f = fraction * SAMPLES;
+  const i = Math.min(SAMPLES - 1, Math.floor(f));
+  return times[i] + (times[i + 1] - times[i]) * (f - i);
+}
+
+/**
+ * A strand may not start drawing before the strand it grows from has reached
+ * the point it leaves from (round 3).
+ *
+ * Depth alone used to time every strand, and a strand that leaves the end of
+ * a CLIMBING run starts higher up the page than that run finishes — so it was
+ * drawn first and hung in the air until its parent caught up. Measured mid-
+ * scroll, in The Collective, Proof and Contact, at up to ~50px from any
+ * drawn line.
+ *
+ * The parent is found geometrically, so this works for every section's
+ * renderer: the strand whose path passes through this one's start point.
+ * Passes repeat until nothing moves, so a delay carries down a whole lineage.
+ */
+function orderByLineage(
+  schedules: Map<SVGPathElement, Schedule>,
+  perUnit: number,
+): void {
+  const index = indexOf(schedules);
+  const entries = [...schedules.values()].map((schedule) => ({
+    schedule,
+    length: index.lengths.get(schedule) ?? 0,
+  }));
+  // A fork's two strands start at the SAME point, so another strand's own
+  // start never counts as a parent — siblings would otherwise vouch for each
+  // other and both draw before the strand they fork from arrives. Ties go to
+  // the later point, so a strand leaving another's end is timed from its end.
+  const TOUCH = 2.5;
+  const attach = new Map<Schedule, { parent: Schedule; fraction: number } | null>();
+  for (const child of entries) {
+    const start = child.schedule.points[0];
+    let best: { parent: Schedule; fraction: number } | null = null;
+    let bestD = TOUCH;
+    let bestF = -1;
+    for (const s of samplesNear(index, start.x, start.y, TOUCH)) {
+      if (s.schedule === child.schedule || s.along < TOUCH * 2) continue;
+      if (s.d < bestD - 1e-6 || (s.d <= bestD && s.fraction > bestF)) {
+        bestD = s.d;
+        bestF = s.fraction;
+        best = { parent: s.schedule, fraction: s.fraction };
+      }
+    }
+    attach.set(child.schedule, best);
+  }
+
+  // Until nothing moves: a trunk is a chain of dozens of segments, and a delay
+  // has to carry all the way down it. Each pass only ever moves strands later,
+  // so this ends; the cap is a guard, not a budget.
+  for (let pass = 0; pass <= entries.length; pass++) {
+    let moved = false;
+    for (const child of entries) {
+      const link = attach.get(child.schedule);
+      if (!link) continue;
+      const ready = timeAt(link.parent, link.fraction);
+      const { times } = child.schedule;
+      if (times[0] >= ready - 1e-4) continue;
+      const minStep = (child.length / SAMPLES) * perUnit * LATERAL_PACE;
+      times[0] = ready;
+      for (let i = 1; i <= SAMPLES; i++) times[i] = Math.max(times[i], times[i - 1] + minStep);
+      // Squeezed to finish on the pass, as in `scheduleOf` — but never by
+      // moving the start earlier than the parent's arrival, or near the foot
+      // the squeeze undid the wait.
+      const over = times[SAMPLES];
+      if (over > FINISH) {
+        const start = Math.min(times[0], FINISH - 0.001);
+        const scale = (FINISH - start) / (over - start);
+        for (let i = 0; i <= SAMPLES; i++) times[i] = start + (times[i] - start) * scale;
+      }
+      moved = true;
+    }
+    if (!moved) break;
+  }
+}
+
+/**
+ * Draw a whole network: every strand rides the growth line, and none starts
+ * before the strand it grows from reaches it. Returns the schedules, for
+ * timing whatever sits on the strands.
+ */
+export function drawStrands(
+  tl: gsap.core.Timeline,
+  paths: SVGPathElement[],
+  timeOf: TimeOf,
+  perUnit: number,
+): Map<SVGPathElement, Schedule> {
+  const schedules = new Map<SVGPathElement, Schedule>();
+  for (const path of paths) {
+    const schedule = scheduleOf(path, timeOf, perUnit);
+    if (schedule) schedules.set(path, schedule);
+    else tl.to(path, { strokeDashoffset: 0, duration: 0.05 }, 0);
+  }
+  orderByLineage(schedules, perUnit);
+  schedules.forEach((schedule, path) => {
+    const { times } = schedule;
+    tl.to(
+      path,
+      {
+        strokeDashoffset: 0,
+        duration: Math.max(0.001, times[SAMPLES] - times[0]),
+        ease: easeOf(schedule),
+      },
+      times[0],
+    );
+  });
+  return schedules;
 }
 
 /** When the line reaches the sample of a strand nearest to a point. */
@@ -200,20 +437,18 @@ export function growNetwork({
   // Time is simply depth: a point `y` units down a field `height` tall is
   // reached at `y / height`.
   const timeOf = (y: number) => y / height;
-  const schedules = new Map<SVGPathElement, Schedule>();
-  const draw = (path: SVGPathElement) => {
-    const schedule = drawStrand(tl, path, timeOf, 1 / height);
-    if (schedule) schedules.set(path, schedule);
-  };
+  const schedules = drawStrands(tl, [...strands, ...reaches], timeOf, 1 / height);
 
-  strands.forEach(draw);
-  reaches.forEach(draw);
-
+  // Capped at FINISH like the strands, not at an earlier fixed point: strands
+  // near the foot can start late now that they wait for their parents, and a
+  // node capped before its strand began appeared at the end of nothing. The
+  // pop is shortened instead, so it still ends inside the pass.
   const appear = (el: SVGGElement, at: number) => {
+    const start = Math.min(FINISH, Math.max(0, at));
     tl.to(
       el,
-      { opacity: 1, scale: 1, duration: 0.03, ease: "power2.out" },
-      Math.min(0.97, Math.max(0, at)),
+      { opacity: 1, scale: 1, duration: Math.max(0.005, Math.min(0.03, 1 - start)), ease: "power2.out" },
+      start,
     );
   };
 
@@ -226,9 +461,17 @@ export function growNetwork({
     else appear(mark, centre ? timeOf(centre.y) : 0);
   });
 
+  // A meeting point appears when the first strand actually reaches it. Depth
+  // alone was a fine guess until strands began waiting for their parents
+  // (`orderByLineage`); then a junction could show before any line arrived.
   junctions.forEach((junction) => {
     const centre = centreOf(junction);
-    appear(junction, centre ? timeOf(centre.y) - 0.01 : 0);
+    if (!centre) return appear(junction, 0);
+    let first = Infinity;
+    for (const hit of samplesNear(indexOf(schedules), centre.x, centre.y, 4)) {
+      first = Math.min(first, timeAt(hit.schedule, hit.fraction));
+    }
+    appear(junction, Number.isFinite(first) ? first : timeOf(centre.y) - 0.01);
   });
 
   // And once grown, the primaries keep moving at rest.

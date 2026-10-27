@@ -117,17 +117,10 @@ export const SEAMS: readonly SeamConfig[] = [
     id: "journal-contact",
     lower: ".contact",
     marker: "[data-contact-marker]",
-    // The bundle holds no sixth artwork that is not already used above or
-    // spoken for, so this frame was reserved until the client sent the 3D
-    // specimens (round 2): it carries one of them as a still — a model that
-    // is credited in the footer with the rest (lib/specimens/config).
-    artwork: {
-      src: "/assets/brand/specimens/amanita/t-12.webp",
-      alt: "A slender mushroom with a flat orange cap.",
-      width: 560,
-      height: 560,
-      specimen: true,
-    },
+    // Round 2 reserved this frame for a specimen still (an amanita). The
+    // mushrooms were removed in round 3, and the frame is not rendered in
+    // any case (see SeamBridge).
+    artwork: null,
   },
 ];
 
@@ -169,7 +162,9 @@ export function seamMetrics(tier: Tier, first: boolean, markerDy: number): SeamM
 /** Normalised x of every strand entering a section's network across its top edge. */
 export function entriesOf(svg: SVGSVGElement): number[] {
   const viewBox = (svg.getAttribute("viewBox") ?? "").split(/\s+/).map(Number);
-  const width = viewBox[2];
+  // A field wider than the screen (The Turn's sliding track) says how wide
+  // the screen its entries fall into is.
+  const width = Number(svg.dataset.viewWidth) || viewBox[2];
   if (!width) return [];
   const out: number[] = [];
   svg.querySelectorAll("path").forEach((path) => {

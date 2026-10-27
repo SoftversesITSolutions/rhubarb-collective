@@ -27,7 +27,9 @@ import type { Tier } from "@/lib/hero/config";
 import { NETWORK_SEED } from "@/lib/hero/config";
 import type { KeepOut, NetworkNode, OrganicNetwork } from "@/lib/hero/network";
 import { generateCascade, type CascadeInlet } from "@/lib/first-growth/cascade";
-import { readExits } from "@/lib/network/continuity";
+import { CALM_LINES, calmed } from "@/lib/network/calm";
+import { closeSeam, readExits } from "@/lib/network/continuity";
+import { COLLECTIVE_EXITS, PROOF_EXITS } from "@/lib/network/seams";
 import {
   anchorPeople,
   COLLECTIVE_COPY_SELECTOR,
@@ -39,8 +41,6 @@ import {
 } from "@/lib/collective/network";
 import {
   ITEM_INFLUENCE_CAP,
-  MAX_INLETS,
-  MIN_INLETS,
   PROOF_DESCENT,
   PROOF_SHAPE,
   SEGMENT_BUDGET_MULTIPLIER,
@@ -156,11 +156,7 @@ export function readCollectiveExits(tier: Tier): CascadeInlet[] | null {
 
   // Section 5's trunks, deepest first — the shared seam contract. See
   // `lib/network/continuity`.
-  const kept = readExits(network, {
-    min: MIN_INLETS[tier],
-    max: MAX_INLETS[tier],
-    spacing: PROOF_SHAPE[tier].inletSpacing,
-  });
+  const kept = readExits(network, COLLECTIVE_EXITS(tier));
 
   if (!kept.length) return null;
 
@@ -190,7 +186,17 @@ export interface ProofFieldInput {
   inlets: CascadeInlet[];
 }
 
+/**
+ * The section's network with its seam closed: every strand crossing the foot
+ * that the next section does not continue ends above the boundary instead of
+ * being cut by it (`closeSeam`, round 3). The section's own component and the
+ * next section's exit reader both come through here, so they agree exactly.
+ */
 export function generateProofNetwork(input: ProofFieldInput): OrganicNetwork {
+  return closeSeam(growProofNetwork(input), PROOF_EXITS(input.tier));
+}
+
+function growProofNetwork(input: ProofFieldInput): OrganicNetwork {
   const shape = PROOF_SHAPE[input.tier];
   const descent = PROOF_DESCENT[input.tier];
 
@@ -233,7 +239,7 @@ export function generateProofNetwork(input: ProofFieldInput): OrganicNetwork {
     });
   }
 
-  return generateCascade({
+  return generateCascade(calmed({
     seed: NETWORK_SEED + 379,
     width: input.width,
     height: input.height,
@@ -267,7 +273,13 @@ export function generateProofNetwork(input: ProofFieldInput): OrganicNetwork {
     baseWidth: shape.baseWidth,
     keepOut,
     margin: 26,
-  });
+    // Calm lines (round 3): on the 390 column the copy blocks run the full
+    // width, and the arriving trunk ping-ponged between them and the top edge
+    // — 25 runs in the top 150px of Proof, a knot holding ~10% of its ink.
+    // There it carries on behind the copy instead, as Journal's does.
+    behindBelow: CALM_LINES && input.tier === "mobile" ? 0 : undefined,
+    finishInMargin: true,
+  }, "strong"));
 }
 
 /* ------------------------------------------------------------------ *

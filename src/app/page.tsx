@@ -26,7 +26,7 @@ export default function Home() {
       {/* Wakes the network's nodes beside whatever is pointed at or tapped. */}
       <NetworkTouch />
 
-      {/* Plants the 3D flowers and mushrooms into the sections' open space. */}
+      {/* Puts the 3D plants into the sections' open space. */}
       <SpecimenField />
 
       {/*

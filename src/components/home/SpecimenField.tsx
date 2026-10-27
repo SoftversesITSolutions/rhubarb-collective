@@ -18,15 +18,15 @@ interface Planted {
 }
 
 /**
- * The 3D flowers and mushrooms in the homepage's open space (client round 2,
- * priority 5 — see lib/specimens/config).
+ * The 3D plants in the homepage's open space (client round 2, priority 5;
+ * round 3 — see lib/specimens/config).
  *
  * One component for the whole page. It plants a figure into each configured
  * section, finds it real empty space there (lib/specimens/place) once the
  * layout has settled and again whenever a section changes shape, and turns
  * each one with the scroll as it crosses the screen: a short pre-rendered run
- * of frames, scrubbed, so it reverses exactly. Under reduced motion each is a
- * still.
+ * of frames, scrubbed, so it reverses exactly, arriving the way the footer's
+ * sunflower does. Under reduced motion each is a still.
  *
  * The figures are absolutely positioned inside their sections and sit above
  * the network and beside the content, so no section's height — and so no
@@ -67,20 +67,30 @@ export function SpecimenField() {
       });
     });
 
-    /* ---- motion: turn with the scroll, arrive quietly ----
-       Built after each placement rather than once: a scroll window measured
-       before its figure has a position is a window onto the wrong place. */
+    /* ---- motion: arrive like the footer's sunflower, then keep moving ----
+       Client round 3, note 7: every 3D element gets a reveal on scroll "just
+       like the sunflower in the footer", and some movement after it. Over
+       the figure's pass across the screen, scrubbed:
+         0.02–0.42  it travels in from the nearer edge on a curved path,
+                    swirls upright out of a tilt, grows and fades in
+         0.42–1     it drifts up against the page and slowly leans
+       while its pre-rendered turn runs across the whole pass. Built after
+       each placement rather than once: a scroll window measured before its
+       figure has a position is a window onto the wrong place. */
     let ctx: gsap.Context | null = null;
     const animate = () => {
       ctx?.revert();
       ctx = gsap.context(() => {
-        planted.forEach(({ figure, inner, player }) => {
+        planted.forEach(({ figure, inner, section, player }) => {
           if (figure.hidden) return;
           if (reducedMotion) {
             gsap.set(inner, { opacity: 1 });
             player?.draw(0.5);
             return;
           }
+          const size = figure.offsetWidth;
+          // From whichever side of its section it sits nearer.
+          const side = figure.offsetLeft + size / 2 < section.clientWidth / 2 ? -1 : 1;
           const turn = { t: 0 };
           const tl = gsap.timeline({
             defaults: { ease: "none" },
@@ -90,17 +100,28 @@ export function SpecimenField() {
               end: "bottom top",
               scrub: 0.6,
               invalidateOnRefresh: true,
+              // A figure on The Turn's sliding track sits in a pinned stage.
+              pinnedContainer: figure.closest<HTMLElement>("[data-branches-stage]") ?? undefined,
             },
           });
           tl.to(turn, { t: 1, duration: 1, onUpdate: () => player?.draw(turn.t) }, 0);
+          gsap.set(inner, { transformOrigin: "50% 85%" });
           tl.fromTo(
             inner,
-            { opacity: 0, y: 36, scale: 0.9 },
-            { opacity: 1, y: 0, scale: 1, duration: 0.3, ease: "sine.out" },
-            0.04,
+            { opacity: 0, scale: 0.6, rotation: side * 34 },
+            { opacity: 1, scale: 1, rotation: 0, duration: 0.4, ease: "sine.out" },
+            0.02,
           );
-          // It keeps drifting a little against the page after it has arrived.
-          tl.to(inner, { y: -22, duration: 0.66 }, 0.34);
+          // The travel: across fast and up late, so the path curves.
+          tl.fromTo(
+            inner,
+            { x: side * size * 0.4 },
+            { x: 0, duration: 0.4, ease: "power2.out" },
+            0.02,
+          );
+          tl.fromTo(inner, { y: size * 0.28 }, { y: 0, duration: 0.4 }, 0.02);
+          // It keeps moving a little against the page after it has arrived.
+          tl.to(inner, { y: -size * 0.07, rotation: -side * 4, scale: 1.04, duration: 0.58 }, 0.42);
         });
       });
     };
@@ -112,8 +133,8 @@ export function SpecimenField() {
       planted.forEach(({ figure }) => figure.removeAttribute("data-placed"));
       const parts: string[] = [];
       planted.forEach(({ figure, section, index }) => {
-        const { prefer, min, max } = SPECIMEN_PLACEMENTS[index];
-        const room = findRoom(section, prefer, min, max);
+        const { prefer, min, max, above } = SPECIMEN_PLACEMENTS[index];
+        const room = findRoom(section, prefer, min, max, above);
         if (!room) {
           figure.hidden = true;
           parts.push("-");

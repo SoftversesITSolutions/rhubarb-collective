@@ -43,7 +43,7 @@
  */
 
 import type { CascadeInlet } from "@/lib/first-growth/cascade";
-import type { OrganicNetwork } from "@/lib/hero/network";
+import type { OrganicNetwork, Point } from "@/lib/hero/network";
 
 /**
  * Which way a strand was leaning as it ended, read off the last curve segment
@@ -137,13 +137,35 @@ export interface ExitOptions {
   /** Least normalised distance between two entries, 0..1. */
   spacing: number;
   /**
-   * Fraction of the field height a trunk must reach to count as having crossed
-   * the foot. Trunks past it are preferred; trunks short of it are the fallback.
+   * Only for the last-resort fallback, when no trunk crosses the foot at all:
+   * fraction of the field height a trunk tip must reach to be preferred.
    */
   footRatio?: number;
-  /** Absolute foot in field units. Overrides `footRatio` when given. */
+  /** Absolute fallback foot in field units. Overrides `footRatio` when given. */
   foot?: number;
 }
+
+/* ------------------------------------------------------------------ *
+ * Reading the strands where the reader actually sees them leave
+ * ------------------------------------------------------------------ */
+
+/*
+ * ROUND 3 (27 Oct 2026) — WHY INLETS ARE NOW READ AT THE CROSSING, NOT THE TIP.
+ *
+ * Trunks are allowed to run past the foot (the section clips them), so a
+ * trunk's TIP lies below and beside the point where it visibly crosses the
+ * boundary. Every inlet used to be placed at the tip's x: measured on the
+ * rendered page, the continuation began 20–100px away from the strand the
+ * reader watched arrive, at every seam and every tier, and twice the 0.94
+ * wall clamp moved an entry ~300px. Trunks that crossed but were not
+ * inherited were simply cut by the clip. The old seam metric compared inlets
+ * with those same tips, which is why it reported dx = 0 throughout.
+ *
+ * So: an inlet is where a drawn strand crosses y = field height, on that
+ * strand's tangent there; and every crossing strand the next field does NOT
+ * continue is closed above the foot with a tip node by `closeSeam`, so no
+ * strand ever ends on the boundary line.
+ */
 
 interface Candidate {
   x: number;
@@ -152,15 +174,170 @@ interface Candidate {
   angle?: number;
 }
 
+type Cubic = [number, number, number, number, number, number, number, number];
+
+/** The cubic segments of a path written by `toPath` (one M, then C's). */
+function cubicsOf(d: string): Cubic[] {
+  const parts = d.match(/[MC][^MC]*/g) ?? [];
+  const out: Cubic[] = [];
+  let x = 0;
+  let y = 0;
+  for (const part of parts) {
+    const n = part.slice(1).trim().split(/[\s,]+/).map(Number);
+    if (part[0] === "M") {
+      [x, y] = n;
+    } else if (n.length >= 6) {
+      out.push([x, y, n[0], n[1], n[2], n[3], n[4], n[5]]);
+      x = n[4];
+      y = n[5];
+    }
+  }
+  return out;
+}
+
+const cubicAt = (c: Cubic, t: number) => {
+  const u = 1 - t;
+  const a = u * u * u, b = 3 * u * u * t, e = 3 * u * t * t, f = t * t * t;
+  return {
+    x: a * c[0] + b * c[2] + e * c[4] + f * c[6],
+    y: a * c[1] + b * c[3] + e * c[5] + f * c[7],
+  };
+};
+
+const cubicTangent = (c: Cubic, t: number) => {
+  const u = 1 - t;
+  return Math.atan2(
+    3 * u * u * (c[3] - c[1]) + 6 * u * t * (c[5] - c[3]) + 3 * t * t * (c[7] - c[5]),
+    3 * u * u * (c[2] - c[0]) + 6 * u * t * (c[4] - c[2]) + 3 * t * t * (c[6] - c[4]),
+  );
+};
+
 /**
- * The trunks leaving a network through its lower edge, deepest first, as the
- * next field's entry points.
+ * The first point where a path passes through `y = line` — descending, or
+ * with `up`, ascending.
+ */
+function descentThrough(cubics: Cubic[], line: number, up = false) {
+  // "Before the line" is above it for a descent and below it for an ascent.
+  const before = (y: number) => (up ? y > line : y < line);
+  for (let k = 0; k < cubics.length; k += 1) {
+    const c = cubics[k];
+    // Sample, then bisect inside the first sample interval that crosses.
+    let prev = cubicAt(c, 0);
+    for (let s = 1; s <= 16; s += 1) {
+      const t1 = s / 16;
+      const next = cubicAt(c, t1);
+      if (before(prev.y) && !before(next.y)) {
+        let lo = t1 - 1 / 16;
+        let hi = t1;
+        for (let i = 0; i < 24; i += 1) {
+          const mid = (lo + hi) / 2;
+          if (before(cubicAt(c, mid).y)) lo = mid;
+          else hi = mid;
+        }
+        const t = (lo + hi) / 2;
+        return { segment: k, t, point: cubicAt(c, t), angle: cubicTangent(c, t) };
+      }
+      prev = next;
+    }
+  }
+  return null;
+}
+
+/** De Casteljau: the part of a cubic from 0 to t. */
+function cubicHead(c: Cubic, t: number): Cubic {
+  const lerp = (a: number, b: number) => a + (b - a) * t;
+  const [x0, y0, x1, y1, x2, y2, x3, y3] = c;
+  const ax = lerp(x0, x1), ay = lerp(y0, y1);
+  const bx = lerp(x1, x2), by = lerp(y1, y2);
+  const cx = lerp(x2, x3), cy = lerp(y2, y3);
+  const dx = lerp(ax, bx), dy = lerp(ay, by);
+  const ex = lerp(bx, cx), ey = lerp(by, cy);
+  const fx = lerp(dx, ex), fy = lerp(dy, ey);
+  return [x0, y0, ax, ay, dx, dy, fx, fy];
+}
+
+const r2 = (n: number) => Math.round(n * 100) / 100;
+
+function pathOf(cubics: Cubic[]): string {
+  if (!cubics.length) return "";
+  const head = `M${r2(cubics[0][0])} ${r2(cubics[0][1])}`;
+  return (
+    head +
+    cubics
+      .map((c) => `C${r2(c[2])} ${r2(c[3])} ${r2(c[4])} ${r2(c[5])} ${r2(c[6])} ${r2(c[7])}`)
+      .join("")
+  );
+}
+
+interface Crossing {
+  branchId: string;
+  /** Field units. */
+  x: number;
+  angle: number;
+  /** How far the strand ran on past the foot — the strongest leavers first. */
+  depth: number;
+}
+
+/** Every trunk that visibly leaves the field through its lower edge. */
+function crossingsOf(network: OrganicNetwork): Crossing[] {
+  const out: Crossing[] = [];
+  for (const branch of network.branches) {
+    if (branch.depth !== 0) continue;
+    const hit = descentThrough(cubicsOf(branch.d), network.height);
+    if (!hit) continue;
+    // A crossing outside the canvas is not one the reader can see.
+    if (hit.point.x < 0 || hit.point.x > network.width) continue;
+    out.push({ branchId: branch.id, x: hit.point.x, angle: hit.angle, depth: branch.tip.y });
+  }
+  return out.sort((a, b) => b.depth - a.depth);
+}
+
+/** The crossings the next field continues: the one selection both sides use. */
+function selectCrossings(network: OrganicNetwork, options: ExitOptions): Crossing[] {
+  const { min, max, spacing } = options;
+  const crossings = crossingsOf(network);
+  const kept: Crossing[] = [];
+  const take = (gap: number, limit: number) => {
+    for (const c of crossings) {
+      if (kept.length >= limit) return;
+      if (kept.includes(c)) continue;
+      if (kept.some((k) => Math.abs(k.x - c.x) / network.width < gap)) continue;
+      kept.push(c);
+    }
+  };
+  take(spacing, max);
+  // Fewer than `min` at the preferred spacing: relax the spacing, never the
+  // rule that an entry continues a strand that really crossed.
+  for (let gap = spacing * 0.6; kept.length < min && gap > 0.005; gap *= 0.5) take(gap, min);
+  return kept;
+}
+
+const leanOf = (angle: number): -1 | 1 => (Math.cos(angle) >= 0 ? 1 : -1);
+
+/**
+ * The trunks leaving a network through its lower edge, as the next field's
+ * entry points: the x where each visibly crosses the foot, and its heading
+ * there.
  *
  * Returns an empty array only when the network genuinely has no trunks at all —
  * in which case the caller has nothing to continue and should render nothing,
  * which is the one honest response to an absent parent.
  */
 export function readExits(network: OrganicNetwork, options: ExitOptions): CascadeInlet[] {
+  const crossed = selectCrossings(network, options);
+  if (crossed.length) {
+    return crossed.map((c) => ({ x: c.x / network.width, lean: leanOf(c.angle), angle: c.angle }));
+  }
+  return deepestTips(network, options);
+}
+
+/**
+ * The last resort, for a parent none of whose trunks reaches its foot: the
+ * deepest REAL trunk tips. Such an entry cannot read as continuous — which is
+ * why every generator is budgeted to cross its foot — but a blank section
+ * below would be worse.
+ */
+function deepestTips(network: OrganicNetwork, options: ExitOptions): CascadeInlet[] {
   const { min, max, spacing } = options;
 
   const trunks: Candidate[] = network.branches
@@ -188,29 +365,157 @@ export function readExits(network: OrganicNetwork, options: ExitOptions): Cascad
     }
   };
 
-  // 1 — the strands that actually crossed the foot of the field above.
-  take(
-    trunks.filter((t) => t.y >= foot),
-    max,
-    spacing,
-  );
-
-  // 2 — not enough of them: the next-deepest trunks of the SAME network. Still
-  //     that section's own geometry, just read further up its field.
+  take(trunks.filter((t) => t.y >= foot), max, spacing);
   if (kept.length < min) take(trunks, min, spacing);
-
-  // 3 — still short because the field is too narrow for the preferred spacing.
-  //     Relax it rather than open a field with fewer entries than it needs; a
-  //     seam that hands over one strand where three left reads as a reset.
   if (kept.length < min) {
     for (let gap = spacing * 0.6; kept.length < min && gap > 0.005; gap *= 0.5) {
       take(trunks, min, gap);
     }
   }
-
-  // 4 — a last resort that still cannot invent anything: the deepest trunk.
   if (!kept.length)
     kept.push({ x: trunks[0].x, lean: trunks[0].lean, angle: trunks[0].angle });
 
   return kept;
+}
+
+/**
+ * Closes every strand that crosses the foot but is NOT continued below, so
+ * nothing on the page ends sliced on a section boundary: it is cut `margin`
+ * above the foot and finished with a tip node, and anything that grew from
+ * the part removed goes with it. Must be given the same options the next
+ * field reads with — `selectCrossings` is the single selection both use, so
+ * `readExits` on the result returns exactly the strands left crossing.
+ *
+ * Offshoots that reach the foot are closed the same way; only selected
+ * trunks may cross. So are offshoots that bend up through the top edge.
+ */
+export function closeSeam(
+  network: OrganicNetwork,
+  options: ExitOptions,
+  margin = 44,
+): OrganicNetwork {
+  const keep = new Set(selectCrossings(network, options).map((c) => c.branchId));
+  const line = network.height - margin;
+  const template = network.nodes.find((n) => n.kind === "tip" && n.depth === 0) ?? network.nodes[0];
+
+  const removed = new Set<string>();
+  const trimmed = new Map<string, { d: string; tip: Point }>();
+
+  // The top edge too: an offshoot leaving near the head of the field can bend
+  // up through it and be sliced there just the same.
+  const ceiling = margin / 2;
+
+  // A continued strand ends where it first crosses the foot. Past it the
+  // walk may wander on inside the clipped margin and come back up through
+  // the boundary — measured at 1280 in Journal: a loop poking back into the
+  // field and cut at the edge, beside the strand Contact really continues.
+  const handedOn = new Map<string, string>();
+
+  for (const branch of network.branches) {
+    const cubics = cubicsOf(branch.d);
+    if (keep.has(branch.id)) {
+      // Just past the foot, not on it: the written path is rounded to 0.01,
+      // and an end rounded up onto the line no longer reads as a crossing.
+      const first = descentThrough(cubics, network.height + 2);
+      if (first) {
+        const head = cubics.slice(0, first.segment);
+        head.push(cubicHead(cubics[first.segment], first.t));
+        handedOn.set(branch.id, pathOf(head));
+      }
+      continue;
+    }
+    let hit: ReturnType<typeof descentThrough> = null;
+    if (descentThrough(cubics, network.height)) {
+      hit = descentThrough(cubics, line);
+    } else if (branch.depth > 0 && descentThrough(cubics, 0, true)) {
+      hit = descentThrough(cubics, ceiling, true);
+    } else {
+      continue;
+    }
+    if (!hit) {
+      // Already past the cut where it starts: it goes, and its parent's end
+      // becomes the tip.
+      removed.add(branch.id);
+      continue;
+    }
+    const head = cubics.slice(0, hit.segment);
+    head.push(cubicHead(cubics[hit.segment], hit.t));
+    trimmed.set(branch.id, { d: pathOf(head), tip: hit.point });
+  }
+  if (!removed.size && !trimmed.size && !handedOn.size) return network;
+
+  // Whatever started on a removed part of a strand is removed with it.
+  const startOf = (d: string) => {
+    const c = cubicsOf(d)[0];
+    return c ? { x: c[0], y: c[1] } : null;
+  };
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const branch of network.branches) {
+      if (removed.has(branch.id) || !branch.parentId) continue;
+      const start = startOf(branch.d);
+      const parentGone = removed.has(branch.parentId);
+      const cut = trimmed.get(branch.parentId);
+      const fromCutPart =
+        cut !== undefined &&
+        start !== null &&
+        Math.hypot(start.x - cut.tip.x, start.y - cut.tip.y) > 0.5 &&
+        (start.y > line + 0.5 || start.y < ceiling - 0.5);
+      if (parentGone || fromCutPart) {
+        removed.add(branch.id);
+        trimmed.delete(branch.id);
+        grew = true;
+      }
+    }
+  }
+
+  const branches = network.branches
+    .filter((b) => !removed.has(b.id))
+    .map((b) => {
+      const t = trimmed.get(b.id);
+      if (t) return { ...b, d: t.d, tip: t.tip };
+      const on = handedOn.get(b.id);
+      return on ? { ...b, d: on } : b;
+    });
+
+  const nodes = network.nodes.filter((n) => {
+    if (removed.has(n.branchId)) return false;
+    if (trimmed.has(n.branchId) && (n.y > line + 0.5 || n.y < ceiling - 0.5)) return false;
+    return true;
+  });
+
+  // A tip node at every new end: each trimmed strand, and each surviving
+  // strand whose continuation was removed and that has nothing left at its end.
+  const ends: { branchId: string; at: Point; depth: number; behind: boolean; appearAt: number }[] = [];
+  for (const b of branches) {
+    const t = trimmed.get(b.id);
+    if (t) ends.push({ branchId: b.id, at: t.tip, depth: b.depth, behind: b.behind, appearAt: b.growthStart + b.growthDuration });
+  }
+  for (const b of branches) {
+    if (trimmed.has(b.id)) continue;
+    const lostChild = network.branches.some((c) => c.parentId === b.id && removed.has(c.id));
+    const keptChild = branches.some((c) => c.parentId === b.id);
+    if (lostChild && !keptChild) {
+      ends.push({ branchId: b.id, at: b.tip, depth: b.depth, behind: b.behind, appearAt: b.growthStart + b.growthDuration });
+    }
+  }
+  for (const end of ends) {
+    if (!template) break;
+    if (nodes.some((n) => Math.hypot(n.x - end.at.x, n.y - end.at.y) < 3)) continue;
+    nodes.push({
+      ...template,
+      id: `${end.branchId}-closed`,
+      branchId: end.branchId,
+      x: r2(end.at.x),
+      y: r2(end.at.y),
+      depth: end.depth,
+      kind: "tip",
+      ring: false,
+      behind: end.behind,
+      appearAt: Math.min(1, end.appearAt),
+    });
+  }
+
+  return { ...network, branches, nodes };
 }

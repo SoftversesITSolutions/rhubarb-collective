@@ -10,7 +10,10 @@
 // puppeteer cache binary, see ../sunflower-frames/cdp.mjs).
 //
 // models.json is the single place the frame parameters live; `frames` there
-// must agree with SPECIMEN_FRAMES in the config.
+// must agree with SPECIMEN_FRAMES in the config. Per model: `yaw` range and
+// `pitch` in degrees, optional `light` overrides, and optional `fit` — the
+// share of the frame the model's box fills (0.9 by default; higher for a
+// model whose box is much larger than what is visible of it).
 import { spawn } from "node:child_process";
 import { cpSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -49,7 +52,7 @@ try {
     let total = 0;
     for (let i = 0; i < manifest.frames; i++) {
       const yaw = model.yaw[0] + (model.yaw[1] - model.yaw[0]) * (i / (manifest.frames - 1));
-      const url = await tab.evaluate(`window.renderFit(${yaw}, ${model.pitch}, 24, 0.9, 'image/webp', ${manifest.quality})`);
+      const url = await tab.evaluate(`window.renderFit(${yaw}, ${model.pitch}, 24, ${model.fit ?? 0.9}, 'image/webp', ${manifest.quality})`);
       const buf = Buffer.from(url.split(",")[1], "base64");
       total += buf.length;
       writeFileSync(resolve(out, `t-${String(i).padStart(2, "0")}.webp`), buf);

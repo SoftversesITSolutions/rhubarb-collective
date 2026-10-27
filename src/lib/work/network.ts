@@ -26,7 +26,9 @@ import type { KeepOut, OrganicNetwork } from "@/lib/hero/network";
 import { NETWORK_SEED } from "@/lib/hero/config";
 import { firstGrowthConfig } from "@/lib/first-growth/config";
 import { generateCascade, type CascadeInlet } from "@/lib/first-growth/cascade";
-import { readExits } from "@/lib/network/continuity";
+import { calmed } from "@/lib/network/calm";
+import { closeSeam, layoutRect, readExits } from "@/lib/network/continuity";
+import { FIRST_GROWTH_EXITS, WORK_EXITS } from "@/lib/network/seams";
 
 /* ------------------------------------------------------------------ *
  * Inheriting Section 2's exits
@@ -56,7 +58,7 @@ export function workInlets(tier: Tier): CascadeInlet[] {
   if (cached) return cached;
 
   const config = firstGrowthConfig(tier);
-  const network = generateCascade(config);
+  const network = closeSeam(generateCascade(config), FIRST_GROWTH_EXITS(tier));
 
   // Entries are kept apart so the continuation opens across the field instead
   // of arriving as a bundle, and the deepest — Section 2's Work route — is
@@ -71,9 +73,7 @@ export function workInlets(tier: Tier): CascadeInlet[] {
   // when the preferred trunks are missing it falls back to the next-deepest
   // real ones, and Section 2 now reaches its own foot at every tier anyway.
   const kept = readExits(network, {
-    min: 2,
-    max: 3,
-    spacing: 0.1,
+    ...FIRST_GROWTH_EXITS(tier),
     foot: network.height - config.margin * 2,
   });
 
@@ -142,9 +142,44 @@ export interface WorkFieldInput {
   images: { x: number; y: number; width: number; height: number }[];
 }
 
+/**
+ * Section 3's field, measured from the live DOM — the ONE measurement both its
+ * own component and The Turn's exit reader use.
+ *
+ * Two copies of this used to disagree (round 3): the component left the
+ * featured piece out of the keep-outs and the reader did not, so The Turn
+ * regrew a different Work network from the one on screen and opened 30–300px
+ * away from the strands that visibly crossed the seam. Both also read paint
+ * boxes, which the frames' reveal transforms move with scroll; frames are
+ * read by layout here (see `layoutRect`).
+ *
+ * The featured piece spans the whole measure, so as a keep-out it would dam
+ * every strand into the gap above it. It is left out: strands pass beneath it
+ * (the work always paints over the network) and carry on below.
+ */
+export function measureWorkField(root: HTMLElement, tier: Tier): WorkFieldInput | null {
+  const width = root.offsetWidth;
+  const height = root.offsetHeight;
+  if (width < 1 || height < 1) return null;
+  const images = Array.from(
+    root.querySelectorAll<HTMLElement>("[data-work-item]:not([data-featured]) [data-work-frame]"),
+  ).map((frame) => layoutRect(frame, root));
+  return { tier, width, height, images };
+}
+
 const DESCENT: [number, number] = [0.5, 0.78];
 
+/**
+ * The section's network with its seam closed: every strand crossing the foot
+ * that the next section does not continue ends above the boundary instead of
+ * being cut by it (`closeSeam`, round 3). The section's own component and the
+ * next section's exit reader both come through here, so they agree exactly.
+ */
 export function generateWorkNetwork(input: WorkFieldInput): OrganicNetwork {
+  return closeSeam(growWorkNetwork(input), WORK_EXITS(input.tier));
+}
+
+function growWorkNetwork(input: WorkFieldInput): OrganicNetwork {
   const shape = SHAPE[input.tier];
   const inlets = workInlets(input.tier);
 
@@ -181,7 +216,7 @@ export function generateWorkNetwork(input: WorkFieldInput): OrganicNetwork {
     strength: shape.imageStrength,
   }));
 
-  return generateCascade({
+  return generateCascade(calmed({
     // Same seed family as the rest of the organism.
     seed: NETWORK_SEED + 91,
     width: input.width,
@@ -207,5 +242,5 @@ export function generateWorkNetwork(input: WorkFieldInput): OrganicNetwork {
     baseWidth: shape.baseWidth,
     keepOut,
     margin: 26,
-  });
+  }, "light"));
 }

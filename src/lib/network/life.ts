@@ -75,7 +75,13 @@ function overlay(base: SVGPathElement, width: number): SVGPathElement {
  * Give a section's primary strands their resting motion. Call inside the
  * section's `gsap.context`, after its growth is set up.
  */
-export function enliven(root: HTMLElement, strands: SVGPathElement[]): void {
+export function enliven(
+  root: HTMLElement,
+  strands: SVGPathElement[],
+  // For a section that contains a pin: its visibility trigger must be
+  // refreshed after the pin has added its length to the section.
+  { refreshPriority = 0 }: { refreshPriority?: number } = {},
+): void {
   gsap.registerPlugin(ScrollTrigger);
   root.querySelectorAll("[data-life]").forEach((el) => el.remove());
 
@@ -214,6 +220,7 @@ export function enliven(root: HTMLElement, strands: SVGPathElement[]): void {
     trigger: root,
     start: "top bottom+=200",
     end: "bottom top-=200",
+    refreshPriority,
     onToggle: (self) => (self.isActive ? clock.play() : clock.pause()),
   });
 }

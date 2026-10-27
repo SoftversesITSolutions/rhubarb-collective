@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { generateCascade } from "@/lib/first-growth/cascade";
+import { closeSeam } from "@/lib/network/continuity";
+import { FIRST_GROWTH_EXITS } from "@/lib/network/seams";
 import { useViewport } from "@/lib/hero/useViewport";
 import { ANNOTATION_OPTIONS, RIDGE_OPTIONS, firstGrowthConfig } from "@/lib/first-growth/config";
 import { annotationZones, deriveAnnotations } from "@/lib/first-growth/annotations";
@@ -33,7 +35,7 @@ export function FirstGrowth() {
     if (!tier) return null;
 
     const config = firstGrowthConfig(tier);
-    const network = generateCascade(config);
+    const network = closeSeam(generateCascade(config), FIRST_GROWTH_EXITS(tier));
     const annotationOptions = ANNOTATION_OPTIONS[tier];
 
     const annotations = annotationOptions.anchored

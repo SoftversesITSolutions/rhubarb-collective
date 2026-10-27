@@ -1,46 +1,48 @@
 /**
  * SECTION 04 — THE TURN
  *
- * This is the one field on the page whose macro composition is ART-DIRECTED
- * rather than emergent. Everywhere else the organism falls; here it stops
- * falling and TRAVELS — one trunk crossing the composition left to right,
- * six disciplines growing off it as it passes, then a deliberate turn back
- * into descent at the far edge.
+ * The one field on the page whose macro composition is ART-DIRECTED rather
+ * than emergent. Everywhere else the organism falls; here it stops falling
+ * and TRAVELS. Since client round 3 (Oct 2026) the section is a pinned stage
+ * the reader scrolls sideways through: one branch runs the length of a track
+ * wider than the screen, each discipline grows out of it on a short stem —
+ * above, below, above — and at the far end the branch turns back down into
+ * the page.
  *
  *   entries (Selected Work's real exits)
- *      ╲  ╲
- *       ╲──╲──● gather
- *              ╰────●───── 01
- *                    ╰──●──── 02 ─╮
- *                        03 ──────●────●──── 04
- *                                        ╰──●──── 05 ──●──── 06 ─╮
- *                                            ╰ descent   descent ╯╲
- *                                                                  descent
+ *      │   │
+ *      ╰─● ╰─●──────●────────────●────────────●──── … ──●──────●── turn
+ *            ╭╯     ╰╮    ╭╯     ╰╮    ╭╯           ╭╯  │      ╱ ╲
+ *          [01]     [02] [03]   [04]  [05]        [06]  descents
+ *
+ * The field is the TRACK, not the screen: x runs along the whole journey and
+ * y from the top of the section's intro to the stage's foot. Selected Work's
+ * strands arrive in the first screen's width (the track starts where the
+ * stage does), and the descents leave through the LAST screen's width (where
+ * the track has slid to by the time the pin lets go) — so the next section
+ * is handed its inlets as fractions of that last screen.
  *
  * Nothing decorative is invented: the entries are the actual trunks that left
- * Selected Work through its lower edge (readWorkExits regrows that section's
- * pure generator and reads them off), every connection starts at a real point
- * on the trunk's polyline, and the three descents that cross the foot are the
- * exits The Collective inherits. Seeded randomness supplies micro-curvature
- * only — the journey itself is deterministic composition, per the brief:
- * macro path intentional, micro variation seeded.
+ * Selected Work, every stem starts on a real point of the branch, and the
+ * descents are the exits The Collective inherits. Seeded randomness supplies
+ * micro-curvature only.
  */
 
 import type { Tier } from "@/lib/hero/config";
 import { NETWORK_SEED } from "@/lib/hero/config";
 import {
   measure,
-  toPath,
   type Branch,
   type NetworkNode,
   type OrganicNetwork,
   type Point,
 } from "@/lib/hero/network";
 import { chance, createRng, range, type Rng } from "@/lib/hero/random";
-import { generateWorkNetwork } from "@/lib/work/network";
-import { readExits } from "@/lib/network/continuity";
+import { generateWorkNetwork, measureWorkField } from "@/lib/work/network";
+import { closeSeam, layoutRect, readExits } from "@/lib/network/continuity";
+import { TURN_EXITS, WORK_EXITS } from "@/lib/network/seams";
 import type { CascadeInlet } from "@/lib/first-growth/cascade";
-import { LATERAL_SHAPE } from "./config";
+import { BRANCH_SHAPE } from "./config";
 
 export interface Rect {
   x: number;
@@ -48,6 +50,8 @@ export interface Rect {
   width: number;
   height: number;
 }
+
+const workExitCache = new Map<string, CascadeInlet[]>();
 
 /**
  * Where Section 3's trunks cross its lower edge, normalised 0..1.
@@ -61,47 +65,128 @@ export function readWorkExits(tier: Tier): CascadeInlet[] | null {
   const work = document.querySelector<HTMLElement>(".work");
   if (!work) return null;
 
-  const rect = work.getBoundingClientRect();
-  if (rect.width < 1 || rect.height < 1) return null;
-
-  const images = Array.from(
-    work.querySelectorAll<HTMLElement>("[data-work-frame]"),
-  ).map((frame) => {
-    const box = frame.getBoundingClientRect();
-    return {
-      x: box.left - rect.left,
-      y: box.top - rect.top,
-      width: box.width,
-      height: box.height,
-    };
-  });
-
-  const network = generateWorkNetwork({
-    tier,
-    width: Math.round(rect.width),
-    height: Math.round(rect.height),
-    images,
-  });
+  const field = measureWorkField(work, tier);
+  if (!field) return null;
+  // Every section below reads this one through `measureBranchField`, so on
+  // load it is asked five times over; regrowing Selected Work for each held
+  // the hero's logo back ~0.5s on phones (round 3). Its network is a pure
+  // function of its measured field, so the field is the key.
+  const key = JSON.stringify(field);
+  const cached = workExitCache.get(key);
+  if (cached) return cached;
+  const network = generateWorkNetwork(field);
 
   // Two, never more: everything that arrives here is gathered into ONE
-  // lateral trunk, so extra entries only crowd the gather — and at 1440 the
-  // third-deepest Work trunk ends 213px above the seam, which is exactly the
-  // hung-in-space entry this page must not draw. `readExits` treats foot depth
-  // and spacing as preferences and relaxes them in order, so the only empty
-  // result is a parent with no trunks at all.
-  const kept = readExits(network, { min: 2, max: 2, spacing: 0.09 });
-  return kept.length ? kept : null;
+  // branch, so extra entries only crowd the gather. `readExits` treats foot
+  // depth and spacing as preferences and relaxes them in order, so the only
+  // empty result is a parent with no trunks at all.
+  const kept = readExits(network, WORK_EXITS(tier));
+  if (!kept.length) return null;
+  workExitCache.set(key, kept);
+  return kept;
 }
 
 export interface BranchFieldInput {
   tier: Tier;
-  /** Measured section size, in CSS pixels. */
+  /** The whole track, CSS px: the journey's full length. */
   width: number;
+  /** The intro above the stage plus the stage itself, CSS px. */
   height: number;
-  /** Card rectangles in the same pixel space, in slot order a..f. */
+  /** Field y of the stage's top edge — everything above it is the intro. */
+  stageTop: number;
+  /** Width of the stage: the window the track slides behind. */
+  view: number;
+  /** How far the track slides, i.e. where the stage's left edge ends up. */
+  travel: number;
+  /** Card frames in field units, in order. Even cards hang below the branch, odd above. */
   cards: Rect[];
-  /** Entry points inherited from Section 3. */
+  /** Entry points inherited from Selected Work, as fractions of the view. */
   inlets: CascadeInlet[];
+}
+
+/** Below the branch (+1) or above it (−1) — the alternation `branches.css` lays out. */
+const sideOf = (index: number) => (index % 2 === 0 ? 1 : -1);
+
+/**
+ * Measure the section exactly as both readers need it: the section itself,
+ * and The Collective regrowing it to read its exits.
+ *
+ * It also SETS one thing first — where the first card sits (`--lead`). The
+ * entries fall wherever Selected Work's strands crossed its foot, anywhere
+ * from the far left to the far right, and the branch they gather into can
+ * only start from the leftmost of them; so the first stem has to be to the
+ * right of that, and the first card hung ABOVE the branch has to be clear of
+ * every falling entry. That is a function of the inlets, so it is decided
+ * here, before the cards are measured, and it is idempotent — whichever
+ * reader comes first, both measure the same layout.
+ */
+export function measureBranchField(root: HTMLElement, tier: Tier): BranchFieldInput | null {
+  const intro = root.querySelector<HTMLElement>("[data-branches-intro]");
+  const stage = root.querySelector<HTMLElement>("[data-branches-stage]");
+  const track = root.querySelector<HTMLElement>("[data-branches-track]");
+  if (!intro || !stage || !track) return null;
+
+  const view = stage.clientWidth;
+  const stageHeight = stage.offsetHeight;
+  if (view < 1 || stageHeight < 1) return null;
+
+  // Inherited from Selected Work. If that section is not on the page there is
+  // nothing to continue, and inventing a root would be exactly the orphan
+  // geometry this system avoids.
+  const inlets = readWorkExits(tier);
+  if (!inlets) return null;
+
+  const frames = Array.from(track.querySelectorAll<HTMLElement>("[data-branch-frame]"));
+  const cardEls = Array.from(track.querySelectorAll<HTMLElement>("[data-branch-card]"));
+  if (cardEls.length < 2) return null;
+
+  const shape = BRANCH_SHAPE[tier];
+  const xs = inlets.map((inlet) => inlet.x * view);
+  const cardWidth = cardEls[0].offsetWidth;
+  // Independent of the lead: every card is placed from the same origin.
+  const step = cardEls[1].offsetLeft - cardEls[0].offsetLeft;
+  const gather = landingX(Math.min(...xs), shape.bend, view);
+  const lead = Math.round(
+    Math.max(
+      view * 0.06,
+      // The first stem leaves the branch a little after the gather…
+      gather + 40 - cardWidth * STEM_AT,
+      // …and the first card above the branch clears every falling entry.
+      Math.max(...xs) + shape.clear - step,
+    ),
+  );
+  if (track.style.getPropertyValue("--lead") !== `${lead}px`) {
+    track.style.setProperty("--lead", `${lead}px`);
+  }
+
+  const stageTop = intro.offsetHeight;
+  const width = track.offsetWidth;
+  const cards = frames.map((frame) => {
+    const rect = layoutRect(frame, track);
+    return { ...rect, y: rect.y + stageTop };
+  });
+
+  return {
+    tier,
+    width,
+    height: stageTop + stageHeight,
+    stageTop,
+    view,
+    travel: Math.max(0, width - view),
+    cards,
+    inlets,
+  };
+}
+
+/**
+ * The exits The Collective inherits, as fractions of the LAST screen — the
+ * one the stage shows when the pin lets go and the page carries on down.
+ */
+export function readTurnExits(network: OrganicNetwork, input: BranchFieldInput): CascadeInlet[] {
+  return readExits(network, TURN_EXITS(input.tier)).map((exit) => ({
+    ...exit,
+    x: (exit.x * input.width - input.travel) / input.view,
+  }));
 }
 
 /* ------------------------------------------------------------------ *
@@ -109,100 +194,238 @@ export interface BranchFieldInput {
  * ------------------------------------------------------------------ */
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+const r2 = (n: number) => Math.round(n * 100) / 100;
+
+/** Where along a card's width its stem leaves the branch. */
+const STEM_AT = 0.1;
+
+/**
+ * Where an entry falling at `x` lands on the branch: a little downstream,
+ * but always inside the first screen — at translate 0 the stage's right edge
+ * clips the track, and an entry near the wall used to run off it.
+ */
+const landingX = (x: number, run: number, view: number) =>
+  Math.max(x + 12, Math.min(x + run, view - 24));
 
 /**
  * Insert a jittered midpoint into every span. The originals survive, so any
  * point referenced as a junction stays exactly on the refined polyline —
- * which is what keeps every fork a real fork.
+ * which is what keeps every fork a real fork. The first span is left
+ * straight: it carries the heading a strand arrived with.
  */
-function refine(rng: Rng, pts: Point[], amp: number, passes: number): Point[] {
-  let current = pts;
-  for (let pass = 0; pass < passes; pass += 1) {
-    const out: Point[] = [current[0]];
-    for (let i = 1; i < current.length; i += 1) {
-      const a = current[i - 1];
-      const b = current[i];
-      const dx = b.x - a.x;
-      const dy = b.y - a.y;
-      const len = Math.hypot(dx, dy) || 1;
-      // Perpendicular offset, capped so a short span cannot buckle.
-      const off = range(rng, -amp, amp) * Math.min(1, len / (amp * 6));
-      out.push(
-        { x: (a.x + b.x) / 2 + (-dy / len) * off, y: (a.y + b.y) / 2 + (dx / len) * off },
-        b,
-      );
-    }
-    current = out;
+function refine(rng: Rng, pts: Point[], amp: number): Point[] {
+  const out: Point[] = [pts[0]];
+  for (let i = 1; i < pts.length; i += 1) {
+    const a = pts[i - 1];
+    const b = pts[i];
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const len = Math.hypot(dx, dy) || 1;
+    // Perpendicular offset, capped so a short span cannot buckle.
+    const off = i === 1 ? 0 : range(rng, -amp, amp) * Math.min(1, len / (amp * 6));
+    out.push(
+      { x: (a.x + b.x) / 2 + (-dy / len) * off, y: (a.y + b.y) / 2 + (dx / len) * off },
+      b,
+    );
   }
-  return current;
+  return out;
 }
 
-/** Cumulative polyline length up to each point. */
-function cumulative(pts: Point[]): number[] {
-  const acc = [0];
-  for (let i = 1; i < pts.length; i += 1) {
-    acc.push(acc[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
+/**
+ * `toPath`'s Catmull-Rom spline over part of a polyline, using the points
+ * either side of the range as its neighbours. Cutting one smooth line into
+ * strands this way leaves no kink at the cuts — the entry, the branch and the
+ * turn read as one stroke — and a stem given the branch's previous point as
+ * its first neighbour leaves on the branch's own heading.
+ */
+function spline(points: Point[], from: number, to: number): string {
+  const parts = [`M${r2(points[from].x)} ${r2(points[from].y)}`];
+  for (let i = from; i < to; i += 1) {
+    const p0 = points[Math.max(i - 1, 0)];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[Math.min(i + 2, points.length - 1)];
+    parts.push(
+      `C${r2(p1.x + (p2.x - p0.x) / 6)} ${r2(p1.y + (p2.y - p0.y) / 6)} ` +
+        `${r2(p2.x - (p3.x - p1.x) / 6)} ${r2(p2.y - (p3.y - p1.y) / 6)} ` +
+        `${r2(p2.x)} ${r2(p2.y)}`,
+    );
   }
-  return acc;
+  return parts.join("");
 }
 
 /* ------------------------------------------------------------------ *
  * the journey
  * ------------------------------------------------------------------ */
 
-interface Waypoint extends Point {
-  /** What resolves at this point, if anything. */
-  tag?: "connector-side" | "connector-under" | "descent" | "turn";
-  card?: number;
+interface Station extends Point {
+  kind: "gather" | "merge" | "stem" | "early" | "turn" | "pass";
+  /** The entry (merge) or the card (stem) it serves. */
+  ref?: number;
 }
 
+/**
+ * The section's network with its seam closed: every strand crossing the foot
+ * that the next section does not continue ends above the boundary instead of
+ * being cut by it (`closeSeam`, round 3). The section's own component and the
+ * next section's exit reader both come through here, so they agree exactly.
+ */
 export function generateBranchNetwork(input: BranchFieldInput): OrganicNetwork {
+  return closeSeam(growBranchNetwork(input), TURN_EXITS(input.tier));
+}
+
+function growBranchNetwork(input: BranchFieldInput): OrganicNetwork {
   const rng = createRng(NETWORK_SEED + 173);
-  const shape = LATERAL_SHAPE[input.tier];
-  const { width, height, cards, inlets } = input;
+  const shape = BRANCH_SHAPE[input.tier];
+  const { width, height, view, travel, cards, inlets } = input;
   const jit = (amt: number) => range(rng, -amt, amt);
   const clampX = (x: number) => Math.min(width - 14, Math.max(14, x));
 
   const branches: Branch[] = [];
   const nodes: NetworkNode[] = [];
-  const rawStart: number[] = [];
-
   const empty: OrganicNetwork = {
     width,
     height,
-    seedPoint: { x: width / 2, y: 0 },
+    seedPoint: { x: 0, y: 0 },
     branches,
     nodes,
     halftone: [],
     descenders: [],
   };
-  if (!inlets.length || !cards.length) return empty;
+  if (!inlets.length || cards.length < 2) return empty;
 
-  const push = (
+  /* ---- 1. the branch's line: halfway between the two rows of cards ---- */
+
+  const belowTop = Math.min(...cards.filter((_, i) => sideOf(i) > 0).map((c) => c.y));
+  const aboveFoot = Math.max(
+    ...cards.filter((_, i) => sideOf(i) < 0).map((c) => c.y + c.height),
+  );
+  const line = (belowTop + aboveFoot) / 2;
+  const gap = Math.max(10, (belowTop - aboveFoot) / 2);
+
+  /* ---- 2. stations along it, left to right ---------------------------- */
+
+  const entries = inlets
+    .map((inlet) => ({ inlet, x: clampX(inlet.x * view) }))
+    .sort((a, b) => a.x - b.x);
+
+  const gather: Station = {
+    x: landingX(entries[0].x, shape.bend, view),
+    y: line,
+    kind: "gather",
+  };
+  const stations: Station[] = [gather];
+
+  // A stem leaves where the branch leans toward its card.
+  cards.forEach((card, i) => {
+    stations.push({
+      x: card.x + card.width * STEM_AT,
+      y: line + sideOf(i) * gap * shape.lean,
+      kind: "stem",
+      ref: i,
+    });
+  });
+
+  // The descents leave through the last screen, off its right wall — an
+  // arrival hugging the edge of The Collective gets pinned between the wall
+  // and the portraits and stalls (measured in round 1).
+  const count = Math.min(shape.exits.length, TURN_EXITS(input.tier).max);
+  const exitXs = shape.exits.slice(0, count).map((f) => clampX(travel + f * view));
+  const turn: Station = { x: travel + shape.turn * view, y: line + gap * 0.45, kind: "turn" };
+  const early: Station | null =
+    count >= 3 ? { x: travel + shape.early * view, y: line + gap * 0.2, kind: "early" } : null;
+  if (early) stations.push(early);
+  stations.push(turn);
+
+  // The other entries fall onto the branch a little downstream of where they
+  // arrive — never onto a stem's own fork, which would make a knot of it.
+  entries.slice(1).forEach((entry, k) => {
+    let x = Math.max(landingX(entry.x, shape.bend * 0.8, view), gather.x + 36);
+    for (const s of stations) {
+      if (s.kind !== "stem" || Math.abs(s.x - x) >= 36) continue;
+      // Past the fork if the screen has room, otherwise before it.
+      x = s.x + 36 <= view - 24 ? s.x + 36 : Math.max(entry.x + 12, s.x - 36);
+    }
+    stations.push({ x, y: line + jit(gap * 0.12), kind: "merge", ref: k + 1 });
+  });
+  stations.sort((a, b) => a.x - b.x);
+
+  // Plain points between stations, so the branch undulates gently instead of
+  // running ruler-straight between forks.
+  const trunk: Station[] = [];
+  stations.forEach((s, i) => {
+    const prev = stations[i - 1];
+    if (prev) {
+      const span = s.x - prev.x;
+      const n = Math.floor(span / shape.span);
+      for (let j = 1; j <= n; j += 1) {
+        trunk.push({
+          x: lerp(prev.x, s.x, j / (n + 1)),
+          y: line + jit(gap * 0.14),
+          kind: "pass",
+        });
+      }
+    }
+    trunk.push(s);
+  });
+
+  /* ---- 3. one line: the first entry, the branch, the turn's descent ---- */
+
+  const entryPoints = (x: number, inlet: CascadeInlet, target: Point): Point[] => {
+    // Leave on the tangent the strand crossed the seam with, so the join
+    // reads as one stroke; then fall, and turn into the branch late.
+    const a = Math.min(Math.PI - 0.5, Math.max(0.5, inlet.angle ?? Math.PI / 2));
+    const lead: Point = { x: clampX(x + Math.cos(a) * 50), y: Math.sin(a) * 50 };
+    return [
+      { x, y: 0 },
+      lead,
+      { x: clampX(lead.x + jit(shape.jitter)), y: lerp(lead.y, target.y, 0.56) },
+      // Never back past where it fell: a landing squeezed against the
+      // screen's edge would otherwise kink the entry into an S.
+      { x: Math.max(x, target.x - shape.bend * 0.7), y: target.y - shape.bend * 0.45 },
+      target,
+    ];
+  };
+
+  const finalExit: Point = { x: exitXs[0], y: height + 44 };
+  const master = refine(
+    rng,
+    [
+      ...entryPoints(entries[0].x, entries[0].inlet, gather).slice(0, -1),
+      ...trunk,
+      { x: lerp(turn.x, finalExit.x, 0.55), y: lerp(turn.y, height, 0.32) },
+      { x: finalExit.x + jit(4), y: lerp(turn.y, height, 0.72) },
+      finalExit,
+    ],
+    shape.wobble,
+  );
+  const at = (p: Point) => master.indexOf(p);
+
+  const add = (
     id: string,
     parentId: string | null,
     depth: number,
+    d: string,
     pts: Point[],
     strokeWidth: number,
     opacity: number,
-    startTime: number,
-  ): { id: string; end: number; length: number } => {
-    const length = measure(pts);
+  ) => {
+    const xs = pts.map((p) => p.x);
     branches.push({
       id,
       parentId,
       depth,
-      d: toPath(pts),
-      length: Math.round(length),
-      width: Math.round(strokeWidth * 100) / 100,
+      d,
+      length: Math.round(measure(pts)),
+      width: r2(strokeWidth),
       opacity,
       behind: false,
-      growthStart: 0,
-      growthDuration: length, // raw for now; normalised at the end
+      // Timing is the animation's (it is drawn by where it is, see
+      // lib/branches/animation); these only order it for anything generic.
+      growthStart: r2(Math.min(...xs) / width),
+      growthDuration: r2(Math.max(0.01, (Math.max(...xs) - Math.min(...xs)) / width)),
       tip: pts[pts.length - 1],
     });
-    rawStart.push(startTime);
-    return { id, end: startTime + length, length };
   };
 
   const node = (
@@ -211,335 +434,106 @@ export function generateBranchNetwork(input: BranchFieldInput): OrganicNetwork {
     kind: "junction" | "tip",
     r: number,
     opacity: number,
-    appearAt: number,
     ring = false,
-    hollow = false,
   ) => {
     nodes.push({
       id: `n-${branchId}-${nodes.length}`,
       branchId,
-      x: Math.round(p.x * 100) / 100,
-      y: Math.round(p.y * 100) / 100,
-      r: Math.round(r * 100) / 100,
+      x: r2(p.x),
+      y: r2(p.y),
+      r: r2(r),
       depth: kind === "junction" ? 0 : 1,
       kind,
       ring,
-      hollow,
+      hollow: false,
       opacity,
       behind: false,
-      appearAt,
+      appearAt: Math.min(1, p.x / width),
     });
   };
 
-  /* ---- 1. the macro waypoints, card by card -------------------------- */
+  const iGather = at(gather);
+  const iTurn = at(turn);
+  add("e0", null, 0, spline(master, 0, iGather), master.slice(0, iGather + 1),
+    shape.trunkWidth * 0.94, 0.86);
+  add("trunk", "e0", 0, spline(master, iGather, iTurn), master.slice(iGather, iTurn + 1),
+    shape.trunkWidth, 0.9);
+  add("d0", "trunk", 0, spline(master, iTurn, master.length - 1), master.slice(iTurn),
+    shape.trunkWidth * 0.94, 0.88);
+  node("e0", gather, "junction", shape.trunkWidth * 1.6, 0.8);
+  node("d0", turn, "junction", shape.trunkWidth * 2.4, 0.95, chance(rng, 0.4));
 
-  // The staircase's columns overlap, so the trunk never excurses past a
-  // card's right edge only to double back — it hugs each station's left
-  // flank, passes beneath it, and glides to the next flank. The card
-  // positions themselves carry the rightward travel.
-  const waypoints: Waypoint[] = [];
-  cards.forEach((card, i) => {
-    const flankX = clampX(card.x - shape.clearance + jit(shape.jitter * 0.5));
-    // A card sitting against the left rail leaves no room for a side flank,
-    // so its connection comes up from beneath instead. Elsewhere the two
-    // alternate so no two neighbours attach alike.
-    const under = card.x < shape.clearance * 2.5 || i % 2 === 1;
-    waypoints.push(
-      {
-        x: flankX,
-        y: card.y - shape.drop * 0.7 + jit(shape.jitter * 0.6),
-      },
-      {
-        x: flankX + jit(shape.jitter * 0.4),
-        y: card.y + card.height * 0.68 + jit(shape.jitter * 0.6),
-        tag: under ? undefined : "connector-side",
-        card: under ? undefined : i,
-      },
-      {
-        x: clampX(card.x + card.width * 0.42 + jit(shape.jitter)),
-        y: card.y + card.height + shape.drop * 0.85 + jit(shape.jitter * 0.5),
-        // The organism starts resolving before the lateral run finishes: the
-        // first descent leaves from beneath the fifth station. (That card's
-        // own connection is a side one, so the under point is free.)
-        tag: under
-          ? "connector-under"
-          : i === Math.max(0, cards.length - 2)
-            ? "descent"
-            : undefined,
-        card: under ? i : undefined,
-      },
-    );
-  });
+  /* ---- 4. the other entries, joining the branch on its heading -------- */
 
-  const last = cards[cards.length - 1];
-  const turn: Waypoint = {
-    x: clampX(Math.min(width - 60, last.x + last.width + shape.clearance * 1.3)),
-    y: last.y + last.height + shape.drop * 2.2 + jit(shape.jitter * 0.6),
-    tag: "turn",
-  };
-  waypoints.push(turn);
+  stations
+    .filter((s) => s.kind === "merge")
+    .forEach((merge) => {
+      const k = merge.ref as number;
+      const entry = entries[k];
+      const pts = refine(rng, entryPoints(entry.x, entry.inlet, merge), shape.wobble);
+      // The branch's next point as the last neighbour: it arrives running
+      // the same way the branch does, like a strand joining a road.
+      const next = master[at(merge) + 1];
+      add(`e${k}`, null, 0, spline([...pts, next], 0, pts.length - 1), pts,
+        shape.trunkWidth * 0.9, 0.84);
+      node(`e${k}`, merge, "junction", shape.trunkWidth * (k === 1 ? 2.4 : 2), 0.9, k === 1);
+    });
 
-  // The trunk's root sits above the first station's flank; everything that
-  // arrives from Selected Work bends into the journey at or just past it.
-  const gather: Point = { x: waypoints[0].x, y: waypoints[0].y };
+  /* ---- 5. the six stems — each card arises from the branch ------------ */
 
-  /* ---- 2. the trunk, segmented at every resolution ------------------- */
-
-  interface TrunkSeg {
-    pts: Point[];
-    tag?: Waypoint["tag"];
-    card?: number;
-  }
-  const segments: TrunkSeg[] = [];
-  let macro: Point[] = [gather];
-  for (const wp of waypoints.slice(1)) {
-    macro.push({ x: wp.x, y: wp.y });
-    if (wp.tag) {
-      segments.push({ pts: macro, tag: wp.tag, card: wp.card });
-      macro = [{ x: wp.x, y: wp.y }];
-    }
-  }
-  if (macro.length > 1) segments.push({ pts: macro });
-
-  // Refined AFTER segmentation, so every junction stays a shared exact point.
-  segments.forEach((seg) => {
-    seg.pts = refine(rng, seg.pts, shape.wobble, seg.pts.length < 4 ? 2 : 1);
-  });
-
-  /* ---- 3. entries — Selected Work's strands bending into the run ----- */
-
-  // The deepest entry becomes the trunk's own root. Later entries merge at
-  // staggered arc distances DOWN the journey — real refined-polyline points,
-  // far enough apart that the confluence reads as strands joining a road,
-  // never as a starburst or a knot.
-  const mergeArcs = input.tier === "mobile" ? [90, 210] : [130, 320];
-  const merges: { p: Point; arc: number }[] = [];
-  {
-    let offset = 0;
-    let m = 0;
-    for (const seg of segments) {
-      const acc = cumulative(seg.pts);
-      const total = acc[acc.length - 1];
-      while (m < mergeArcs.length && mergeArcs[m] <= offset + total) {
-        const local = mergeArcs[m] - offset;
-        let idx = acc.findIndex((d) => d >= local);
-        idx = Math.min(Math.max(idx, 1), seg.pts.length - 2);
-        merges.push({ p: seg.pts[idx], arc: offset + acc[idx] });
-        m += 1;
-      }
-      offset += total;
-      if (m >= mergeArcs.length) break;
-    }
-    while (merges.length < inlets.length - 1) {
-      merges.push({ p: gather, arc: 0 });
-    }
-  }
-
-  const entryEnds: { end: number; length: number }[] = [];
-  inlets.forEach((inlet, k) => {
-    const x0 = clampX(inlet.x * width);
-    const target = k === 0 ? gather : merges[k - 1].p;
-    // Leave on the tangent the strand crossed the seam with, so the join
-    // reads as one stroke; the sweep toward the gather begins after it.
-    const a =
-      inlet.angle !== undefined
-        ? Math.min(Math.PI - 0.3, Math.max(0.3, inlet.angle))
-        : inlet.lean === 1
-          ? 1.1
-          : Math.PI - 1.1;
-    const leadLen = range(rng, 46, 68);
-    const lead: Point = {
-      x: clampX(x0 + Math.cos(a) * leadLen),
-      y: Math.max(30, Math.sin(a) * leadLen),
-    };
-    const pts = refine(
-      rng,
-      [
-        { x: x0, y: 0 },
-        lead,
-        // Falls first, turns late: the eye watches the inherited strand keep
-        // falling, then bend into the lateral journey.
+  stations
+    .filter((s) => s.kind === "stem")
+    .forEach((stem) => {
+      const i = stem.ref as number;
+      const card = cards[i];
+      const side = sideOf(i);
+      const iStem = at(stem);
+      const prev = master[iStem - 1];
+      const next = master[iStem + 1];
+      const len = Math.hypot(next.x - prev.x, next.y - prev.y) || 1;
+      const edge = side > 0 ? card.y : card.y + card.height;
+      // It lands a little INSIDE the card's edge and vanishes under it, so
+      // the card reads as growing on the stem, with no endpoint showing.
+      const landing: Point = { x: card.x + card.width * 0.36, y: edge + side * 12 };
+      const pts: Point[] = [
+        stem,
         {
-          x: clampX(lerp(lead.x, target.x, 0.3) + jit(shape.jitter)),
-          y: lerp(lead.y, target.y, 0.52),
+          x: stem.x + ((next.x - prev.x) / len) * 26,
+          y: stem.y + ((next.y - prev.y) / len) * 26 + side * 6,
         },
-        {
-          x: clampX(lerp(lead.x, target.x, 0.72) + jit(shape.jitter * 0.7)),
-          y: lerp(lead.y, target.y, 0.86),
-        },
-        target,
-      ],
-      shape.wobble,
-      1,
-    );
-    const length = measure(pts);
-    entryEnds.push({ end: length, length });
-    push(`e${k}`, null, 0, pts, shape.trunkWidth * 0.94, 0.86, 0);
-  });
-
-  /* ---- 4. timing: the trunk sets off when the first entry lands ------ */
-
-  const clock = entryEnds[0].end;
-  // A quiet node where the inherited strand turns into the journey.
-  node("e0", gather, "junction", shape.trunkWidth * 1.6, 0.8, clock);
-
-  const segStart: number[] = [];
-  let segClock = clock;
-  const segEnds: { id: string; end: number }[] = [];
-  segments.forEach((seg, i) => {
-    segStart.push(segClock);
-    const id = `t${i}`;
-    const parent = i === 0 ? "e0" : `t${i - 1}`;
-    const res = push(id, parent, 0, seg.pts, shape.trunkWidth, 0.9, segClock);
-    segEnds.push({ id, end: res.end });
-    segClock = res.end;
-  });
-
-  // Later entries are re-timed to arrive as the trunk passes their merge;
-  // the first confluence carries the section's one ringed node.
-  for (let k = 1; k < inlets.length; k += 1) {
-    const merge = merges[k - 1];
-    const at = clock + merge.arc;
-    rawStart[k] = Math.max(0, at - entryEnds[k].length);
-    node(`e${k}`, merge.p, "junction", shape.trunkWidth * (k === 1 ? 2.4 : 2), 0.9, at,
-      k === 1);
-  }
-
-  /* ---- 5. the six connections — grown, not drawn --------------------- */
-
-  segments.forEach((seg, i) => {
-    if (seg.card === undefined || !seg.tag?.startsWith("connector")) return;
-    const card = cards[seg.card];
-    const junction = seg.pts[seg.pts.length - 1];
-    const at = segEnds[i].end;
-
-    // The strand lands a little INSIDE the card's edge and disappears under
-    // it — attachment as consequence, no leader line, no floating endpoint.
-    const landing: Point =
-      seg.tag === "connector-side"
-        ? { x: card.x + 14, y: card.y + card.height * range(rng, 0.32, 0.6) }
-        : { x: card.x + card.width * range(rng, 0.2, 0.38), y: card.y + card.height - 12 };
-
-    const pts = refine(
-      rng,
-      [
-        junction,
-        {
-          x: (junction.x + landing.x) / 2 + jit(shape.jitter * 0.5),
-          y: (junction.y + landing.y) / 2 + jit(shape.jitter * 0.5),
-        },
+        { x: landing.x - card.width * 0.05, y: edge - side * 7 },
         landing,
-      ],
-      shape.wobble * 0.55,
-      1,
-    );
-    push(`c${seg.card}`, segEnds[i].id, 1, pts, shape.trunkWidth * 0.62, 0.68, at);
-    node(segEnds[i].id, junction, "junction", range(rng, 2.6, 3.8), range(rng, 0.8, 1), at,
-      chance(rng, 0.3));
-  });
+      ];
+      add(`card-${i}`, "trunk", 1, spline([prev, ...pts], 1, pts.length), pts,
+        shape.trunkWidth * 0.66, 0.72);
+      node(`card-${i}`, stem, "junction", range(rng, 2.6, 3.6), range(rng, 0.85, 1),
+        chance(rng, 0.3));
+    });
 
-  /* ---- 6. resolution — three real descents cross the foot ------------ */
+  /* ---- 6. the other descents, out of the last screen ------------------ */
 
-  // Pulled well off the right wall: an arrival hugging the edge of The
-  // Collective gets pinned between the wall and the portrait keep-outs and
-  // never reaches that field's foot — swept in Node against the measured
-  // 1440 layout, entries at 0.84+ stalled at half depth while 0.80 and left
-  // crossed every time.
-  const exitBase = Math.min(0.8, Math.max(0.5, turn.x / width - 0.13));
-  const exitXs = [exitBase, exitBase - 0.18, exitBase - 0.34].map((x) =>
-    Math.max(0.36, x),
-  );
-
-  const dive = (
-    id: string,
-    parentId: string,
-    from: Point,
-    exitX: number,
-    startTime: number,
-    over: number,
-  ) => {
-    const end = { x: clampX(exitX * width), y: height + over };
+  const descent = (id: string, from: Station, exitX: number, over: number) => {
+    const end: Point = { x: exitX, y: height + over };
     const pts = refine(
       rng,
       [
         from,
-        {
-          x: clampX(lerp(from.x, end.x, 0.3) + jit(shape.jitter * 0.7)),
-          y: lerp(from.y, end.y, 0.38),
-        },
-        {
-          x: clampX(lerp(from.x, end.x, 0.72) + jit(shape.jitter * 0.7)),
-          y: lerp(from.y, end.y, 0.74),
-        },
+        { x: from.x + 10, y: lerp(from.y, height, 0.3) },
+        { x: end.x + jit(4), y: lerp(from.y, height, 0.7) },
         end,
       ],
-      // Committed, calm descents — this is the organism resolving, and a
-      // final descent that snakes reads as indecision.
+      // Committed, calm descents — the organism resolving into the page.
       shape.wobble * 0.7,
-      2,
     );
-    push(id, parentId, 0, pts, shape.trunkWidth * 0.94, 0.88, startTime);
+    add(id, "trunk", 0, spline([master[at(from) - 1], ...pts], 1, pts.length), pts,
+      shape.trunkWidth * 0.94, 0.88);
   };
 
-  const turnSeg = segEnds[segEnds.length - 1];
-  const turnPoint = segments[segments.length - 1].pts.at(-1) as Point;
-  node(turnSeg.id, turnPoint, "junction", shape.trunkWidth * 2.4, 0.95, turnSeg.end,
-    chance(rng, 0.4));
-  dive("d0", turnSeg.id, turnPoint, exitXs[0], turnSeg.end, 44);
-  dive("d1", turnSeg.id, turnPoint, exitXs[1], turnSeg.end, 40);
-
-  const early = segments.findIndex((seg) => seg.tag === "descent");
-  if (early >= 0) {
-    const from = segments[early].pts.at(-1) as Point;
-    node(segEnds[early].id, from, "junction", shape.trunkWidth * 2.1, 0.9,
-      segEnds[early].end);
-    dive("d2", segEnds[early].id, from, exitXs[2], segEnds[early].end, 36);
+  if (count >= 2) descent("d1", turn, exitXs[1], 40);
+  if (early && count >= 3) {
+    descent("d2", early, exitXs[2], 36);
+    node("d2", early, "junction", shape.trunkWidth * 2.1, 0.9);
   }
-
-  /* ---- 7. a few twigs into negative space, and nothing more ---------- */
-
-  // Twigs leave from the MIDDLE of a trunk segment, never from a boundary —
-  // the boundaries are already junctions, and stacking a twig on a connector
-  // fork would turn a legible node into a knot.
-  const gapPoints = segments
-    .slice(1, Math.max(2, segments.length - 3))
-    .map((seg) => seg.pts[Math.floor(seg.pts.length / 2)]);
-  for (let t = 0; t < Math.min(shape.twigCount, gapPoints.length); t += 1) {
-    const start = gapPoints.splice(
-      Math.floor(range(rng, 0, gapPoints.length - 0.001)),
-      1,
-    )[0];
-    const angle = range(rng, -2.4, -0.7);
-    const len = range(rng, 55, 110) * (input.tier === "mobile" ? 0.7 : 1);
-    const mid: Point = {
-      x: clampX(start.x + Math.cos(angle) * len * 0.55 + jit(shape.jitter * 0.6)),
-      y: start.y + Math.sin(angle) * len * 0.55 + jit(shape.jitter * 0.6),
-    };
-    const tip: Point = {
-      x: clampX(start.x + Math.cos(angle + jit(0.4)) * len),
-      y: Math.max(20, start.y + Math.sin(angle + jit(0.4)) * len),
-    };
-    const at = segClock * range(rng, 0.4, 0.8);
-    const res = push(`w${t}`, null, 1, refine(rng, [start, mid, tip], shape.wobble * 0.5, 1),
-      shape.trunkWidth * 0.53, 0.5, at);
-    node(`w${t}`, tip, "tip", range(rng, 1.2, 1.8), range(rng, 0.5, 0.75), res.end,
-      false, chance(rng, 0.5));
-  }
-
-  /* ---- 8. normalise the growth timeline to 0..1 ---------------------- */
-
-  const span = Math.max(
-    1,
-    ...branches.map((b, i) => rawStart[i] + b.growthDuration),
-    ...nodes.map((n) => n.appearAt),
-  );
-  branches.forEach((b, i) => {
-    b.growthStart = Math.round((rawStart[i] / span) * 1000) / 1000;
-    b.growthDuration = Math.round((b.growthDuration / span) * 1000) / 1000;
-  });
-  nodes.forEach((n) => {
-    n.appearAt = Math.round(Math.min(1, n.appearAt / span) * 1000) / 1000;
-  });
 
   return {
     width,

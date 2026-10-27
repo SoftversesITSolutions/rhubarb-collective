@@ -25,6 +25,7 @@
  */
 
 import { NETWORK_CONFIG, NETWORK_SEED, type Tier } from "@/lib/hero/config";
+import { CALM_LINES, calmed } from "@/lib/network/calm";
 import { generateOrganicNetwork, type OrganicNetwork } from "@/lib/hero/network";
 import type { CascadeConfig, CascadeInlet } from "./cascade";
 import type { ConnectionOptions } from "./connections";
@@ -271,7 +272,13 @@ const configCache = new Map<Tier, CascadeConfig>();
 export function firstGrowthConfig(tier: Tier): CascadeConfig {
   let cached = configCache.get(tier);
   if (!cached) {
-    cached = withDerivedStages(BUILDERS[tier]());
+    // Calmed lightly (round 3, lib/network/calm): see the "trim" level. On
+    // the 390 column the closing paragraph runs the full width, and a trunk
+    // arriving above it ran back and forth ten times along its upper edge;
+    // in the lower part of the field trunks carry on behind the copy, as
+    // they do in Journal, Proof and Contact.
+    cached = calmed(withDerivedStages(BUILDERS[tier]()), "trim");
+    if (CALM_LINES && tier === "mobile") cached = { ...cached, behindBelow: 0.4 };
     configCache.set(tier, cached);
   }
   return cached;

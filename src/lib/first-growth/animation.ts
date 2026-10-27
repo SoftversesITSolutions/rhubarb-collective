@@ -32,13 +32,12 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { DIVE, DIVE_LENGTH, type Tier } from "@/lib/hero/config";
 import type { OrganicNetwork } from "@/lib/hero/network";
 import { FG_BEATS } from "./config";
-import { ridgePath, swell, type RidgeField } from "./ridgelines";
+import { RIDGE_REST, ridgePath, ridgeYAt, swell, type RidgeField } from "./ridgelines";
 import {
   GROWTH_LINE,
   centreOf,
-  drawStrand,
+  drawStrands,
   timeNear,
-  type Schedule,
 } from "@/lib/network/growth";
 import { enliven } from "@/lib/network/life";
 
@@ -77,7 +76,6 @@ export function createFirstGrowthAnimation({
     const nodes = all<SVGGElement>(root, "[data-fg-node]");
     const connections = all<SVGPathElement>(root, "[data-fg-connection]");
     const leaders = all<SVGLineElement>(root, "[data-fg-leader]");
-    const drift = one<SVGGElement>(root, "[data-fg-layer='drift']");
     const workBranch = one<SVGPathElement>(root, "[data-fg-branch][data-work]");
     const ridgePaths = all<SVGPathElement>(root, "[data-fg-ridge]");
     const ridgeNodes = all<SVGGElement>(root, "[data-fg-ridge-node]");
@@ -87,6 +85,25 @@ export function createFirstGrowthAnimation({
     const statementLines = all<HTMLElement>(root, "[data-fg='statement-line']");
     const values = all<HTMLElement>(root, "[data-fg='value']");
     const narrative = one<HTMLElement>(root, "[data-fg='narrative']");
+
+    // Each value's node rides its own ridge, and its label rides with it, so
+    // the node is ON its line in every state of the ripple (round 3). `scaleOf` is each ridge's amplitude at this moment.
+    const svg = one<SVGSVGElement>(root, "svg.fg-network");
+    const ride = (scaleOf: (index: number) => number) => {
+      if (!ridges || !svg) return;
+      const perUnit = svg.getBoundingClientRect().height / ridges.height;
+      ridgeNodes.forEach((g) => {
+        const index = Number(g.dataset.ridge);
+        const ridge = ridges.ridges[index];
+        if (!ridge) return;
+        const y = ridgeYAt(ridge, Number(g.dataset.x), scaleOf(index));
+        g.querySelectorAll("circle").forEach((c) => c.setAttribute("cy", String(y)));
+        const label = values[Number(g.dataset.value)];
+        // A margin, not a translate: GSAP owns this element's transform and
+        // clears the individual `translate` property when it writes one.
+        if (label) label.style.marginTop = `${(y - Number(g.dataset.y)) * perUnit}px`;
+      });
+    };
 
     const nodeById = new Map<string, SVGGElement>();
     for (const node of nodes) {
@@ -105,6 +122,7 @@ export function createFirstGrowthAnimation({
         { opacity: 1, y: 0, yPercent: 0 },
       );
       gsap.set(values, { opacity: 1, x: 0, yPercent: -50 });
+      ride(() => RIDGE_REST);
       root.dataset.fgState = "static";
       return;
     }
@@ -168,7 +186,10 @@ export function createFirstGrowthAnimation({
     /* ---- initial state ---- */
     gsap.set(nodes, { scale: 0, opacity: 0, transformOrigin: "50% 50%" });
     gsap.set(ridgePaths, { opacity: 0 });
-    gsap.set(ridgeNodes, { scale: 0, opacity: 0, transformOrigin: "50% 50%" });
+    // Opacity only: the ripple moves these nodes along their ridge, and a
+    // scale about an origin fixed at set-time pulled a node ~20px off its
+    // line while it appeared.
+    gsap.set(ridgeNodes, { opacity: 0 });
     gsap.set(statementLines, { yPercent: 110, opacity: 1 });
     gsap.set([marker, narrative].filter(Boolean), { opacity: 0, y: 18 });
     // yPercent is restated here rather than left to CSS: GSAP owns transform on
@@ -203,11 +224,7 @@ export function createFirstGrowthAnimation({
     // reaches it. What the landing shows — the first screen down to the line —
     // grows while the hero's black lifts; everything deeper waits for the
     // scroll to carry the line to it, so nothing is drawn ahead of the reader.
-    const schedules = new Map<SVGPathElement, Schedule>();
-    branches.forEach((el) => {
-      const schedule = drawStrand(tl, el, depthTime, perUnit);
-      if (schedule) schedules.set(el, schedule);
-    });
+    const schedules = drawStrands(tl, branches, depthTime, perUnit);
     enliven(root, branches);
 
     nodes.forEach((el) => {
@@ -218,7 +235,14 @@ export function createFirstGrowthAnimation({
         schedule && centre
           ? timeNear(schedule, centre.x, centre.y)
           : depthTime(centre?.y ?? 0);
-      tl.to(el, { scale: 1, opacity: 1, duration: 0.04, ease: "power2.out" }, Math.min(0.97, at));
+      // Up to the strands' own finish (0.985), with a shorter pop at the very
+      // end, so a node never lands before a late-starting strand reaches it.
+      const start = Math.min(0.985, at);
+      tl.to(
+        el,
+        { scale: 1, opacity: 1, duration: Math.max(0.005, Math.min(0.04, 1 - start)), ease: "power2.out" },
+        start,
+      );
     });
 
     /* --- the ridgelines ------------------------------------------------ */
@@ -230,8 +254,14 @@ export function createFirstGrowthAnimation({
       tl.to(el, { opacity: 1, duration: 0.05, ease: "power1.out" }, at);
     });
     ridgeNodes.forEach((el) => {
-      const at = Math.min(0.96, depthTime(centreOf(el)?.y ?? 0) + 0.015);
-      tl.to(el, { scale: 1, opacity: 1, duration: 0.04, ease: "power2.out" }, at);
+      // Never before its own ridge: the line it sits on is below the apex, so
+      // timing the node from its own centre showed it before the line.
+      const ridge = ridges?.ridges[Number(el.dataset.ridge)];
+      const at = Math.min(
+        0.96,
+        Math.max(depthTime(centreOf(el)?.y ?? 0), depthTime(ridge?.baseY ?? 0)) + 0.015,
+      );
+      tl.to(el, { opacity: 1, duration: 0.04, ease: "power2.out" }, at);
     });
 
     // The ripple: one swell travels down the stack across the whole pass. It
@@ -247,7 +277,9 @@ export function createFirstGrowthAnimation({
           const ridge = ridges.ridges[index];
           if (ridge) el.setAttribute("d", ridgePath(ridge, swell(index, count, ripple.t)));
         });
+        ride((index) => swell(index, count, ripple.t));
       };
+      ride(() => RIDGE_REST);
       tl.to(ripple, { t: 1, duration: 1, ease: "none", onUpdate: draw }, 0);
     }
 
@@ -288,9 +320,10 @@ export function createFirstGrowthAnimation({
       tl.to(el, { strokeDashoffset: 0, duration: 0.04, ease: "power2.out" }, at);
     });
 
-    // A very small settle on the whole field — enough to feel alive under
-    // scroll, far too little to read as parallax.
-    tl.to(drift, { y: -network.height * 0.012, duration: 1, ease: "none" }, 0);
+    // The field no longer settles upward under scroll (round 3): the drift
+    // lifted every strand ~20px off the seam while Work's entries stayed put,
+    // so the join opened mid-scroll. The ripple and the resting pulse carry
+    // the life it was there for.
 
     /* --- PHASE: handoff toward Work ------------------------------------ */
     if (workBranch) {

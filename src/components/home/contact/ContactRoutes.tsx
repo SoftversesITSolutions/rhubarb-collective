@@ -21,8 +21,9 @@ import {
 import { createContactAnimation } from "@/lib/contact/animation";
 import Image from "next/image";
 import { HERO_LOGO } from "@/components/hero/HeroLogo";
-import { SPECIMEN_LICENCE, type Specimen } from "@/lib/specimens/config";
+import type { Specimen } from "@/lib/specimens/config";
 import { ContactBloom } from "./ContactBloom";
+import { FooterCredits } from "./FooterCredits";
 import { FooterSubscribe } from "./FooterSubscribe";
 import { ContactNetwork } from "./ContactNetwork";
 import { ContactRoute } from "./ContactRoute";
@@ -316,46 +317,13 @@ export function ContactRoutes({ variant = "section", credits }: ContactRoutesPro
           <span className="contact__gstin-value">{CONTACT_COLOPHON.gstin}</span>
         </p>
 
-        {/* The sunflower model's attribution — a condition of its licence, so
-            it is rendered wherever the bloom is and nowhere it is not. */}
-        {variant === "section" && (
-          <p className="contact__credit" data-contact-colophon="">
-            <span>{BLOOM.credit.label}: </span>
-            <a className="contact__credit-link" href={BLOOM.credit.modelHref} rel="noopener">
-              “{BLOOM.credit.title}”
-            </a>
-            <span> by </span>
-            <a className="contact__credit-link" href={BLOOM.credit.authorHref} rel="noopener">
-              {BLOOM.credit.author}
-            </a>
-            <span>, </span>
-            <a className="contact__credit-link" href={BLOOM.credit.licenceHref} rel="noopener license">
-              {BLOOM.credit.licence}
-            </a>
-          </p>
-        )}
-
-        {credits && credits.length > 0 && (
-          <p className="contact__credit" data-contact-colophon="">
-            <span>3D models: </span>
-            {credits.map((specimen, i) => (
-              <span key={specimen.id}>
-                {i > 0 && "; "}
-                <a className="contact__credit-link" href={specimen.credit.href} rel="noopener">
-                  “{specimen.credit.title}”
-                </a>
-                <span> by {specimen.credit.author}</span>
-              </span>
-            ))}
-            <span>. All </span>
-            <a
-              className="contact__credit-link"
-              href={SPECIMEN_LICENCE.href}
-              rel="noopener license"
-            >
-              {SPECIMEN_LICENCE.label}
-            </a>
-          </p>
+        {/* The model attributions — a condition of their licences, so they are
+            rendered wherever the bloom and the specimens are, and nowhere they
+            are not — folded behind one "Credits" link (client round 3). */}
+        {(variant === "section" || (credits && credits.length > 0)) && (
+          <div className="contact__credit" data-contact-colophon="">
+            <FooterCredits bloom={variant === "section"} specimens={credits} />
+          </div>
         )}
       </div>
     </footer>

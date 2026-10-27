@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { OrganicNetwork } from "@/lib/hero/network";
 import { useViewport } from "@/lib/hero/useViewport";
 import { DISCIPLINES, WORK_ITEMS } from "@/lib/work/config";
-import { generateWorkNetwork } from "@/lib/work/network";
+import { generateWorkNetwork, measureWorkField } from "@/lib/work/network";
 import { createWorkAnimation } from "@/lib/work/animation";
 import { WorkItem } from "./WorkItem";
 import { WorkNetwork } from "./WorkNetwork";
@@ -39,32 +39,10 @@ export function WorkSection() {
     const field = fieldRef.current;
     if (!root || !field || !tier) return;
 
-    const rootRect = root.getBoundingClientRect();
-    if (rootRect.width < 1 || rootRect.height < 1) return;
-
-    // The highlighted piece spans the whole measure, so as a keep-out it would
-    // dam every strand into the gap above it. It is left out: strands pass
-    // beneath it (the work always paints over the network) and carry on below.
-    const images = Array.from(
-      field.querySelectorAll<HTMLElement>("[data-work-item]:not([data-featured]) [data-work-frame]"),
-    ).map((frame) => {
-      const rect = frame.getBoundingClientRect();
-      return {
-        x: rect.left - rootRect.left,
-        y: rect.top - rootRect.top,
-        width: rect.width,
-        height: rect.height,
-      };
-    });
-
-    setNetwork(
-      generateWorkNetwork({
-        tier,
-        width: Math.round(rootRect.width),
-        height: Math.round(rootRect.height),
-        images,
-      }),
-    );
+    // The same measurement The Turn reads this section's exits with — see
+    // `measureWorkField` for why there must be exactly one.
+    const input = measureWorkField(root, tier);
+    if (input) setNetwork(generateWorkNetwork(input));
   }, [tier]);
 
   useEffect(() => {

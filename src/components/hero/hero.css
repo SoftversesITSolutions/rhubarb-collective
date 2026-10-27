@@ -43,6 +43,17 @@
   opacity: 0;
 }
 
+/* The network, its boundary band, the lockup rule and the scroll cue are not
+   [data-reveal] copy, but the same holds for them: the network mounts on the
+   client a frame or more before the timeline parks every node at zero, and
+   in that gap all of its dots painted at full strength ahead of the logo. */
+.hero[data-hero-state="idle"] .hero-network,
+.hero[data-hero-state="idle"] [data-hero="boundary"],
+.hero[data-hero-state="idle"] [data-hero="rule"],
+.hero[data-hero-state="idle"] [data-hero="cue"] {
+  opacity: 0;
+}
+
 /* --------------------------------------------------------------------------
    NETWORK
    -------------------------------------------------------------------------- */
@@ -262,6 +273,8 @@
   inset: 0;
   width: 100%;
   height: 100%;
+  /* Each strand starts on its hero tip, usually above the band. */
+  overflow: visible;
 }
 
 /* --------------------------------------------------------------------------

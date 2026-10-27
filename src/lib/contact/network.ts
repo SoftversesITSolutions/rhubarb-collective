@@ -34,7 +34,9 @@ import type { Tier } from "@/lib/hero/config";
 import { NETWORK_SEED } from "@/lib/hero/config";
 import type { KeepOut, NetworkNode, OrganicNetwork } from "@/lib/hero/network";
 import { generateCascade, type CascadeInlet } from "@/lib/first-growth/cascade";
-import { readExits } from "@/lib/network/continuity";
+import { CALM_LINES, calmed } from "@/lib/network/calm";
+import { closeSeam, readExits } from "@/lib/network/continuity";
+import { JOURNAL_EXITS } from "@/lib/network/seams";
 import {
   anchorPeople,
   layoutRect,
@@ -51,8 +53,6 @@ import {
   CONTACT_DESCENT,
   CONTACT_SHAPE,
   ITEM_INFLUENCE_CAP,
-  MAX_INLETS,
-  MIN_INLETS,
   SEGMENT_BUDGET_MULTIPLIER,
 } from "./config";
 
@@ -82,6 +82,7 @@ export const CONTACT_COPY_SELECTOR = [
   ".contact__gstin",
   ".contact__logo",
   ".footer-subscribe",
+  ".footer-credits__toggle",
 ].join(",");
 
 /* ------------------------------------------------------------------ *
@@ -146,11 +147,7 @@ export function readJournalExits(tier: Tier): CascadeInlet[] | null {
 
   // Section 7's trunks, deepest first — the shared seam contract. See
   // `lib/network/continuity`.
-  const kept = readExits(network, {
-    min: MIN_INLETS[tier],
-    max: MAX_INLETS[tier],
-    spacing: CONTACT_SHAPE[tier].inletSpacing,
-  });
+  const kept = readExits(network, JOURNAL_EXITS(tier));
 
   if (!kept.length) return null;
 
@@ -220,7 +217,7 @@ export function generateContactNetwork(input: ContactFieldInput): OrganicNetwork
     });
   }
 
-  return generateCascade({
+  const network = generateCascade(calmed({
     seed: NETWORK_SEED + 487,
     width: input.width,
     height: input.height,
@@ -243,7 +240,16 @@ export function generateContactNetwork(input: ContactFieldInput): OrganicNetwork
     baseWidth: shape.baseWidth,
     keepOut,
     margin: 26,
-  });
+    // Calm lines (round 3): on the 390 column the copy blocks run the full
+    // width, and the arriving trunk ping-ponged between them and the top edge
+    // — 25 runs in the top 150px of Proof, a knot holding ~10% of its ink.
+    // There it carries on behind the copy instead, as Journal's does.
+    behindBelow: CALM_LINES && input.tier === "mobile" ? 0 : undefined,
+  }, "strong"));
+  // The page's last field has nothing below to continue a strand, so every
+  // one that would reach the foot is closed above it — nothing on the page
+  // ends cut by its bottom edge.
+  return closeSeam(network, { min: 0, max: 0, spacing: 1 });
 }
 
 /* ------------------------------------------------------------------ *

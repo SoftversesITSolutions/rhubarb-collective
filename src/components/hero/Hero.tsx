@@ -55,7 +55,7 @@ export function Hero() {
       <div ref={stageRef} className="hero__stage">
         {network && <HeroNetwork network={network} />}
         <HeroTypography />
-        {network && <HeroBoundary descenders={network.descenders} />}
+        {network && <HeroBoundary descenders={network.descenders} field={network} />}
         {/*
           Always rendered, never gated on the network: it is the first thing
           on screen, so its image must be in the server HTML to be preloaded,

@@ -28,7 +28,9 @@ import type { Tier } from "@/lib/hero/config";
 import { NETWORK_SEED } from "@/lib/hero/config";
 import type { KeepOut, NetworkNode, OrganicNetwork } from "@/lib/hero/network";
 import { generateCascade, type CascadeInlet } from "@/lib/first-growth/cascade";
-import { readExits } from "@/lib/network/continuity";
+import { calmed } from "@/lib/network/calm";
+import { closeSeam, readExits } from "@/lib/network/continuity";
+import { JOURNAL_EXITS, PROOF_EXITS } from "@/lib/network/seams";
 import {
   anchorPeople,
   layoutRect,
@@ -45,8 +47,6 @@ import {
   ITEM_INFLUENCE_CAP,
   JOURNAL_DESCENT,
   JOURNAL_SHAPE,
-  MAX_INLETS,
-  MIN_INLETS,
   SEGMENT_BUDGET_MULTIPLIER,
 } from "./config";
 
@@ -140,11 +140,7 @@ export function readProofExits(tier: Tier): CascadeInlet[] | null {
 
   // Section 6's trunks, deepest first — the shared seam contract. See
   // `lib/network/continuity`.
-  const kept = readExits(network, {
-    min: MIN_INLETS[tier],
-    max: MAX_INLETS[tier],
-    spacing: JOURNAL_SHAPE[tier].inletSpacing,
-  });
+  const kept = readExits(network, PROOF_EXITS(tier));
 
   if (!kept.length) return null;
 
@@ -174,7 +170,17 @@ export interface JournalFieldInput {
   inlets: CascadeInlet[];
 }
 
+/**
+ * The section's network with its seam closed: every strand crossing the foot
+ * that the next section does not continue ends above the boundary instead of
+ * being cut by it (`closeSeam`, round 3). The section's own component and the
+ * next section's exit reader both come through here, so they agree exactly.
+ */
 export function generateJournalNetwork(input: JournalFieldInput): OrganicNetwork {
+  return closeSeam(growJournalNetwork(input), JOURNAL_EXITS(input.tier));
+}
+
+function growJournalNetwork(input: JournalFieldInput): OrganicNetwork {
   const shape = JOURNAL_SHAPE[input.tier];
   const descent = JOURNAL_DESCENT[input.tier];
 
@@ -220,7 +226,7 @@ export function generateJournalNetwork(input: JournalFieldInput): OrganicNetwork
     });
   }
 
-  return generateCascade({
+  return generateCascade(calmed({
     seed: NETWORK_SEED + 433,
     width: input.width,
     height: input.height,
@@ -251,7 +257,11 @@ export function generateJournalNetwork(input: JournalFieldInput): OrganicNetwork
     baseWidth: shape.baseWidth,
     keepOut,
     margin: 26,
-  });
+    // The narrow tier's single trunk otherwise stalls above the full-width
+    // taxonomy list and never reaches the seam Contact continues.
+    behindBelow: input.tier === "mobile" ? 0 : undefined,
+    finishInMargin: true,
+  }, "medium"));
 }
 
 /* ------------------------------------------------------------------ *
